@@ -388,19 +388,21 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         <div className="p-4 bg-white rounded-lg border border-slate-200">
           <div className="flex items-center gap-2 text-slate-500 text-sm mb-3"><Filter size={16}/> 筛选条件:</div>
 
-          {/* 第一行：任务名称搜索 + 清空筛选按钮 */}
-          <div className="flex gap-4 items-end mb-3">
-            <div className="flex-1">
-              <label className="block text-xs text-slate-600 mb-1">任务名称</label>
-              <input
-                type="text"
-                placeholder="输入任务名称关键词..."
-                className="w-full border rounded px-3 py-2 text-sm"
-                value={filterTaskName}
-                onChange={e => setFilterTaskName(e.target.value)}
-              />
-            </div>
-            <div className="min-w-[120px]">
+          {/* 第一行：任务名称搜索 */}
+          <div className="mb-3">
+            <label className="block text-xs text-slate-600 mb-1">任务名称</label>
+            <input
+              type="text"
+              placeholder="输入任务名称关键词..."
+              className="w-full border rounded px-3 py-2 text-sm"
+              value={filterTaskName}
+              onChange={e => setFilterTaskName(e.target.value)}
+            />
+          </div>
+
+          {/* 第二行：清空筛选 + 其他筛选条件 */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="min-w-[130px]">
               <label className="invisible block text-xs text-slate-600 mb-1">操作</label>
               <button
                 onClick={() => {
@@ -424,10 +426,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 清空筛选
               </button>
             </div>
-          </div>
-
-          {/* 第二行：其他筛选条件 */}
-          <div className="flex flex-wrap gap-3 items-end">
             <div className="min-w-[130px]">
               <label className="block text-xs text-slate-600 mb-1">分类</label>
               <select className="w-full border rounded px-2 py-2 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>

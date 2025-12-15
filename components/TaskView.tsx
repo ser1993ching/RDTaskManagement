@@ -60,8 +60,16 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [filterStartDateTo, setFilterStartDateTo] = useState('');
   const [filterThisWeek, setFilterThisWeek] = useState(false);
   const [filterThisMonth, setFilterThisMonth] = useState(false);
+  const [filterTaskName, setFilterTaskName] = useState('');
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
+
+  // Initialize default filter to show tasks from last 2 months
+  useEffect(() => {
+    const now = new Date();
+    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+    setFilterStartDateFrom(twoMonthsAgo.toISOString().split('T')[0]);
+  }, []);
 
   // Helper function to check if a date is in current week
   const isInCurrentWeek = (dateStr: string) => {
@@ -90,6 +98,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       (filterCategory ? t.Category === filterCategory : true) &&
       (filterAssignee ? t.AssigneeID === filterAssignee : true) &&
       (filterCapacityLevel ? t.CapacityLevel === filterCapacityLevel : true) &&
+      (filterTaskName ? t.TaskName.toLowerCase().includes(filterTaskName.toLowerCase()) : true) &&
       (filterStartDateFrom ? (t.StartDate ? new Date(t.StartDate) >= new Date(filterStartDateFrom) : true) : true) &&
       (filterStartDateTo ? (t.StartDate ? new Date(t.StartDate) <= new Date(filterStartDateTo) : true) : true) &&
       (filterThisWeek ? isInCurrentWeek(t.StartDate || '') : true) &&
@@ -378,44 +387,58 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
         <div className="p-4 bg-white rounded-lg border border-slate-200">
           <div className="flex items-center gap-2 text-slate-500 text-sm mb-3"><Filter size={16}/> 筛选条件:</div>
+
+          {/* 第一行：任务名称搜索 */}
+          <div className="mb-3">
+            <label className="block text-xs text-slate-600 mb-1">任务名称</label>
+            <input
+              type="text"
+              placeholder="输入任务名称关键词..."
+              className="w-full border rounded px-3 py-2 text-sm"
+              value={filterTaskName}
+              onChange={e => setFilterTaskName(e.target.value)}
+            />
+          </div>
+
+          {/* 第二行：其他筛选条件 */}
           <div className="flex flex-wrap gap-4 items-end">
-            <div>
+            <div className="min-w-[140px]">
               <label className="block text-xs text-slate-600 mb-1">分类</label>
-              <select className="border rounded px-2 py-1 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+              <select className="w-full border rounded px-2 py-2 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
                 <option value="">所有分类</option>
                 {activeTaskClass && CATEGORY_CONFIG[activeTaskClass.code]?.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div>
+            <div className="min-w-[140px]">
               <label className="block text-xs text-slate-600 mb-1">容量等级</label>
-              <select className="border rounded px-2 py-1 text-sm" value={filterCapacityLevel} onChange={e => setFilterCapacityLevel(e.target.value)}>
+              <select className="w-full border rounded px-2 py-2 text-sm" value={filterCapacityLevel} onChange={e => setFilterCapacityLevel(e.target.value)}>
                 <option value="">所有容量等级</option>
                 {CAPACITY_LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
               </select>
             </div>
-            <div>
+            <div className="min-w-[140px]">
               <label className="block text-xs text-slate-600 mb-1">状态</label>
-              <select className="border rounded px-2 py-1 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <select className="w-full border rounded px-2 py-2 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                 <option value="">所有状态</option>
                 {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            <div>
+            <div className="min-w-[140px]">
               <label className="block text-xs text-slate-600 mb-1">负责人</label>
-              <select className="border rounded px-2 py-1 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
+              <select className="w-full border rounded px-2 py-2 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
                 <option value="">所有负责人</option>
                 {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
               </select>
             </div>
-            <div>
+            <div className="min-w-[140px]">
               <label className="block text-xs text-slate-600 mb-1">开始日期(从)</label>
-              <input type="date" className="border rounded px-2 py-1 text-sm" value={filterStartDateFrom} onChange={e => setFilterStartDateFrom(e.target.value)} />
+              <input type="date" className="w-full border rounded px-2 py-2 text-sm" value={filterStartDateFrom} onChange={e => setFilterStartDateFrom(e.target.value)} />
             </div>
-            <div>
+            <div className="min-w-[140px]">
               <label className="block text-xs text-slate-600 mb-1">开始日期(到)</label>
-              <input type="date" className="border rounded px-2 py-1 text-sm" value={filterStartDateTo} onChange={e => setFilterStartDateTo(e.target.value)} />
+              <input type="date" className="w-full border rounded px-2 py-2 text-sm" value={filterStartDateTo} onChange={e => setFilterStartDateTo(e.target.value)} />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="min-w-[140px] flex items-end gap-2 pb-2">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={filterThisWeek} onChange={e => {
                   setFilterThisWeek(e.target.checked);
@@ -423,6 +446,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 }} />
                 <span className="text-slate-700">本周任务</span>
               </label>
+            </div>
+            <div className="min-w-[140px] flex items-end gap-2 pb-2">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={filterThisMonth} onChange={e => {
                   setFilterThisMonth(e.target.checked);
@@ -431,22 +456,29 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <span className="text-slate-700">本月任务</span>
               </label>
             </div>
-            <button
-              onClick={() => {
-                setFilterProject('');
-                setFilterStatus('');
-                setFilterCategory('');
-                setFilterAssignee('');
-                setFilterCapacityLevel('');
-                setFilterStartDateFrom('');
-                setFilterStartDateTo('');
-                setFilterThisWeek(false);
-                setFilterThisMonth(false);
-              }}
-              className="text-sm text-slate-600 hover:text-slate-900 px-3 py-1 border rounded hover:bg-slate-50"
-            >
-              清空筛选
-            </button>
+            <div className="min-w-[140px] flex items-end pb-2">
+              <button
+                onClick={() => {
+                  setFilterProject('');
+                  setFilterStatus('');
+                  setFilterCategory('');
+                  setFilterAssignee('');
+                  setFilterCapacityLevel('');
+                  setFilterStartDateFrom('');
+                  setFilterStartDateTo('');
+                  setFilterTaskName('');
+                  setFilterThisWeek(false);
+                  setFilterThisMonth(false);
+                  // 重新设置近两个月的默认筛选
+                  const now = new Date();
+                  const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+                  setFilterStartDateFrom(twoMonthsAgo.toISOString().split('T')[0]);
+                }}
+                className="w-full text-sm text-slate-600 hover:text-slate-900 px-3 py-2 border rounded hover:bg-slate-50"
+              >
+                清空筛选
+              </button>
+            </div>
           </div>
         </div>
 

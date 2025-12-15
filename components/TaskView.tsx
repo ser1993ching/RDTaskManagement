@@ -53,13 +53,47 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   // Filtering
   const [filterProject, setFilterProject] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterAssignee, setFilterAssignee] = useState('');
+  const [filterCapacityLevel, setFilterCapacityLevel] = useState('');
+  const [filterStartDateFrom, setFilterStartDateFrom] = useState('');
+  const [filterStartDateTo, setFilterStartDateTo] = useState('');
+  const [filterThisWeek, setFilterThisWeek] = useState(false);
+  const [filterThisMonth, setFilterThisMonth] = useState(false);
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
+
+  // Helper function to check if a date is in current week
+  const isInCurrentWeek = (dateStr: string) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+    startOfWeek.setHours(0, 0, 0, 0);
+    endOfWeek.setHours(23, 59, 59, 999);
+    return date >= startOfWeek && date <= endOfWeek;
+  };
+
+  // Helper function to check if a date is in current month
+  const isInCurrentMonth = (dateStr: string) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const now = new Date();
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  };
 
   const filteredTasks = tasks.filter(t => {
     return t.TaskClassID === activeTaskClassId &&
       (filterProject ? t.ProjectID === filterProject : true) &&
-      (filterStatus ? t.Status === filterStatus : true);
+      (filterStatus ? t.Status === filterStatus : true) &&
+      (filterCategory ? t.Category === filterCategory : true) &&
+      (filterAssignee ? t.AssigneeID === filterAssignee : true) &&
+      (filterCapacityLevel ? t.CapacityLevel === filterCapacityLevel : true) &&
+      (filterStartDateFrom ? (t.StartDate ? new Date(t.StartDate) >= new Date(filterStartDateFrom) : true) : true) &&
+      (filterStartDateTo ? (t.StartDate ? new Date(t.StartDate) <= new Date(filterStartDateTo) : true) : true) &&
+      (filterThisWeek ? isInCurrentWeek(t.StartDate || '') : true) &&
+      (filterThisMonth ? isInCurrentMonth(t.StartDate || '') : true);
   });
 
   const handleExport = () => {
@@ -167,26 +201,39 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
     return (
       <>
-        {/* 第一行：分类 + 关联项目 */}
-        <div className="col-span-1">
-          <label className="block text-sm font-medium mb-1">分类 *</label>
-          <select required className="w-full border rounded p-2"
-            value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})}>
-            {CATEGORY_CONFIG[activeTaskClass.code]?.map(v => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </div>
-
-        {isProjectRelated && (
-          <div className="col-span-1">
-            <label className="block text-sm font-medium mb-1">关联项目</label>
-            <select className="w-full border rounded p-2"
-               value={formData.ProjectID || ''}
-               onChange={e => setFormData({...formData, ProjectID: e.target.value})}>
-               <option value="">选择项目...</option>
-               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        {/* 第一行：分类 + 关联项目 + 容量等级（市场配合任务） */}
+        <div className="grid grid-cols-3 gap-4 col-span-2">
+          <div>
+            <label className="block text-sm font-medium mb-1">分类 *</label>
+            <select required className="w-full border rounded p-2"
+              value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})}>
+              {CATEGORY_CONFIG[activeTaskClass.code]?.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
-        )}
+
+          {isProjectRelated && (
+            <div>
+              <label className="block text-sm font-medium mb-1">关联项目</label>
+              <select className="w-full border rounded p-2"
+                 value={formData.ProjectID || ''}
+                 onChange={e => setFormData({...formData, ProjectID: e.target.value})}>
+                 <option value="">选择项目...</option>
+                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {activeTaskClass.code === 'MARKET' && (
+            <div>
+              <label className="block text-sm font-medium mb-1">容量等级</label>
+              <select className="w-full border rounded p-2"
+                value={formData.CapacityLevel || ''} onChange={e => setFormData({...formData, CapacityLevel: e.target.value})}>
+                <option value="">请选择容量等级...</option>
+                {CAPACITY_LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
 
         {/* 第二行：负责人（差旅任务只显示负责人，其他任务显示负责人、校核人、审查人） */}
         {isTravel ? (
@@ -246,33 +293,28 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               value={formData.Workload || ''} onChange={e => setFormData({...formData, Workload: parseFloat(e.target.value)})} />
         </div>
 
-        {/* 第四行：截止日期 + 容量等级（仅市场配合任务）/其他字段 */}
-        <div className="col-span-1">
-           <label className="block text-sm font-medium mb-1">截止日期</label>
-           <input type="date" className="w-full border rounded p-2"
-             value={formData.DueDate || ''} onChange={e => setFormData({...formData, DueDate: e.target.value})} />
+        {/* 第四行：任务开始日期 + 截止日期 + 其他字段 */}
+        <div className="grid grid-cols-2 gap-4 col-span-2">
+          <div>
+            <label className="block text-sm font-medium mb-1">任务开始日期</label>
+            <input type="date" className="w-full border rounded p-2"
+              value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">截止日期</label>
+            <input type="date" className="w-full border rounded p-2"
+              value={formData.DueDate || ''} onChange={e => setFormData({...formData, DueDate: e.target.value})} />
+          </div>
         </div>
 
-        {/* 市场配合任务特有的容量等级字段，或差旅任务的字段 */}
-        {activeTaskClass.code === 'MARKET' ? (
+        {/* 差旅任务的特殊字段 */}
+        {isTravel && (
           <div className="col-span-1">
-            <label className="block text-sm font-medium mb-1">容量等级</label>
-            <select className="w-full border rounded p-2"
-              value={formData.CapacityLevel || ''} onChange={e => setFormData({...formData, CapacityLevel: e.target.value})}>
-              <option value="">请选择容量等级...</option>
-              {CAPACITY_LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
-            </select>
+            <label className="block text-sm font-medium mb-1">出差地点 *</label>
+            <input required type="text" className="w-full border rounded p-2"
+              value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})} />
           </div>
-        ) : isTravel ? (
-          <>
-            <div className="col-span-1">
-              <label className="block text-sm font-medium mb-1">出差地点 *</label>
-              <input required type="text" className="w-full border rounded p-2"
-                value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})} />
-            </div>
-          </>
-        ) : (
-          <div></div>
         )}
 
         {/* 差旅任务的出差时长（如果需要的话） */}
@@ -334,16 +376,87 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           </div>
         </div>
 
-        <div className="flex gap-4 p-4 bg-white rounded-lg border border-slate-200">
-          <div className="flex items-center gap-2 text-slate-500 text-sm"><Filter size={16}/> 筛选:</div>
-          <select className="border rounded px-2 py-1 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">所有状态</option>
-            {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select className="border rounded px-2 py-1 text-sm max-w-xs" value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-            <option value="">所有项目</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+        <div className="p-4 bg-white rounded-lg border border-slate-200">
+          <div className="flex items-center gap-2 text-slate-500 text-sm mb-3"><Filter size={16}/> 筛选条件:</div>
+          <div className="grid grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">状态</label>
+              <select className="w-full border rounded px-2 py-1 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="">所有状态</option>
+                {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">项目</label>
+              <select className="w-full border rounded px-2 py-1 text-sm" value={filterProject} onChange={e => setFilterProject(e.target.value)}>
+                <option value="">所有项目</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">分类</label>
+              <select className="w-full border rounded px-2 py-1 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                <option value="">所有分类</option>
+                {activeTaskClass && CATEGORY_CONFIG[activeTaskClass.code]?.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">负责人</label>
+              <select className="w-full border rounded px-2 py-1 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
+                <option value="">所有负责人</option>
+                {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">容量等级</label>
+              <select className="w-full border rounded px-2 py-1 text-sm" value={filterCapacityLevel} onChange={e => setFilterCapacityLevel(e.target.value)}>
+                <option value="">所有容量等级</option>
+                {CAPACITY_LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">开始日期(从)</label>
+              <input type="date" className="w-full border rounded px-2 py-1 text-sm" value={filterStartDateFrom} onChange={e => setFilterStartDateFrom(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">开始日期(到)</label>
+              <input type="date" className="w-full border rounded px-2 py-1 text-sm" value={filterStartDateTo} onChange={e => setFilterStartDateTo(e.target.value)} />
+            </div>
+            <div className="flex items-end gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={filterThisWeek} onChange={e => {
+                  setFilterThisWeek(e.target.checked);
+                  if (e.target.checked) setFilterThisMonth(false);
+                }} />
+                <span className="text-slate-700">本周任务</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={filterThisMonth} onChange={e => {
+                  setFilterThisMonth(e.target.checked);
+                  if (e.target.checked) setFilterThisWeek(false);
+                }} />
+                <span className="text-slate-700">本月任务</span>
+              </label>
+            </div>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() => {
+                setFilterProject('');
+                setFilterStatus('');
+                setFilterCategory('');
+                setFilterAssignee('');
+                setFilterCapacityLevel('');
+                setFilterStartDateFrom('');
+                setFilterStartDateTo('');
+                setFilterThisWeek(false);
+                setFilterThisMonth(false);
+              }}
+              className="text-sm text-slate-600 hover:text-slate-900 px-3 py-1 border rounded hover:bg-slate-50"
+            >
+              清空筛选
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0">
@@ -362,6 +475,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   </>
                 )}
                 <th className="px-6 py-4">容量等级</th>
+                <th className="px-6 py-4">开始日</th>
                 <th className="px-6 py-4">截止日</th>
                 <th className="px-6 py-4 text-right">操作</th>
               </tr>
@@ -391,6 +505,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     </>
                   )}
                   <td className="px-6 py-4">{t.CapacityLevel || '-'}</td>
+                  <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
                   <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
                   <td className="px-6 py-4 text-right">
                     <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
@@ -399,7 +514,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </tr>
               ))}
               {filteredTasks.length === 0 && (
-                <tr><td colSpan={filteredTasks.length > 0 && filteredTasks[0].TaskClassID !== 'TC008' ? 9 : 7} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
+                <tr><td colSpan={10} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
               )}
             </tbody>
           </table>

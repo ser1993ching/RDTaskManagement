@@ -30,10 +30,10 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
   return (
     <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-slate-600 to-slate-700 text-white flex flex-col shadow-xl transition-all duration-300">
-        <div className="p-6 border-b border-slate-500/50">
-          <h1 className="text-xl font-bold tracking-wider">汽发任务管理系统</h1>
-         
+      <aside className="w-56 bg-gradient-to-b from-slate-600 to-slate-700 text-white flex flex-col shadow-xl transition-all duration-300">
+        <div className="p-4 border-b border-slate-500/50">
+          <h1 className="text-lg font-bold tracking-wider">汽发任务管理系统</h1>
+
         </div>
 
         <nav className="flex-1 py-6 px-3 space-y-2">

@@ -204,7 +204,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         {/* 第一行：分类 + 关联项目 + 容量等级（市场配合任务） */}
         <div className="grid grid-cols-3 gap-4 col-span-2">
           <div>
-            <label className="block text-sm font-medium mb-1">分类 *</label>
+            <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 分类</label>
             <select required className="w-full border rounded p-2"
               value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})}>
               {CATEGORY_CONFIG[activeTaskClass.code]?.map(v => <option key={v} value={v}>{v}</option>)}
@@ -311,7 +311,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         {/* 差旅任务的特殊字段 */}
         {isTravel && (
           <div className="col-span-1">
-            <label className="block text-sm font-medium mb-1">出差地点 *</label>
+            <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 出差地点</label>
             <input required type="text" className="w-full border rounded p-2"
               value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})} />
           </div>
@@ -378,51 +378,44 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
         <div className="p-4 bg-white rounded-lg border border-slate-200">
           <div className="flex items-center gap-2 text-slate-500 text-sm mb-3"><Filter size={16}/> 筛选条件:</div>
-          <div className="grid grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs text-slate-600 mb-1">状态</label>
-              <select className="w-full border rounded px-2 py-1 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="">所有状态</option>
-                {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-600 mb-1">项目</label>
-              <select className="w-full border rounded px-2 py-1 text-sm" value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-                <option value="">所有项目</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
+          <div className="flex flex-wrap gap-4 items-end">
             <div>
               <label className="block text-xs text-slate-600 mb-1">分类</label>
-              <select className="w-full border rounded px-2 py-1 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+              <select className="border rounded px-2 py-1 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
                 <option value="">所有分类</option>
                 {activeTaskClass && CATEGORY_CONFIG[activeTaskClass.code]?.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-600 mb-1">负责人</label>
-              <select className="w-full border rounded px-2 py-1 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
-                <option value="">所有负责人</option>
-                {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
-              </select>
-            </div>
-            <div>
               <label className="block text-xs text-slate-600 mb-1">容量等级</label>
-              <select className="w-full border rounded px-2 py-1 text-sm" value={filterCapacityLevel} onChange={e => setFilterCapacityLevel(e.target.value)}>
+              <select className="border rounded px-2 py-1 text-sm" value={filterCapacityLevel} onChange={e => setFilterCapacityLevel(e.target.value)}>
                 <option value="">所有容量等级</option>
                 {CAPACITY_LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
               </select>
             </div>
             <div>
+              <label className="block text-xs text-slate-600 mb-1">状态</label>
+              <select className="border rounded px-2 py-1 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="">所有状态</option>
+                {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">负责人</label>
+              <select className="border rounded px-2 py-1 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
+                <option value="">所有负责人</option>
+                {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="block text-xs text-slate-600 mb-1">开始日期(从)</label>
-              <input type="date" className="w-full border rounded px-2 py-1 text-sm" value={filterStartDateFrom} onChange={e => setFilterStartDateFrom(e.target.value)} />
+              <input type="date" className="border rounded px-2 py-1 text-sm" value={filterStartDateFrom} onChange={e => setFilterStartDateFrom(e.target.value)} />
             </div>
             <div>
               <label className="block text-xs text-slate-600 mb-1">开始日期(到)</label>
-              <input type="date" className="w-full border rounded px-2 py-1 text-sm" value={filterStartDateTo} onChange={e => setFilterStartDateTo(e.target.value)} />
+              <input type="date" className="border rounded px-2 py-1 text-sm" value={filterStartDateTo} onChange={e => setFilterStartDateTo(e.target.value)} />
             </div>
-            <div className="flex items-end gap-3">
+            <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={filterThisWeek} onChange={e => {
                   setFilterThisWeek(e.target.checked);
@@ -438,8 +431,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <span className="text-slate-700">本月任务</span>
               </label>
             </div>
-          </div>
-          <div className="mt-3 flex justify-end">
             <button
               onClick={() => {
                 setFilterProject('');
@@ -465,16 +456,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <tr>
                 <th className="px-6 py-4">任务名称</th>
                 <th className="px-6 py-4">分类</th>
+                <th className="px-6 py-4">容量等级</th>
                 <th className="px-6 py-4">状态</th>
                 <th className="px-6 py-4">负责人</th>
-                {/* 差旅任务不显示校核人和审查人列 */}
+                {/* 差旅任务不显示校核人列 */}
                 {filteredTasks.length > 0 && filteredTasks[0].TaskClassID !== 'TC008' && (
-                  <>
-                    <th className="px-6 py-4">校核人</th>
-                    <th className="px-6 py-4">审查人</th>
-                  </>
+                  <th className="px-6 py-4">校核人</th>
                 )}
-                <th className="px-6 py-4">容量等级</th>
                 <th className="px-6 py-4">开始日</th>
                 <th className="px-6 py-4">截止日</th>
                 <th className="px-6 py-4 text-right">操作</th>
@@ -488,6 +476,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <div className="text-xs text-slate-400">{t.TaskID}</div>
                   </td>
                   <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.Category}</span></td>
+                  <td className="px-6 py-4">{t.CapacityLevel || '-'}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded text-xs ${
                       t.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
@@ -497,14 +486,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     </span>
                   </td>
                   <td className="px-6 py-4">{users.find(u => u.UserID === t.AssigneeID)?.Name || '-'}</td>
-                  {/* 差旅任务不显示校核人和审查人列 */}
+                  {/* 差旅任务不显示校核人列 */}
                   {t.TaskClassID !== 'TC008' && (
-                    <>
-                      <td className="px-6 py-4">{users.find(u => u.UserID === t.ReviewerID)?.Name || '-'}</td>
-                      <td className="px-6 py-4">{users.find(u => u.UserID === t.ReviewerID2)?.Name || '-'}</td>
-                    </>
+                    <td className="px-6 py-4">{users.find(u => u.UserID === t.ReviewerID)?.Name || '-'}</td>
                   )}
-                  <td className="px-6 py-4">{t.CapacityLevel || '-'}</td>
                   <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
                   <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
                   <td className="px-6 py-4 text-right">
@@ -514,7 +499,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </tr>
               ))}
               {filteredTasks.length === 0 && (
-                <tr><td colSpan={10} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
               )}
             </tbody>
           </table>
@@ -527,7 +512,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <h3 className="text-xl font-bold mb-4">{editingTask ? '编辑任务' : `创建 ${activeTaskClass?.name || '任务'}`}</h3>
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">任务名称 *</label>
+                <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 任务名称</label>
                 <input required type="text" className="w-full border rounded p-2 bg-slate-50"
                   value={formData.TaskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
               </div>

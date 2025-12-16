@@ -105,16 +105,16 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
         <h2 className="text-2xl font-bold text-slate-800">人员管理</h2>
         <div className="flex gap-2">
           {canEdit && (
-            <button 
+            <button
               onClick={() => openModal()}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none"
             >
               <Plus size={16} /> 新增人员
             </button>
           )}
-          <button 
+          <button
             onClick={handleExport}
-            className="flex items-center gap-2 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50"
+            className="flex items-center gap-2 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 focus:outline-none"
           >
             <Download size={16} /> 导出清单
           </button>
@@ -275,8 +275,8 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
               )}
 
               <div className="col-span-2 flex justify-end gap-3 mt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50">取消</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">保存</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none">保存</button>
               </div>
             </form>
           </div>

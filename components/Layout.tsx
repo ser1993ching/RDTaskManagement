@@ -41,7 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
             <button
               key={item.id}
               onClick={() => onChangeView(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`nav-button w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-0 ${
                 currentView === item.id
                   ? 'bg-blue-600 text-white shadow-lg transform scale-[1.02]'
                   : 'text-slate-300 hover:bg-slate-600/50 hover:text-white hover:translate-x-1'
@@ -63,9 +63,9 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
               <p className="text-xs text-slate-400">{currentUser.SystemRole}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 text-sm text-red-300 hover:text-red-100 py-2 border border-red-900/50 hover:bg-red-900/30 rounded"
+            className="nav-button w-full flex items-center justify-center gap-2 text-sm text-red-300 hover:text-red-100 py-2 border border-red-900/50 hover:bg-red-900/30 rounded focus:outline-none focus:ring-0"
           >
             <LogOut size={14} />
             退出登录

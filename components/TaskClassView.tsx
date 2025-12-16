@@ -63,7 +63,7 @@ export const TaskClassView: React.FC<TaskClassViewProps> = ({ currentUser }) => 
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 focus:outline-none"
         >
           <Plus size={18} />
           新增任务类
@@ -117,7 +117,7 @@ export const TaskClassView: React.FC<TaskClassViewProps> = ({ currentUser }) => 
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 focus:outline-none"
               >
                 <Save size={18} />
                 保存
@@ -125,7 +125,7 @@ export const TaskClassView: React.FC<TaskClassViewProps> = ({ currentUser }) => 
               <button
                 type="button"
                 onClick={handleCancel}
-                className="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors flex items-center gap-2"
+                className="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition-colors flex items-center gap-2 focus:outline-none"
               >
                 <X size={18} />
                 取消

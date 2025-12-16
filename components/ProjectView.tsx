@@ -85,7 +85,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
             <button
               key={cat}
               onClick={() => setActiveTab(cat)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`nav-button w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-0 ${
                 activeTab === cat
                   ? 'bg-blue-100 text-blue-800 border-l-4 border-blue-600 shadow-md font-semibold'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -111,11 +111,11 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
           </div>
           <div className="flex gap-2">
             {canEdit && (
-              <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+              <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none">
                 <Plus size={16} /> 创建项目
               </button>
             )}
-            <button onClick={handleExport} className="flex items-center gap-2 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50">
+            <button onClick={handleExport} className="flex items-center gap-2 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 focus:outline-none">
               <Download size={16} /> 导出
             </button>
           </div>
@@ -208,8 +208,8 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
               )}
 
               <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50">取消</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">保存项目</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none">保存项目</button>
               </div>
             </form>
           </div>

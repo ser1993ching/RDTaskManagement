@@ -347,7 +347,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <button
               key={taskClass.id}
               onClick={() => setActiveTaskClassId(taskClass.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`nav-button w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none focus:ring-0 ${
                 activeTaskClassId === taskClass.id
                   ? 'bg-blue-100 text-blue-800 border-l-4 border-blue-600 shadow-md font-semibold'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -376,10 +376,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none">
               <Plus size={16} /> 创建任务
             </button>
-            <button onClick={handleExport} className="flex items-center gap-2 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50">
+            <button onClick={handleExport} className="flex items-center gap-2 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 focus:outline-none">
               <Download size={16} /> 导出
             </button>
           </div>
@@ -421,7 +421,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
                   setFilterStartDateFrom(twoMonthsAgo.toISOString().split('T')[0]);
                 }}
-                className="w-full text-sm text-slate-600 hover:text-slate-900 px-3 py-2 border rounded hover:bg-slate-50"
+                className="w-full text-sm text-slate-700 hover:text-slate-900 px-2 py-2 border border-slate-300 rounded hover:bg-slate-50 transition-colors focus:outline-none focus:ring-0"
               >
                 清空筛选
               </button>
@@ -559,8 +559,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               </div>
 
               <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50">取消</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">保存任务</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none">保存任务</button>
               </div>
             </form>
           </div>

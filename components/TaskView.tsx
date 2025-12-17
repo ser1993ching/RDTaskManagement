@@ -964,132 +964,139 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       {/* 任务详细信息弹窗 */}
       {isDetailModalOpen && selectedTask && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
             {/* 头部 */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <Info size={24} />
+                <div className="bg-white/20 p-1.5 rounded-lg">
+                  <Info size={20} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold">任务详细信息</h3>
-                  <p className="text-blue-100 text-sm mt-1">Task Details</p>
+                  <h3 className="text-lg font-bold">任务详细信息</h3>
+                  <p className="text-blue-100 text-xs mt-0.5">Task Details</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsDetailModalOpen(false)}
-                className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all"
+                className="text-white/80 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all"
               >
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
 
             {/* 内容 */}
-            <div className="overflow-y-auto flex-1 p-6">
-              <div className="space-y-6">
+            <div className="overflow-y-auto flex-1 p-4">
+              <div className="space-y-4">
                 {/* 基本信息卡片 */}
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
-                    <h4 className="text-lg font-semibold text-slate-800">基本信息</h4>
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-3 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                    <h4 className="text-sm font-semibold text-slate-800">基本信息</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
                         任务ID
                       </label>
-                      <div className="text-slate-900 font-mono text-sm">{selectedTask.TaskID}</div>
+                      <div className="text-slate-900 font-mono text-xs">{selectedTask.TaskID}</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                    <div className="bg-white rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
                         任务状态
                       </label>
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                         selectedTask.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
                         selectedTask.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
                       }`}>
                         {selectedTask.Status}
                       </span>
                     </div>
+                    <div className="bg-white rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                        预估工时(h)
+                      </label>
+                      <div className="text-slate-900 text-sm">{selectedTask.Workload || '-'}</div>
+                    </div>
                   </div>
-                  <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                  <div className="mt-3 bg-white rounded-md p-3 shadow-sm">
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                      <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
                       任务名称
                     </label>
-                    <div className="text-slate-900 font-medium text-base">{selectedTask.TaskName}</div>
+                    <div className="text-slate-900 font-medium text-sm">{selectedTask.TaskName}</div>
                   </div>
                 </div>
 
                 {/* 分类信息卡片 */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
-                    <h4 className="text-lg font-semibold text-slate-800">分类信息</h4>
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                    <h4 className="text-sm font-semibold text-slate-800">分类信息</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         任务分类
                       </label>
-                      <div className="text-slate-900 font-medium">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
+                      <div className="text-slate-900 font-medium text-sm">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
                     </div>
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         二级分类
                       </label>
-                      <div className="text-slate-900">{selectedTask.Category || '-'}</div>
+                      <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
                     </div>
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         关联项目
                       </label>
-                      <div className="text-slate-900">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                      <div className="text-slate-900 text-sm">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
                     </div>
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         容量等级
                       </label>
-                      <div className="text-slate-900">{selectedTask.CapacityLevel || '-'}</div>
+                      <div className="text-slate-900 text-sm">{selectedTask.CapacityLevel || '-'}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* 人员信息卡片 */}
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-200">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-5 bg-purple-500 rounded-full"></div>
-                    <h4 className="text-lg font-semibold text-slate-800">人员信息</h4>
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-3 border border-purple-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                    <h4 className="text-sm font-semibold text-slate-800">人员信息</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <UserIcon size={14} className="text-purple-500" />
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <UserIcon size={12} className="text-purple-500" />
                         负责人
                       </label>
-                      <div className="text-slate-900 font-medium">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
+                      <div className="text-slate-900 font-medium text-sm">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
                     </div>
                     {selectedTask.TaskClassID !== 'TC008' && (
                       <>
-                        <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                          <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                            <UserIcon size={14} className="text-purple-500" />
+                        <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                            <UserIcon size={12} className="text-purple-500" />
                             校核人
                           </label>
-                          <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
+                          <div className="text-slate-900 text-sm">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
                         </div>
-                        <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                          <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                            <UserIcon size={14} className="text-purple-500" />
+                        <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                            <UserIcon size={12} className="text-purple-500" />
                             审查人
                           </label>
-                          <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
+                          <div className="text-slate-900 text-sm">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
                         </div>
                       </>
                     )}
@@ -1097,57 +1104,50 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 时间信息卡片 */}
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-5 bg-amber-500 rounded-full"></div>
-                    <h4 className="text-lg font-semibold text-slate-800">时间信息</h4>
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-3 border border-amber-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
+                    <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <Calendar size={14} className="text-amber-500" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <Calendar size={12} className="text-amber-500" />
                         开始日期
                       </label>
-                      <div className="text-slate-900">{selectedTask.StartDate || '-'}</div>
+                      <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
                     </div>
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <Calendar size={14} className="text-amber-500" />
+                    <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <Calendar size={12} className="text-amber-500" />
                         截止日期
                       </label>
-                      <div className="text-slate-900">{selectedTask.DueDate || '-'}</div>
-                    </div>
-                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                        <Clock size={14} className="text-amber-500" />
-                        预估工时(h)
-                      </label>
-                      <div className="text-slate-900">{selectedTask.Workload || '-'}</div>
+                      <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* 差旅信息 */}
                 {selectedTask.TaskClassID === 'TC008' && (
-                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-5 border border-teal-200">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-1 h-5 bg-teal-500 rounded-full"></div>
-                      <h4 className="text-lg font-semibold text-slate-800">差旅信息</h4>
+                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-3 border border-teal-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 bg-teal-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">差旅信息</h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                          <MapPin size={14} className="text-teal-500" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <MapPin size={12} className="text-teal-500" />
                           出差地点
                         </label>
-                        <div className="text-slate-900">{selectedTask.TravelLocation || '-'}</div>
+                        <div className="text-slate-900 text-sm">{selectedTask.TravelLocation || '-'}</div>
                       </div>
-                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                          <Clock size={14} className="text-teal-500" />
+                      <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Clock size={12} className="text-teal-500" />
                           出差时长(天)
                         </label>
-                        <div className="text-slate-900">{selectedTask.TravelDuration || '-'}</div>
+                        <div className="text-slate-900 text-sm">{selectedTask.TravelDuration || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1155,70 +1155,70 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
                 {/* 管理员/班组长可见的额外信息 */}
                 {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
-                  <div className="bg-gradient-to-br from-rose-50 to-red-50 rounded-xl p-5 border border-rose-200">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-1 h-5 bg-rose-500 rounded-full"></div>
-                      <h4 className="text-lg font-semibold text-slate-800">工作量统计</h4>
+                  <div className="bg-gradient-to-br from-rose-50 to-red-50 rounded-lg p-3 border border-rose-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 bg-rose-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">工作量统计</h4>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                          <Clock size={14} className="text-rose-500" />
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Clock size={12} className="text-rose-500" />
                           校核人工时(h)
                         </label>
-                        <div className="text-slate-900">{selectedTask.ReviewerWorkload || '-'}</div>
+                        <div className="text-slate-900 text-sm">{selectedTask.ReviewerWorkload || '-'}</div>
                       </div>
-                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                          <Clock size={14} className="text-rose-500" />
+                      <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Clock size={12} className="text-rose-500" />
                           审查人2工时(h)
                         </label>
-                        <div className="text-slate-900">{selectedTask.Reviewer2Workload || '-'}</div>
+                        <div className="text-slate-900 text-sm">{selectedTask.Reviewer2Workload || '-'}</div>
                       </div>
-                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
-                          <div className="w-2 h-2 bg-rose-400 rounded-full"></div>
+                      <div className="bg-white/80 rounded-md p-3 shadow-sm">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-rose-400 rounded-full"></div>
                           难度系数
                         </label>
-                        <div className="text-slate-900">{selectedTask.Difficulty || '-'}</div>
+                        <div className="text-slate-900 text-sm">{selectedTask.Difficulty || '-'}</div>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* 创建信息 */}
-                <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-xl p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-5 bg-white rounded-full"></div>
-                    <h4 className="text-lg font-semibold">创建信息</h4>
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-3 border border-emerald-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                    <h4 className="text-sm font-semibold text-slate-800">创建信息</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                        <UserIcon size={14} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/90 rounded-md p-3 shadow-sm border border-emerald-100">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <UserIcon size={12} className="text-emerald-600" />
                         创建人
                       </label>
-                      <div className="text-white font-semibold text-lg">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
+                      <div className="text-slate-900 font-semibold text-sm">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
                     </div>
-                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
-                        <Calendar size={14} />
+                    <div className="bg-white/90 rounded-md p-3 shadow-sm border border-emerald-100">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <Calendar size={12} className="text-emerald-600" />
                         创建时间
                       </label>
-                      <div className="text-white font-semibold text-lg">{selectedTask.CreatedDate}</div>
+                      <div className="text-slate-900 font-semibold text-sm">{selectedTask.CreatedDate}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* 备注 */}
                 {selectedTask.Remark && (
-                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 border border-slate-200">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-1 h-5 bg-slate-500 rounded-full"></div>
-                      <h4 className="text-lg font-semibold text-slate-800">备注信息</h4>
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-3 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 bg-slate-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">备注信息</h4>
                     </div>
-                    <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
-                      <div className="text-slate-900 leading-relaxed">{selectedTask.Remark}</div>
+                    <div className="bg-white rounded-md p-3 shadow-sm border border-slate-200">
+                      <div className="text-slate-900 text-sm leading-relaxed">{selectedTask.Remark}</div>
                     </div>
                   </div>
                 )}
@@ -1226,12 +1226,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </div>
 
             {/* 底部按钮 */}
-            <div className="border-t border-slate-200 p-6 bg-slate-50">
+            <div className="border-t border-slate-200 p-3 bg-slate-50">
               <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={() => setIsDetailModalOpen(false)}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium transition-all shadow-md"
                 >
                   关闭
                 </button>

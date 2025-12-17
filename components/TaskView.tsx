@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Task, TaskClass, User, Project, TaskStatus } from '../types';
-import { Plus, Download, Edit2, Trash2, Filter } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface TaskViewProps {
@@ -963,147 +963,279 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
       {/* 任务详细信息弹窗 */}
       {isDetailModalOpen && selectedTask && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-slate-800">任务详细信息</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 duration-300">
+            {/* 头部 */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <Info size={24} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold">任务详细信息</h3>
+                  <p className="text-blue-100 text-sm mt-1">Task Details</p>
+                </div>
+              </div>
               <button
                 onClick={() => setIsDetailModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all"
               >
-                ×
+                <X size={24} />
               </button>
             </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">任务ID</label>
-                  <div className="text-slate-900">{selectedTask.TaskID}</div>
+
+            {/* 内容 */}
+            <div className="overflow-y-auto flex-1 p-6">
+              <div className="space-y-6">
+                {/* 基本信息卡片 */}
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
+                    <h4 className="text-lg font-semibold text-slate-800">基本信息</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                        任务ID
+                      </label>
+                      <div className="text-slate-900 font-mono text-sm">{selectedTask.TaskID}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                        任务状态
+                      </label>
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                        selectedTask.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
+                        selectedTask.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {selectedTask.Status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                      任务名称
+                    </label>
+                    <div className="text-slate-900 font-medium text-base">{selectedTask.TaskName}</div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">任务名称</label>
-                  <div className="text-slate-900 font-medium">{selectedTask.TaskName}</div>
+
+                {/* 分类信息卡片 */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
+                    <h4 className="text-lg font-semibold text-slate-800">分类信息</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        任务分类
+                      </label>
+                      <div className="text-slate-900 font-medium">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        二级分类
+                      </label>
+                      <div className="text-slate-900">{selectedTask.Category || '-'}</div>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        关联项目
+                      </label>
+                      <div className="text-slate-900">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        容量等级
+                      </label>
+                      <div className="text-slate-900">{selectedTask.CapacityLevel || '-'}</div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* 人员信息卡片 */}
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1 h-5 bg-purple-500 rounded-full"></div>
+                    <h4 className="text-lg font-semibold text-slate-800">人员信息</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <UserIcon size={14} className="text-purple-500" />
+                        负责人
+                      </label>
+                      <div className="text-slate-900 font-medium">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
+                    </div>
+                    {selectedTask.TaskClassID !== 'TC008' && (
+                      <>
+                        <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                            <UserIcon size={14} className="text-purple-500" />
+                            校核人
+                          </label>
+                          <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
+                        </div>
+                        <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                            <UserIcon size={14} className="text-purple-500" />
+                            审查人
+                          </label>
+                          <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* 时间信息卡片 */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1 h-5 bg-amber-500 rounded-full"></div>
+                    <h4 className="text-lg font-semibold text-slate-800">时间信息</h4>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <Calendar size={14} className="text-amber-500" />
+                        开始日期
+                      </label>
+                      <div className="text-slate-900">{selectedTask.StartDate || '-'}</div>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <Calendar size={14} className="text-amber-500" />
+                        截止日期
+                      </label>
+                      <div className="text-slate-900">{selectedTask.DueDate || '-'}</div>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                        <Clock size={14} className="text-amber-500" />
+                        预估工时(h)
+                      </label>
+                      <div className="text-slate-900">{selectedTask.Workload || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 差旅信息 */}
+                {selectedTask.TaskClassID === 'TC008' && (
+                  <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-5 border border-teal-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-1 h-5 bg-teal-500 rounded-full"></div>
+                      <h4 className="text-lg font-semibold text-slate-800">差旅信息</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                          <MapPin size={14} className="text-teal-500" />
+                          出差地点
+                        </label>
+                        <div className="text-slate-900">{selectedTask.TravelLocation || '-'}</div>
+                      </div>
+                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                          <Clock size={14} className="text-teal-500" />
+                          出差时长(天)
+                        </label>
+                        <div className="text-slate-900">{selectedTask.TravelDuration || '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 管理员/班组长可见的额外信息 */}
+                {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
+                  <div className="bg-gradient-to-br from-rose-50 to-red-50 rounded-xl p-5 border border-rose-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-1 h-5 bg-rose-500 rounded-full"></div>
+                      <h4 className="text-lg font-semibold text-slate-800">工作量统计</h4>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                          <Clock size={14} className="text-rose-500" />
+                          校核人工时(h)
+                        </label>
+                        <div className="text-slate-900">{selectedTask.ReviewerWorkload || '-'}</div>
+                      </div>
+                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                          <Clock size={14} className="text-rose-500" />
+                          审查人2工时(h)
+                        </label>
+                        <div className="text-slate-900">{selectedTask.Reviewer2Workload || '-'}</div>
+                      </div>
+                      <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-500 mb-2">
+                          <div className="w-2 h-2 bg-rose-400 rounded-full"></div>
+                          难度系数
+                        </label>
+                        <div className="text-slate-900">{selectedTask.Difficulty || '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 创建信息 */}
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1 h-5 bg-white rounded-full"></div>
+                    <h4 className="text-lg font-semibold">创建信息</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                        <UserIcon size={14} />
+                        创建人
+                      </label>
+                      <div className="text-white font-semibold text-lg">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                        <Calendar size={14} />
+                        创建时间
+                      </label>
+                      <div className="text-white font-semibold text-lg">{selectedTask.CreatedDate}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 备注 */}
+                {selectedTask.Remark && (
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-1 h-5 bg-slate-500 rounded-full"></div>
+                      <h4 className="text-lg font-semibold text-slate-800">备注信息</h4>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
+                      <div className="text-slate-900 leading-relaxed">{selectedTask.Remark}</div>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">任务分类</label>
-                  <div className="text-slate-900">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">二级分类</label>
-                  <div className="text-slate-900">{selectedTask.Category || '-'}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">关联项目</label>
-                  <div className="text-slate-900">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">容量等级</label>
-                  <div className="text-slate-900">{selectedTask.CapacityLevel || '-'}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">任务状态</label>
-                  <div className="text-slate-900">{selectedTask.Status}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">负责人</label>
-                  <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
-                </div>
-              </div>
-
-              {selectedTask.TaskClassID !== 'TC008' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">校核人</label>
-                    <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">审查人</label>
-                    <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">开始日期</label>
-                  <div className="text-slate-900">{selectedTask.StartDate || '-'}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">截止日期</label>
-                  <div className="text-slate-900">{selectedTask.DueDate || '-'}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">预估工时(h)</label>
-                  <div className="text-slate-900">{selectedTask.Workload || '-'}</div>
-                </div>
-              </div>
-
-              {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">校核人工时(h)</label>
-                    <div className="text-slate-900">{selectedTask.ReviewerWorkload || '-'}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">审查人2工时(h)</label>
-                    <div className="text-slate-900">{selectedTask.Reviewer2Workload || '-'}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">难度系数</label>
-                    <div className="text-slate-900">{selectedTask.Difficulty || '-'}</div>
-                  </div>
-                </div>
-              )}
-
-              {selectedTask.TaskClassID === 'TC008' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">出差地点</label>
-                    <div className="text-slate-900">{selectedTask.TravelLocation || '-'}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">出差时长(天)</label>
-                    <div className="text-slate-900">{selectedTask.TravelDuration || '-'}</div>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 border-t pt-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">创建人</label>
-                  <div className="text-slate-900 font-medium">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">创建时间</label>
-                  <div className="text-slate-900 font-medium">{selectedTask.CreatedDate}</div>
-                </div>
-              </div>
-
-              {selectedTask.Remark && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">备注</label>
-                  <div className="text-slate-900 bg-slate-50 p-3 rounded">{selectedTask.Remark}</div>
-                </div>
-              )}
             </div>
 
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none font-medium"
-              >
-                关闭
-              </button>
+            {/* 底部按钮 */}
+            <div className="border-t border-slate-200 p-6 bg-slate-50">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  关闭
+                </button>
+              </div>
             </div>
           </div>
         </div>

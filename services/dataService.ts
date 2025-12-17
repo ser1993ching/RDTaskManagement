@@ -1030,17 +1030,19 @@ class DataService {
   }
 
   init() {
-    // Force reinitialize to clear any old data with incorrect filters
-    localStorage.removeItem(STORAGE_KEYS.USERS);
-    localStorage.removeItem(STORAGE_KEYS.PROJECTS);
-    localStorage.removeItem(STORAGE_KEYS.TASKS);
-    localStorage.removeItem(STORAGE_KEYS.TASK_CLASSES);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(seedUsers));
-    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(seedProjects));
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
-    localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
+    // Only initialize if data doesn't exist, preserve current user session
+    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(seedUsers));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.PROJECTS)) {
+      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(seedProjects));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.TASKS)) {
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.TASK_CLASSES)) {
+      localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
+    }
   }
 
   // Users

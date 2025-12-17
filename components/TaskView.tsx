@@ -140,6 +140,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [formData, setFormData] = useState<Partial<Task>>({});
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // Set default active task class
   useEffect(() => {
@@ -392,6 +394,15 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
     setFormData(taskData);
     setIsModalOpen(true);
+  };
+
+  const openDetailModal = (task: Task) => {
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDoubleClick = (task: Task) => {
+    openDetailModal(task);
   };
 
   // Dynamic Form Field Renderer
@@ -803,7 +814,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTasks.map(t => (
-                <tr key={t.TaskID} className="hover:bg-blue-50 transition-colors">
+                <tr key={t.TaskID} className="hover:bg-blue-50 transition-colors cursor-pointer" onDoubleClick={() => handleDoubleClick(t)}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-900">{t.TaskName}</div>
                     <div className="text-xs text-slate-400">{t.TaskID}</div>
@@ -829,7 +840,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   )}
                   <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
                   <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
                     <button onClick={() => { if(confirm('删除任务?')) { dataService.deleteTask(t.TaskID); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                   </td>
@@ -944,6 +955,154 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none"
               >
                 确认创建
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 任务详细信息弹窗 */}
+      {isDetailModalOpen && selectedTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-slate-800">任务详细信息</h3>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">任务ID</label>
+                  <div className="text-slate-900">{selectedTask.TaskID}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">任务名称</label>
+                  <div className="text-slate-900 font-medium">{selectedTask.TaskName}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">任务分类</label>
+                  <div className="text-slate-900">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">二级分类</label>
+                  <div className="text-slate-900">{selectedTask.Category || '-'}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">关联项目</label>
+                  <div className="text-slate-900">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">容量等级</label>
+                  <div className="text-slate-900">{selectedTask.CapacityLevel || '-'}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">任务状态</label>
+                  <div className="text-slate-900">{selectedTask.Status}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">负责人</label>
+                  <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
+                </div>
+              </div>
+
+              {selectedTask.TaskClassID !== 'TC008' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">校核人</label>
+                    <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">审查人</label>
+                    <div className="text-slate-900">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">开始日期</label>
+                  <div className="text-slate-900">{selectedTask.StartDate || '-'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">截止日期</label>
+                  <div className="text-slate-900">{selectedTask.DueDate || '-'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">预估工时(h)</label>
+                  <div className="text-slate-900">{selectedTask.Workload || '-'}</div>
+                </div>
+              </div>
+
+              {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">校核人工时(h)</label>
+                    <div className="text-slate-900">{selectedTask.ReviewerWorkload || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">审查人2工时(h)</label>
+                    <div className="text-slate-900">{selectedTask.Reviewer2Workload || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">难度系数</label>
+                    <div className="text-slate-900">{selectedTask.Difficulty || '-'}</div>
+                  </div>
+                </div>
+              )}
+
+              {selectedTask.TaskClassID === 'TC008' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">出差地点</label>
+                    <div className="text-slate-900">{selectedTask.TravelLocation || '-'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">出差时长(天)</label>
+                    <div className="text-slate-900">{selectedTask.TravelDuration || '-'}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">创建人</label>
+                  <div className="text-slate-900 font-medium">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">创建时间</label>
+                  <div className="text-slate-900 font-medium">{selectedTask.CreatedDate}</div>
+                </div>
+              </div>
+
+              {selectedTask.Remark && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">备注</label>
+                  <div className="text-slate-900 bg-slate-50 p-3 rounded">{selectedTask.Remark}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none font-medium"
+              >
+                关闭
               </button>
             </div>
           </div>

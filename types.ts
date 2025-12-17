@@ -101,5 +101,10 @@ export interface Task {
   CapacityLevel?: string; // 容量等级 (For Market tasks)
   ReviewerID?: string; // 校核人
   ReviewerID2?: string; // 审查人
+  AssigneeName?: string; // 负责人姓名（非系统用户时使用）
+  ReviewerName?: string; // 校核人姓名（非系统用户时使用）
+  Reviewer2Name?: string; // 审查人姓名（非系统用户时使用）
+  ReviewerWorkload?: number; // 校核人工时
+  Reviewer2Workload?: number; // 审查人2工时
   is_deleted?: boolean;
 }

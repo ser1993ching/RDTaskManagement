@@ -36,12 +36,110 @@ const CAPACITY_LEVEL_OPTIONS = [
   '调相机'
 ];
 
+// 自动完成输入框组件
+interface AutocompleteProps {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  onSelect?: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  allowCustom?: boolean; // 是否允许输入自定义值
+  id?: string; // 唯一标识符，用于隔离状态
+}
+
+const AutocompleteInput: React.FC<AutocompleteProps> = ({
+  value,
+  options,
+  onChange,
+  onSelect,
+  placeholder,
+  className,
+  allowCustom = true,
+  id
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [internalValue, setInternalValue] = useState(value);
+
+  // 当外部 value 变化时更新内部值
+  useEffect(() => {
+    setInternalValue(value);
+  }, [value]);
+
+  const handleInputChange = (newValue: string) => {
+    setInternalValue(newValue);
+    onChange(newValue);
+  };
+
+  const handleSelect = (option: string) => {
+    setInternalValue(option);
+    onChange(option);
+    onSelect?.(option);
+    setIsOpen(false);
+  };
+
+  const handleFocus = () => {
+    // 聚焦时直接打开下拉框
+    setIsOpen(true);
+  };
+
+  const handleBlur = () => {
+    // 延迟关闭，允许点击下拉选项
+    setTimeout(() => setIsOpen(false), 200);
+  };
+
+  // 获取过滤后的选项
+  const getFilteredOptions = () => {
+    if (!internalValue.trim()) {
+      return options;
+    }
+    return options.filter(opt =>
+      opt.toLowerCase().includes(internalValue.toLowerCase())
+    );
+  };
+
+  const filteredOptions = getFilteredOptions();
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        className={className}
+        value={internalValue}
+        onChange={(e) => handleInputChange(e.target.value)}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      {isOpen && filteredOptions.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-300 rounded shadow-lg max-h-48 overflow-y-auto">
+          {filteredOptions.map((option, index) => (
+            <div
+              key={`${id}-${index}`}
+              className="px-3 py-2 hover:bg-slate-100 cursor-pointer text-sm"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelect(option);
+              }}
+            >
+              {option}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh }) => {
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>(dataService.getTaskClasses());
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState<Partial<Task>>({});
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
 
   // Set default active task class
   useEffect(() => {
@@ -116,19 +214,24 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
     // 根据任务类型决定行数据
     const rows = filteredTasks.map(t => {
+      // 获取负责人姓名（优先使用AssigneeName，其次使用用户表中的姓名）
+      const assigneeName = t.AssigneeName || users.find(u => u.UserID === t.AssigneeID)?.Name || '-';
+      const reviewerName = t.ReviewerName || users.find(u => u.UserID === t.ReviewerID)?.Name || '-';
+      const reviewer2Name = t.Reviewer2Name || users.find(u => u.UserID === t.ReviewerID2)?.Name || '-';
+
       const baseRow = [
         t.TaskID,
         t.TaskName,
         t.Status,
-        users.find(u => u.UserID === t.AssigneeID)?.Name || '-',
+        assigneeName,
         t.CapacityLevel || '-',
         t.DueDate || ''
       ];
 
       // 如果不是差旅任务，添加校核人和审查人
       if (t.TaskClassID !== 'TC008') {
-        baseRow.splice(4, 0, users.find(u => u.UserID === t.ReviewerID)?.Name || '-');
-        baseRow.splice(5, 0, users.find(u => u.UserID === t.ReviewerID2)?.Name || '-');
+        baseRow.splice(4, 0, reviewerName);
+        baseRow.splice(5, 0, reviewer2Name);
       }
 
       return baseRow;
@@ -159,7 +262,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
-  // Logic for Auto Naming
+  // Logic for Auto Naming and Project Matching
   useEffect(() => {
     if (isModalOpen && !editingTask) {
       // If it's a new task, try to auto-generate name
@@ -174,6 +277,73 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       }
     }
   }, [formData.ProjectID, formData.Category, isModalOpen, projects, activeTaskClass, editingTask]);
+
+  // Auto-match project based on task name
+  useEffect(() => {
+    if (isModalOpen && formData.TaskName && formData.TaskName.includes('项目')) {
+      const projectNames = projects.map(p => p.name);
+      const matchedProject = projectNames.find(name => formData.TaskName?.includes(name));
+      if (matchedProject) {
+        const project = projects.find(p => p.name === matchedProject);
+        if (project && formData.ProjectID !== project.id) {
+          setFormData(prev => ({ ...prev, ProjectID: project.id }));
+        }
+      }
+    }
+  }, [formData.TaskName, isModalOpen, projects]);
+
+  // Handle new project creation
+  const handleCreateProject = () => {
+    if (!newProjectName.trim()) return;
+
+    // Check if project already exists
+    const existingProject = projects.find(p => p.name === newProjectName);
+    if (existingProject) {
+      alert('项目已存在！');
+      return;
+    }
+
+    // Determine project category based on task class
+    let category = ProjectCategory.OTHER;
+    if (activeTaskClass) {
+      switch (activeTaskClass.code) {
+        case 'MARKET':
+          category = ProjectCategory.MARKET;
+          break;
+        case 'EXECUTION':
+          category = ProjectCategory.EXECUTION;
+          break;
+        case 'PRODUCT_DEV':
+        case 'RESEARCH':
+          category = ProjectCategory.RESEARCH;
+          break;
+        case 'RENOVATION':
+          category = ProjectCategory.RENOVATION;
+          break;
+      }
+    }
+
+    const newProject: Project = {
+      id: dataService.generateId('PROJ'),
+      name: newProjectName,
+      category,
+      startDate: new Date().toISOString().split('T')[0]
+    };
+
+    dataService.saveProject(newProject);
+    setFormData(prev => ({ ...prev, ProjectID: newProject.id }));
+    setIsCreatingProject(false);
+    setNewProjectName('');
+    onRefresh(); // Refresh projects list
+  };
+
+  // Handle project name input and confirm
+  const handleProjectNameConfirm = () => {
+    if (newProjectName.trim()) {
+      // Show confirmation dialog
+      setIsCreatingProject(true);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,11 +362,31 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const openModal = (task?: Task) => {
     setEditingTask(task || null);
     const defaultCategory = activeTaskClass ? CATEGORY_CONFIG[activeTaskClass.code]?.[0] || '' : '';
-    setFormData(task || {
+    const taskData = task || {
       TaskClassID: activeTaskClassId,
       Category: defaultCategory,
       Status: TaskStatus.NOT_STARTED
-    });
+    };
+    // 如果是编辑模式，设置人员姓名字段
+    if (task && task.AssigneeID) {
+      const assignee = users.find(u => u.UserID === task.AssigneeID);
+      if (assignee) {
+        taskData.AssigneeName = assignee.Name;
+      }
+    }
+    if (task && task.ReviewerID) {
+      const reviewer = users.find(u => u.UserID === task.ReviewerID);
+      if (reviewer) {
+        taskData.ReviewerName = reviewer.Name;
+      }
+    }
+    if (task && task.ReviewerID2) {
+      const reviewer2 = users.find(u => u.UserID === task.ReviewerID2);
+      if (reviewer2) {
+        taskData.Reviewer2Name = reviewer2.Name;
+      }
+    }
+    setFormData(taskData);
     setIsModalOpen(true);
   };
 
@@ -211,7 +401,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     return (
       <>
         {/* 第一行：分类 + 关联项目 + 容量等级（市场配合任务） */}
-        <div className="grid grid-cols-3 gap-4 col-span-2">
+        <div className="grid grid-cols-3 gap-3 col-span-2">
           <div>
             <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 分类</label>
             <select required className="w-full border rounded p-2"
@@ -223,12 +413,39 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           {isProjectRelated && (
             <div>
               <label className="block text-sm font-medium mb-1">关联项目</label>
-              <select className="w-full border rounded p-2"
-                 value={formData.ProjectID || ''}
-                 onChange={e => setFormData({...formData, ProjectID: e.target.value})}>
-                 <option value="">选择项目...</option>
-                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              <AutocompleteInput
+                id="project-autocomplete"
+                value={projects.find(p => p.id === formData.ProjectID)?.name || ''}
+                options={projects.map(p => p.name)}
+                onChange={(value) => {
+                  const project = projects.find(p => p.name === value);
+                  setFormData({...formData, ProjectID: project?.id || ''});
+                  // If input doesn't match any existing project, show create option
+                  if (value.trim() && !project) {
+                    setNewProjectName(value.trim());
+                    setIsCreatingProject(true);
+                  }
+                }}
+                onSelect={(value) => {
+                  const project = projects.find(p => p.name === value);
+                  if (project) {
+                    setFormData({...formData, ProjectID: project.id});
+                  }
+                }}
+                placeholder="搜索或输入项目名称..."
+                className="w-full border rounded p-2"
+              />
+              {/* 新建项目按钮 */}
+              <button
+                type="button"
+                onClick={() => {
+                  setNewProjectName('');
+                  setIsCreatingProject(true);
+                }}
+                className="mt-1 text-xs text-blue-600 hover:text-blue-800"
+              >
+                + 新建项目
+              </button>
             </div>
           )}
 
@@ -247,69 +464,126 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         {/* 第二行：负责人（差旅任务只显示负责人，其他任务显示负责人、校核人、审查人） */}
         {isTravel ? (
           // 差旅任务只显示负责人
-          <div className="col-span-1">
-            <label className="block text-sm font-medium mb-1">负责人</label>
-            <select className="w-full border rounded p-2"
-               value={formData.AssigneeID || ''} onChange={e => setFormData({...formData, AssigneeID: e.target.value})}>
-               <option value="">请选择...</option>
-               {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
-            </select>
+          <div className="col-span-2">
+            <div className="max-w-xs">
+              <label className="block text-sm font-medium mb-1">负责人</label>
+              <AutocompleteInput
+                id="assignee-autocomplete"
+                value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
+                options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                onChange={(value) => {
+                  const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                  if (user) {
+                    setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                  } else {
+                    setFormData({...formData, AssigneeID: '', AssigneeName: value});
+                  }
+                }}
+                onSelect={(value) => {
+                  const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                  if (user) {
+                    setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                  }
+                }}
+                placeholder="搜索或输入负责人姓名..."
+                className="w-full border rounded p-2"
+              />
+            </div>
           </div>
         ) : (
           // 其他任务显示负责人、校核人、审查人
           <div className="col-span-2">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">负责人</label>
-                <select className="w-full border rounded p-2"
-                   value={formData.AssigneeID || ''} onChange={e => setFormData({...formData, AssigneeID: e.target.value})}>
-                   <option value="">请选择...</option>
-                   {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
-                </select>
+                <AutocompleteInput
+                  id="assignee-autocomplete"
+                  value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
+                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  onChange={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                    } else {
+                      setFormData({...formData, AssigneeID: '', AssigneeName: value});
+                    }
+                  }}
+                  onSelect={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                    }
+                  }}
+                  placeholder="搜索或输入负责人姓名..."
+                  className="w-full border rounded p-2"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">校核人</label>
-                <select className="w-full border rounded p-2"
-                   value={formData.ReviewerID || ''} onChange={e => setFormData({...formData, ReviewerID: e.target.value})}>
-                   <option value="">请选择...</option>
-                   {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
-                </select>
+                <AutocompleteInput
+                  id="reviewer-autocomplete"
+                  value={users.find(u => u.UserID === formData.ReviewerID)?.Name || formData.ReviewerName || ''}
+                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  onChange={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, ReviewerID: user.UserID, ReviewerName: user.Name});
+                    } else {
+                      setFormData({...formData, ReviewerID: '', ReviewerName: value});
+                    }
+                  }}
+                  onSelect={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, ReviewerID: user.UserID, ReviewerName: user.Name});
+                    }
+                  }}
+                  placeholder="搜索或输入校核人姓名..."
+                  className="w-full border rounded p-2"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">审查人</label>
-                <select className="w-full border rounded p-2"
-                   value={formData.ReviewerID2 || ''} onChange={e => setFormData({...formData, ReviewerID2: e.target.value})}>
-                   <option value="">请选择...</option>
-                   {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
-                </select>
+                <AutocompleteInput
+                  id="reviewer2-autocomplete"
+                  value={users.find(u => u.UserID === formData.ReviewerID2)?.Name || formData.Reviewer2Name || ''}
+                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  onChange={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, ReviewerID2: user.UserID, Reviewer2Name: user.Name});
+                    } else {
+                      setFormData({...formData, ReviewerID2: '', Reviewer2Name: value});
+                    }
+                  }}
+                  onSelect={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, ReviewerID2: user.UserID, Reviewer2Name: user.Name});
+                    }
+                  }}
+                  placeholder="搜索或输入审查人姓名..."
+                  className="w-full border rounded p-2"
+                />
               </div>
             </div>
           </div>
         )}
 
-        {/* 第三行：任务状态 + 预估工时 */}
-        <div className="col-span-1">
-          <label className="block text-sm font-medium mb-1">任务状态</label>
-          <select className="w-full border rounded p-2"
-             value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value as TaskStatus})}>
-             {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-
-        <div className="col-span-1">
-           <label className="block text-sm font-medium mb-1">{isMeeting ? '时长(小时)' : '预估工时(人天)'}</label>
-           <input type="number" step="0.5" className="w-full border rounded p-2"
-              value={formData.Workload || ''} onChange={e => setFormData({...formData, Workload: parseFloat(e.target.value)})} />
-        </div>
-
-        {/* 第四行：任务开始日期 + 截止日期 + 其他字段 */}
-        <div className="grid grid-cols-2 gap-4 col-span-2">
+        {/* 第四行：任务状态 + 任务开始日期 + 截止日期 */}
+        <div className="grid grid-cols-3 gap-3 col-span-2">
+          <div>
+            <label className="block text-sm font-medium mb-1">任务状态</label>
+            <select className="w-full border rounded p-2"
+               value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value as TaskStatus})}>
+               {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">任务开始日期</label>
             <input type="date" className="w-full border rounded p-2"
               value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
           </div>
-
           <div>
             <label className="block text-sm font-medium mb-1">截止日期</label>
             <input type="date" className="w-full border rounded p-2"
@@ -317,22 +591,47 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           </div>
         </div>
 
-        {/* 差旅任务的特殊字段 */}
-        {isTravel && (
-          <div className="col-span-1">
-            <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 出差地点</label>
-            <input required type="text" className="w-full border rounded p-2"
-              value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})} />
+        {/* 第五行：负责人工时 + 校核人工时 + 审查人工时（仅班组长/管理员可见） */}
+        {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
+          <div className="col-span-2">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">负责人工时(h)</label>
+                <input type="number" step="0.5" className="w-full border rounded p-2"
+                  value={formData.Workload || ''} onChange={e => setFormData({...formData, Workload: parseFloat(e.target.value)})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">校核人工时(h)</label>
+                <input type="number" step="0.5" className="w-full border rounded p-2"
+                  value={formData.ReviewerWorkload || ''} onChange={e => setFormData({...formData, ReviewerWorkload: parseFloat(e.target.value)})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">审查人工时(h)</label>
+                <input type="number" step="0.5" className="w-full border rounded p-2"
+                  value={formData.Reviewer2Workload || ''} onChange={e => setFormData({...formData, Reviewer2Workload: parseFloat(e.target.value)})} />
+              </div>
+            </div>
           </div>
         )}
 
-        {/* 差旅任务的出差时长（如果需要的话） */}
+        {/* 差旅任务的特殊字段 */}
         {isTravel && (
-          <div className="col-span-1">
-            <label className="block text-sm font-medium mb-1">出差时长(天)</label>
-            <input type="number" step="0.5" className="w-full border rounded p-2"
-              value={formData.TravelDuration || ''} onChange={e => setFormData({...formData, TravelDuration: parseFloat(e.target.value)})} />
-          </div>
+          <>
+            <div className="col-span-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 出差地点</label>
+                  <input required type="text" className="w-full border rounded p-2"
+                    value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">出差时长(天)</label>
+                  <input type="number" step="0.5" className="w-full border rounded p-2"
+                    value={formData.TravelDuration || ''} onChange={e => setFormData({...formData, TravelDuration: parseFloat(e.target.value)})} />
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </>
     );
@@ -518,10 +817,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       {t.Status}
                     </span>
                   </td>
-                  <td className="px-6 py-4">{users.find(u => u.UserID === t.AssigneeID)?.Name || '-'}</td>
+                  <td className="px-6 py-4">
+                    {users.find(u => u.UserID === t.AssigneeID)?.Name || t.AssigneeName || '-'}
+                  </td>
                   {/* 差旅任务不显示校核人列 */}
                   {t.TaskClassID !== 'TC008' && (
-                    <td className="px-6 py-4">{users.find(u => u.UserID === t.ReviewerID)?.Name || '-'}</td>
+                    <td className="px-6 py-4">
+                      {users.find(u => u.UserID === t.ReviewerID)?.Name || t.ReviewerName || '-'}
+                    </td>
                   )}
                   <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
                   <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
@@ -541,9 +844,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6 relative">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 relative">
             <h3 className="text-xl font-bold mb-4">{editingTask ? '编辑任务' : `创建 ${activeTaskClass?.name || '任务'}`}</h3>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 任务名称</label>
                 <input required type="text" className="w-full border rounded p-2 bg-slate-50"
@@ -552,17 +855,96 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
               {renderDynamicFields()}
 
+              <div className="col-span-2 h-3"></div>
+
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">备注</label>
                 <textarea className="w-full border rounded p-2 h-20"
                   value={formData.Remark || ''} onChange={e => setFormData({...formData, Remark: e.target.value})} />
               </div>
 
-              <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t">
+              <div className="col-span-2 flex justify-end gap-3 mt-3 pt-3 border-t">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none">保存任务</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 项目创建输入对话框（新建项目按钮被点击后显示） */}
+      {isCreatingProject && !newProjectName && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-bold mb-4">输入新项目名称</h3>
+            <input
+              type="text"
+              className="w-full border rounded p-2 mb-4"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleProjectNameConfirm()}
+              placeholder="请输入项目名称..."
+              autoFocus
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreatingProject(false);
+                  setNewProjectName('');
+                }}
+                className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleProjectNameConfirm}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none"
+                disabled={!newProjectName.trim()}
+              >
+                下一步
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 新建项目确认对话框 */}
+      {isCreatingProject && newProjectName && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-bold mb-4">创建新项目</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              项目名称：<strong>{newProjectName}</strong>
+            </p>
+            <p className="text-sm text-slate-600 mb-4">
+              将根据当前任务类型自动设置项目类别为：<strong>
+                {activeTaskClass?.code === 'MARKET' ? '市场配合项目' :
+                 activeTaskClass?.code === 'EXECUTION' ? '项目执行' :
+                 activeTaskClass?.code === 'PRODUCT_DEV' || activeTaskClass?.code === 'RESEARCH' ? '科研项目' :
+                 activeTaskClass?.code === 'RENOVATION' ? '改造项目' : '其他项目'}
+              </strong>
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreatingProject(false);
+                  setNewProjectName('');
+                }}
+                className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateProject}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none"
+              >
+                确认创建
+              </button>
+            </div>
           </div>
         </div>
       )}

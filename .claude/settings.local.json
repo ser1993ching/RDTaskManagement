@@ -7,7 +7,9 @@
       "Bash(npx tsc --noEmit)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(dir /b \"E:\\code\\r&d-task-master\")"
+      "Bash(dir /b \"E:\\code\\r&d-task-master\")",
+      "Bash(python:*)",
+      "Bash(python3:*)"
     ]
   }
 }

@@ -162,12 +162,16 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
 
-  // Initialize default filter to show tasks from last 2 months
+  // Initialize default filter - no time filter by default
   useEffect(() => {
-    const now = new Date();
-    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
-    setFilterStartDateFrom(twoMonthsAgo.toISOString().split('T')[0]);
+    // Don't set any default time filter
   }, []);
+
+  // Helper function to get filtered tasks for sidebar count (consistent with main content)
+  const getSidebarTaskCount = (taskClassId: string) => {
+    // No time filter - show all tasks
+    return tasks.filter(t => t.TaskClassID === taskClassId).length;
+  };
 
   // Helper function to check if a date is in current week
   const isInCurrentWeek = (dateStr: string) => {
@@ -653,7 +657,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               }`}
             >
               <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">
-                {tasks.filter(t => t.TaskClassID === taskClass.id).length}
+                {getSidebarTaskCount(taskClass.id)}
               </span>
               {taskClass.name}
             </button>
@@ -715,10 +719,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   setFilterTaskName('');
                   setFilterThisWeek(false);
                   setFilterThisMonth(false);
-                  // 重新设置近两个月的默认筛选
-                  const now = new Date();
-                  const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
-                  setFilterStartDateFrom(twoMonthsAgo.toISOString().split('T')[0]);
+                  // No default time filter
                 }}
                 className="w-full text-sm text-slate-700 hover:text-slate-900 px-2 py-2 border border-slate-300 rounded hover:bg-slate-50 transition-colors focus:outline-none focus:ring-0"
               >

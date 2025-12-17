@@ -24,10 +24,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, tasks 
       ? tasks
       : tasks.filter(t => t.AssigneeID === currentUser.UserID);
 
-    const pending = visibleTasks.filter(t => t.Status === TaskStatus.NOT_STARTED).length;
-    const inProgress = visibleTasks.filter(t => t.Status === TaskStatus.IN_PROGRESS).length;
-    const completed = visibleTasks.filter(t => t.Status === TaskStatus.COMPLETED).length;
-    const total = visibleTasks.length;
+    // No time filter - show all tasks
+    const filteredVisibleTasks = visibleTasks;
+
+    const pending = filteredVisibleTasks.filter(t => t.Status === TaskStatus.NOT_STARTED).length;
+    const inProgress = filteredVisibleTasks.filter(t => t.Status === TaskStatus.IN_PROGRESS).length;
+    const completed = filteredVisibleTasks.filter(t => t.Status === TaskStatus.COMPLETED).length;
+    const total = filteredVisibleTasks.length;
 
     // Get TaskClasses
     const taskClasses = dataService.getTaskClasses();
@@ -35,14 +38,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, tasks 
     // Distribution by TaskClass
     const typeDist = taskClasses.map(tc => ({
       name: tc.name,
-      value: visibleTasks.filter(t => t.TaskClassID === tc.id).length
+      value: filteredVisibleTasks.filter(t => t.TaskClassID === tc.id).length
     })).filter(d => d.value > 0);
 
     // Workload by Person (Leader/Admin only)
     const workloadData = users.map(u => ({
       name: u.Name,
-      tasks: tasks.filter(t => t.AssigneeID === u.UserID && t.Status !== TaskStatus.COMPLETED).length,
-      workload: tasks
+      tasks: filteredVisibleTasks.filter(t => t.AssigneeID === u.UserID && t.Status !== TaskStatus.COMPLETED).length,
+      workload: filteredVisibleTasks
         .filter(t => t.AssigneeID === u.UserID && t.Status !== TaskStatus.COMPLETED)
         .reduce((sum, t) => sum + (t.Workload || 0), 0)
     })).sort((a, b) => b.workload - a.workload).slice(0, 10);

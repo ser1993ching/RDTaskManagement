@@ -5,6 +5,7 @@ import { PersonnelView } from './components/PersonnelView';
 import { ProjectView } from './components/ProjectView';
 import { TaskView } from './components/TaskView';
 import { TaskClassView } from './components/TaskClassView';
+import { Settings } from './components/Settings';
 import { dataService } from './services/dataService';
 import { User, Project, Task } from './types';
 import { Lock } from 'lucide-react';
@@ -113,6 +114,7 @@ const App: React.FC = () => {
       {currentView === 'projects' && <ProjectView currentUser={currentUser} projects={projects} users={users} onRefresh={refreshData} />}
       {currentView === 'tasks' && <TaskView currentUser={currentUser} tasks={tasks} projects={projects} users={users} onRefresh={refreshData} />}
       {currentView === 'task-classes' && <TaskClassView currentUser={currentUser} />}
+      {currentView === 'settings' && <Settings currentUser={currentUser} />}
     </Layout>
   );
 };

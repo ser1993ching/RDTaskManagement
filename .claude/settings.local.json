@@ -9,7 +9,15 @@
       "Bash(git commit:*)",
       "Bash(dir /b \"E:\\code\\r&d-task-master\")",
       "Bash(python:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git checkout:*)",
+      "Bash(mkdir:*)",
+      "Bash(openspec list:*)",
+      "Bash(openspec validate:*)",
+      "Bash(openspec:*)",
+      "Bash(tree:*)",
+      "Bash(npx vite build)",
+      "Bash(./node_modules/.bin/vite build)"
     ]
   }
 }

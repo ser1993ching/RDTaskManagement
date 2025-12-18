@@ -7,7 +7,8 @@ import {
   LayoutDashboard,
   LogOut,
   UserCircle,
-  Tags
+  Tags,
+  Settings
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -25,6 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
     { id: 'task-classes', label: '任务类管理', icon: Tags },
     { id: 'projects', label: '项目管理', icon: Briefcase },
     { id: 'personnel', label: '人员管理', icon: Users },
+    { id: 'settings', label: '设置', icon: Settings },
   ];
 
   return (

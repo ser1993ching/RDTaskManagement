@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, SystemRole, OfficeLocation, PersonnelStatus } from '../types';
-import { Plus, Download, Search, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Download, Search, Edit2, Trash2, Lock, Key } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
 interface PersonnelViewProps {
@@ -188,6 +188,22 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                     <button onClick={() => openModal(user)} className="text-blue-600 hover:text-blue-800 mr-3">
                       <Edit2 size={16} />
                     </button>
+                    {canEdit && (currentUser.UserID !== user.UserID) && (
+                      <button
+                        onClick={() => {
+                          const tempPassword = dataService.generateTemporaryPassword();
+                          if (confirm(`确定要重置 ${user.Name} 的密码吗？\n\n新密码将显示在下一步中。`)) {
+                            dataService.resetPassword(user.UserID, tempPassword);
+                            alert(`密码重置成功！\n\n用户：${user.Name}\n新密码：${tempPassword}\n\n请将此密码告知用户。`);
+                            onRefresh();
+                          }
+                        }}
+                        className="text-orange-600 hover:text-orange-800 mr-3"
+                        title="重置密码"
+                      >
+                        <Lock size={16} />
+                      </button>
+                    )}
                     {(currentUser.UserID !== user.UserID) && (
                       <button onClick={() => {
                         if(confirm('确定删除该人员?')) {

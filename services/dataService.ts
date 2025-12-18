@@ -5,7 +5,12 @@ const STORAGE_KEYS = {
   PROJECTS: 'rd_projects',
   TASKS: 'rd_tasks',
   TASK_CLASSES: 'rd_task_classes',
-  CURRENT_USER: 'rd_current_user'
+  CURRENT_USER: 'rd_current_user',
+  // New keys for settings and features
+  EQUIPMENT_MODELS: 'rd_equipment_models',
+  CAPACITY_LEVELS: 'rd_capacity_levels',
+  TRAVEL_LABELS: 'rd_travel_labels',
+  USER_AVATARS: 'rd_user_avatars'
 };
 
 // --- Seed Data ---
@@ -1043,6 +1048,8 @@ class DataService {
     if (!localStorage.getItem(STORAGE_KEYS.TASK_CLASSES)) {
       localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
     }
+    // Initialize settings from existing data
+    this.initializeSettings();
   }
 
   // Users
@@ -1187,6 +1194,155 @@ class DataService {
 
   logout(): void {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  }
+
+  // Password Management
+  changePassword(userId: string, currentPassword: string, newPassword: string): boolean {
+    const users = this.getAllUsersRaw();
+    const user = users.find(u => u.UserID === userId);
+    if (!user || user.Password !== currentPassword) {
+      return false;
+    }
+    user.Password = newPassword;
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    return true;
+  }
+
+  resetPassword(userId: string, newPassword: string): boolean {
+    const users = this.getAllUsersRaw();
+    const user = users.find(u => u.UserID === userId);
+    if (!user) {
+      return false;
+    }
+    user.Password = newPassword;
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    return true;
+  }
+
+  generateTemporaryPassword(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < 8; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  }
+
+  // Avatar Management
+  saveAvatar(userId: string, avatarData: string): void {
+    const avatars = this.getAllAvatarsRaw();
+    avatars[userId] = avatarData;
+    localStorage.setItem(STORAGE_KEYS.USER_AVATARS, JSON.stringify(avatars));
+  }
+
+  getAvatar(userId: string): string | null {
+    const avatars = this.getAllAvatarsRaw();
+    return avatars[userId] || null;
+  }
+
+  deleteAvatar(userId: string): void {
+    const avatars = this.getAllAvatarsRaw();
+    delete avatars[userId];
+    localStorage.setItem(STORAGE_KEYS.USER_AVATARS, JSON.stringify(avatars));
+  }
+
+  private getAllAvatarsRaw(): Record<string, string> {
+    const data = localStorage.getItem(STORAGE_KEYS.USER_AVATARS);
+    return data ? JSON.parse(data) : {};
+  }
+
+  // Equipment Models Management
+  getEquipmentModels(): string[] {
+    const data = localStorage.getItem(STORAGE_KEYS.EQUIPMENT_MODELS);
+    return data ? JSON.parse(data) : [];
+  }
+
+  saveEquipmentModel(model: string): void {
+    const models = this.getEquipmentModels();
+    if (!models.includes(model)) {
+      models.push(model);
+      localStorage.setItem(STORAGE_KEYS.EQUIPMENT_MODELS, JSON.stringify(models));
+    }
+  }
+
+  deleteEquipmentModel(model: string): void {
+    const models = this.getEquipmentModels();
+    const index = models.indexOf(model);
+    if (index >= 0) {
+      models.splice(index, 1);
+      localStorage.setItem(STORAGE_KEYS.EQUIPMENT_MODELS, JSON.stringify(models));
+    }
+  }
+
+  // Capacity Levels Management
+  getCapacityLevels(): string[] {
+    const data = localStorage.getItem(STORAGE_KEYS.CAPACITY_LEVELS);
+    return data ? JSON.parse(data) : [];
+  }
+
+  saveCapacityLevel(level: string): void {
+    const levels = this.getCapacityLevels();
+    if (!levels.includes(level)) {
+      levels.push(level);
+      localStorage.setItem(STORAGE_KEYS.CAPACITY_LEVELS, JSON.stringify(levels));
+    }
+  }
+
+  deleteCapacityLevel(level: string): void {
+    const levels = this.getCapacityLevels();
+    const index = levels.indexOf(level);
+    if (index >= 0) {
+      levels.splice(index, 1);
+      localStorage.setItem(STORAGE_KEYS.CAPACITY_LEVELS, JSON.stringify(levels));
+    }
+  }
+
+  // Travel Labels Management
+  getTravelLabels(): string[] {
+    const data = localStorage.getItem(STORAGE_KEYS.TRAVEL_LABELS);
+    return data ? JSON.parse(data) : [];
+  }
+
+  saveTravelLabel(label: string): void {
+    const labels = this.getTravelLabels();
+    if (!labels.includes(label)) {
+      labels.push(label);
+      localStorage.setItem(STORAGE_KEYS.TRAVEL_LABELS, JSON.stringify(labels));
+    }
+  }
+
+  deleteTravelLabel(label: string): void {
+    const labels = this.getTravelLabels();
+    const index = labels.indexOf(label);
+    if (index >= 0) {
+      labels.splice(index, 1);
+      localStorage.setItem(STORAGE_KEYS.TRAVEL_LABELS, JSON.stringify(labels));
+    }
+  }
+
+  // Initialize default settings from existing data
+  initializeSettings(): void {
+    // Initialize Equipment Models from existing projects
+    if (!localStorage.getItem(STORAGE_KEYS.EQUIPMENT_MODELS)) {
+      const projects = this.getProjects();
+      const models = [...new Set(projects.filter(p => p.model).map(p => p.model!))];
+      localStorage.setItem(STORAGE_KEYS.EQUIPMENT_MODELS, JSON.stringify(models));
+    }
+
+    // Initialize Capacity Levels from existing tasks
+    if (!localStorage.getItem(STORAGE_KEYS.CAPACITY_LEVELS)) {
+      const tasks = this.getTasks();
+      const levels = [...new Set(tasks.filter(t => t.CapacityLevel).map(t => t.CapacityLevel!))];
+      localStorage.setItem(STORAGE_KEYS.CAPACITY_LEVELS, JSON.stringify(levels));
+    }
+
+    // Initialize Travel Labels from existing task categories
+    if (!localStorage.getItem(STORAGE_KEYS.TRAVEL_LABELS)) {
+      const tasks = this.getTasks();
+      const travelTasks = tasks.filter(t => t.TaskClassID === 'TC008'); // Travel tasks
+      const labels = [...new Set(travelTasks.map(t => t.Category))];
+      localStorage.setItem(STORAGE_KEYS.TRAVEL_LABELS, JSON.stringify(labels));
+    }
   }
 
   // Helpers

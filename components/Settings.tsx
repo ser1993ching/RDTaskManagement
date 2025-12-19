@@ -11,7 +11,8 @@ import {
   User as UserIcon,
   Lock,
   Shield,
-  Camera
+  Camera,
+  GripVertical
 } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
@@ -34,6 +35,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editingCategoryValue, setEditingCategoryValue] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
+  const [draggedOverCategory, setDraggedOverCategory] = useState<string | null>(null);
 
   // Profile state
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -98,7 +101,31 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   };
 
   const handleDeleteTaskClass = (id: string) => {
-    if (confirm('确定要删除此任务类别吗？')) {
+    // 检查是否有任务依赖这个任务类别
+    const usage = dataService.checkTaskClassUsage(id);
+    const taskClass = taskClasses.find(tc => tc.id === id);
+
+    if (!taskClass) {
+      showMessage('error', '任务类别不存在');
+      return;
+    }
+
+    let confirmMessage = '';
+    if (usage.hasTasks) {
+      confirmMessage = `⚠️ 警告：删除任务类别"${taskClass.name}"可能会影响以下内容：\n\n` +
+                      `• 该类别下有 ${usage.taskCount} 个任务\n` +
+                      `• 删除后，这些任务将无法正常显示\n` +
+                      `• 相关的任务分类也将被删除\n\n` +
+                      `建议：\n` +
+                      `1. 先将任务移动到其他类别，或\n` +
+                      `2. 删除这些任务后再删除类别\n\n` +
+                      `确定要继续删除吗？`;
+    } else {
+      confirmMessage = `确定要删除任务类别"${taskClass.name}"吗？\n\n` +
+                      `这将会同时删除该类别下的所有分类，且无法恢复。`;
+    }
+
+    if (confirm(confirmMessage)) {
       dataService.deleteTaskClass(id);
       loadData();
       showMessage('success', '任务类别删除成功');
@@ -119,32 +146,32 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   };
 
   // Task Category Management
-  const handleAddTaskCategory = () => {
-    if (!selectedTaskClassCode || !editingValue.trim()) {
-      showMessage('error', '请选择任务类别并输入分类名称');
+  const handleAddTaskCategory = (taskClassCode: string) => {
+    if (!taskClassCode || !editingValue.trim()) {
+      showMessage('error', '请输入分类名称');
       return;
     }
-    dataService.addTaskCategory(selectedTaskClassCode, editingValue.trim());
+    dataService.addTaskCategory(taskClassCode, editingValue.trim());
     setTaskCategories(dataService.getTaskCategories());
     setEditingValue('');
     showMessage('success', '任务分类添加成功');
   };
 
-  const handleDeleteTaskCategory = (categoryName: string) => {
-    if (!selectedTaskClassCode) return;
+  const handleDeleteTaskCategory = (taskClassCode: string, categoryName: string) => {
+    if (!taskClassCode) return;
     if (confirm(`确定要删除分类"${categoryName}"吗？`)) {
-      dataService.deleteTaskCategory(selectedTaskClassCode, categoryName);
+      dataService.deleteTaskCategory(taskClassCode, categoryName);
       setTaskCategories(dataService.getTaskCategories());
       showMessage('success', '任务分类删除成功');
     }
   };
 
-  const handleUpdateTaskCategory = (oldCategoryName: string, newCategoryName: string) => {
-    if (!selectedTaskClassCode || !newCategoryName.trim()) {
+  const handleUpdateTaskCategory = (taskClassCode: string, oldCategoryName: string, newCategoryName: string) => {
+    if (!taskClassCode || !newCategoryName.trim()) {
       showMessage('error', '分类名称不能为空');
       return;
     }
-    dataService.updateTaskCategory(selectedTaskClassCode, oldCategoryName, newCategoryName.trim());
+    dataService.updateTaskCategory(taskClassCode, oldCategoryName, newCategoryName.trim());
     setTaskCategories(dataService.getTaskCategories());
     setEditingCategory(null);
     setEditingCategoryValue('');
@@ -159,6 +186,58 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const cancelEditingCategory = () => {
     setEditingCategory(null);
     setEditingCategoryValue('');
+  };
+
+  // Drag and Drop handlers
+  const handleDragStart = (taskClassCode: string) => (e: React.DragEvent, categoryName: string) => {
+    setDraggedCategory(categoryName);
+    e.dataTransfer.effectAllowed = 'move';
+    // Store task class code in dataTransfer for later use
+    e.dataTransfer.setData('text/plain', taskClassCode);
+  };
+
+  const handleDragOver = (e: React.DragEvent, categoryName: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDraggedOverCategory(categoryName);
+  };
+
+  const handleDragLeave = () => {
+    setDraggedOverCategory(null);
+  };
+
+  const handleDrop = (taskClassCode: string) => (e: React.DragEvent, targetCategoryName: string) => {
+    e.preventDefault();
+    if (!draggedCategory || draggedCategory === targetCategoryName) {
+      setDraggedCategory(null);
+      setDraggedOverCategory(null);
+      return;
+    }
+
+    const categories = taskCategories[taskClassCode];
+    if (!categories) return;
+
+    const newOrder = [...categories];
+    const draggedIndex = newOrder.indexOf(draggedCategory);
+    const targetIndex = newOrder.indexOf(targetCategoryName);
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      // Remove dragged item and insert at target position
+      newOrder.splice(draggedIndex, 1);
+      newOrder.splice(targetIndex, 0, draggedCategory);
+
+      dataService.reorderTaskCategories(taskClassCode, newOrder);
+      setTaskCategories(dataService.getTaskCategories());
+      showMessage('success', '分类排序已更新');
+    }
+
+    setDraggedCategory(null);
+    setDraggedOverCategory(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCategory(null);
+    setDraggedOverCategory(null);
   };
 
   // Model Management
@@ -377,61 +456,90 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                 </button>
               )}
 
-              {taskClasses.map(taskClass => (
-                <div key={taskClass.id} className="bg-slate-50 rounded-lg">
-                  {editingItem === taskClass.id ? (
-                    <div className="p-4">
-                      <div className="mb-3">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          任务类别名称 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={editingValue}
-                          onChange={(e) => setEditingValue(e.target.value)}
-                          className="w-full border border-slate-300 rounded px-3 py-2"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={handleUpdateTaskClass} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
-                          <Save size={16} />
-                          保存
-                        </button>
-                        <button onClick={() => { setEditingItem(null); setEditingValue(''); }} className="px-4 py-2 bg-slate-300 rounded flex items-center gap-2">
-                          <X size={16} />
-                          取消
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between p-4">
-                      <div>
-                        <p className="font-medium">{taskClass.name}</p>
-                        <p className="text-sm text-slate-500">{taskClass.code} - {taskClass.description}</p>
-                      </div>
-                      {canManageSettings && (
+              {taskClasses.map(taskClass => {
+                const usage = dataService.checkTaskClassUsage(taskClass.id);
+                return (
+                  <div key={taskClass.id} className="bg-slate-50 rounded-lg">
+                    {editingItem === taskClass.id ? (
+                      <div className="p-4">
+                        <div className="mb-3">
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            任务类别名称 <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            className="w-full border border-slate-300 rounded px-3 py-2"
+                          />
+                        </div>
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingItem(taskClass.id);
-                              setEditingValue(taskClass.name);
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                          >
-                            <Edit2 size={16} />
+                          <button onClick={handleUpdateTaskClass} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
+                            <Save size={16} />
+                            保存
                           </button>
-                          <button
-                            onClick={() => handleDeleteTaskClass(taskClass.id)}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded"
-                          >
-                            <Trash2 size={16} />
+                          <button onClick={() => { setEditingItem(null); setEditingValue(''); }} className="px-4 py-2 bg-slate-300 rounded flex items-center gap-2">
+                            <X size={16} />
+                            取消
                           </button>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                      </div>
+                    ) : (
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-900">{taskClass.name}</p>
+                            <p className="text-sm text-slate-500">{taskClass.code} - {taskClass.description}</p>
+                          </div>
+                          {canManageSettings && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingItem(taskClass.id);
+                                  setEditingValue(taskClass.name);
+                                }}
+                                className="p-2 text-blue-600 hover:bg-blue-100 rounded"
+                                title="编辑任务类别"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTaskClass(taskClass.id)}
+                                className={`p-2 rounded ${
+                                  usage.hasTasks
+                                    ? 'text-orange-600 hover:bg-orange-100'
+                                    : 'text-red-600 hover:bg-red-100'
+                                }`}
+                                title={usage.hasTasks ? `有 ${usage.taskCount} 个任务依赖，删除需谨慎` : '删除任务类别'}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {/* 显示统计信息 */}
+                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                            分类: {taskCategories[taskClass.code]?.length || 0} 个
+                          </span>
+                          {usage.hasTasks ? (
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                              任务: {usage.taskCount} 个（删除需谨慎）
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                              任务: 0 个（可安全删除）
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -445,127 +553,166 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                 <p className="text-yellow-800 text-sm">⚠️ 只有管理员和班组长可以管理任务分类</p>
               </div>
             )}
-            <div className="space-y-4">
-              {/* Task Class Selection */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  选择任务类别 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={selectedTaskClassCode}
-                  onChange={(e) => setSelectedTaskClassCode(e.target.value)}
-                  className="w-full border border-slate-300 rounded px-3 py-2"
-                >
-                  <option value="">请选择任务类别</option>
-                  {taskClasses.map(taskClass => (
-                    <option key={taskClass.id} value={taskClass.code}>
-                      {taskClass.name} ({taskClass.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedTaskClassCode && (
-                <>
-                  {/* Add Category */}
-                  {canManageSettings && (
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <div className="mb-3">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          新增分类 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={editingValue}
-                          onChange={(e) => setEditingValue(e.target.value)}
-                          placeholder="输入分类名称"
-                          className="w-full border border-slate-300 rounded px-3 py-2"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={handleAddTaskCategory} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
-                          <Save size={16} />
-                          添加
-                        </button>
-                        <button onClick={() => setEditingValue('')} className="px-4 py-2 bg-slate-300 rounded flex items-center gap-2">
-                          <X size={16} />
-                          清空
-                        </button>
+            <div className="text-sm text-slate-600 mb-4">
+              💡 提示：拖拽分类项可以调整顺序，任务管理界面中的分类顺序将与此保持一致
+            </div>
+            <div className="space-y-6">
+              {taskClasses.map(taskClass => {
+                const categories = taskCategories[taskClass.code] || [];
+                return (
+                  <div key={taskClass.id} className="bg-white rounded-lg border border-slate-200 shadow-sm">
+                    {/* Task Class Header */}
+                    <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 rounded-t-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-slate-900">{taskClass.name}</h4>
+                          <p className="text-xs text-slate-500">{taskClass.code} - {taskClass.description}</p>
+                        </div>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                          {categories.length} 个分类
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Category List */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-slate-700">
-                      分类列表 ({taskCategories[selectedTaskClassCode]?.length || 0} 个)
-                    </h4>
-                    {taskCategories[selectedTaskClassCode] && taskCategories[selectedTaskClassCode].length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {taskCategories[selectedTaskClassCode].map(category => (
-                          <div key={category} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                            {editingCategory === category ? (
-                              // 编辑模式
-                              <div className="space-y-2">
-                                <input
-                                  type="text"
-                                  value={editingCategoryValue}
-                                  onChange={(e) => setEditingCategoryValue(e.target.value)}
-                                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-                                  autoFocus
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleUpdateTaskCategory(category, editingCategoryValue)}
-                                    className="flex-1 px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center justify-center gap-1"
-                                  >
-                                    <Save size={14} />
-                                    保存
-                                  </button>
-                                  <button
-                                    onClick={cancelEditingCategory}
-                                    className="flex-1 px-3 py-1.5 bg-slate-300 text-slate-700 rounded text-sm hover:bg-slate-400 flex items-center justify-center gap-1"
-                                  >
-                                    <X size={14} />
-                                    取消
-                                  </button>
+                    <div className="p-4">
+                      {/* Add Category */}
+                      {canManageSettings && (
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                          <div className="mb-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                              新增分类 <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={selectedTaskClassCode === taskClass.code ? editingValue : ''}
+                              onChange={(e) => {
+                                setSelectedTaskClassCode(taskClass.code);
+                                setEditingValue(e.target.value);
+                              }}
+                              placeholder="输入分类名称"
+                              className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAddTaskCategory(taskClass.code)}
+                              className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+                            >
+                              <Save size={14} />
+                              添加
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedTaskClassCode(taskClass.code);
+                                setEditingValue('');
+                              }}
+                              className="px-3 py-1.5 bg-slate-300 rounded text-sm flex items-center gap-1"
+                            >
+                              <X size={14} />
+                              清空
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Category List */}
+                      {categories.length > 0 ? (
+                        <div
+                          className="space-y-2"
+                          onDragOver={(e) => e.preventDefault()}
+                        >
+                          {categories.map(category => (
+                            <div
+                              key={category}
+                              className={`group flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 transition-all ${
+                                draggedCategory === category ? 'opacity-50' : ''
+                              } ${
+                                draggedOverCategory === category ? 'border-blue-500 bg-blue-50' : ''
+                              } ${
+                                canManageSettings && editingCategory !== category ? 'hover:border-blue-300' : ''
+                              }`}
+                            >
+                              {/* Drag Handle */}
+                              {canManageSettings && editingCategory !== category && (
+                                <div
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(taskClass.code)(e, category)}
+                                  onDragOver={(e) => handleDragOver(e, category)}
+                                  onDragLeave={handleDragLeave}
+                                  onDrop={(e) => handleDrop(taskClass.code)(e, category)}
+                                  onDragEnd={handleDragEnd}
+                                  className="text-slate-400 hover:text-slate-600 cursor-move select-none"
+                                  title="拖拽排序"
+                                >
+                                  <GripVertical size={16} />
                                 </div>
-                              </div>
-                            ) : (
-                              // 显示模式
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-slate-900">{category}</span>
-                                {canManageSettings && (
-                                  <div className="flex gap-1">
-                                    <button
-                                      onClick={() => startEditingCategory(category)}
-                                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                                      title="编辑分类名称"
-                                    >
-                                      <Edit2 size={14} />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteTaskCategory(category)}
-                                      className="p-1 text-red-600 hover:bg-red-100 rounded"
-                                      title="删除分类"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
+                              )}
+                              {(!canManageSettings || editingCategory === category) && <div className="w-4"></div>}
+
+                              {/* Category Content */}
+                              <div className="flex-1">
+                                {editingCategory === category ? (
+                                  <div className="space-y-2">
+                                    <input
+                                      type="text"
+                                      value={editingCategoryValue}
+                                      onChange={(e) => setEditingCategoryValue(e.target.value)}
+                                      className="w-full border border-slate-300 rounded px-3 py-1.5 text-sm"
+                                      autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleUpdateTaskCategory(taskClass.code, category, editingCategoryValue)}
+                                        className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 flex items-center gap-1"
+                                      >
+                                        <Save size={12} />
+                                        保存
+                                      </button>
+                                      <button
+                                        onClick={cancelEditingCategory}
+                                        className="px-2 py-1 bg-slate-300 text-slate-700 rounded text-xs flex items-center gap-1"
+                                      >
+                                        <X size={12} />
+                                        取消
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-slate-900">{category}</span>
+                                    {canManageSettings && (
+                                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                          onClick={() => startEditingCategory(category)}
+                                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                          title="编辑分类名称"
+                                        >
+                                          <Edit2 size={14} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteTaskCategory(taskClass.code, category)}
+                                          className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                          title="删除分类"
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-300">
-                        <p>该任务类别下暂无分类</p>
-                      </div>
-                    )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                          <p>该任务类别下暂无分类</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </>
-              )}
+                );
+              })}
             </div>
           </div>
         )}

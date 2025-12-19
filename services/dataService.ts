@@ -1194,6 +1194,18 @@ class DataService {
     }
   }
 
+  checkTaskClassUsage(id: string): { hasTasks: boolean; taskCount: number; taskClassCode: string } {
+    const tasks = this.getTasks();
+    const taskClasses = this.getAllTaskClassesRaw();
+    const taskClass = taskClasses.find(tc => tc.id === id);
+    const taskCount = tasks.filter(t => t.TaskClassID === id && !t.is_deleted).length;
+    return {
+      hasTasks: taskCount > 0,
+      taskCount,
+      taskClassCode: taskClass?.code || ''
+    };
+  }
+
   // Task Category Management
   getTaskCategories(): Record<string, string[]> {
     const data = localStorage.getItem(STORAGE_KEYS.TASK_CATEGORIES);
@@ -1238,6 +1250,14 @@ class DataService {
         allCategories[taskClassCode][index] = newCategoryName;
         localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
       }
+    }
+  }
+
+  reorderTaskCategories(taskClassCode: string, newOrder: string[]): void {
+    const allCategories = this.getTaskCategories();
+    if (allCategories[taskClassCode]) {
+      allCategories[taskClassCode] = newOrder;
+      localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
     }
   }
 

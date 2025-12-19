@@ -101,6 +101,19 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     }
   };
 
+  const handleUpdateTaskClass = () => {
+    if (!editingItem || !editingValue.trim()) return;
+    const taskClass = taskClasses.find(tc => tc.id === editingItem);
+    if (!taskClass) return;
+
+    taskClass.name = editingValue.trim();
+    dataService.saveTaskClass(taskClass);
+    loadData();
+    setEditingItem(null);
+    setEditingValue('');
+    showMessage('success', '任务类别更新成功');
+  };
+
   // Task Category Management
   const handleAddTaskCategory = () => {
     if (!selectedTaskClassCode || !editingValue.trim()) {
@@ -333,28 +346,56 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
               )}
 
               {taskClasses.map(taskClass => (
-                <div key={taskClass.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{taskClass.name}</p>
-                    <p className="text-sm text-slate-500">{taskClass.code} - {taskClass.description}</p>
-                  </div>
-                  {canManageSettings && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingItem(taskClass.id);
-                          setEditingValue(taskClass.name);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTaskClass(taskClass.id)}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                <div key={taskClass.id} className="bg-slate-50 rounded-lg">
+                  {editingItem === taskClass.id ? (
+                    <div className="p-4">
+                      <div className="mb-3">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          任务类别名称 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          className="w-full border border-slate-300 rounded px-3 py-2"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleUpdateTaskClass} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
+                          <Save size={16} />
+                          保存
+                        </button>
+                        <button onClick={() => { setEditingItem(null); setEditingValue(''); }} className="px-4 py-2 bg-slate-300 rounded flex items-center gap-2">
+                          <X size={16} />
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-4">
+                      <div>
+                        <p className="font-medium">{taskClass.name}</p>
+                        <p className="text-sm text-slate-500">{taskClass.code} - {taskClass.description}</p>
+                      </div>
+                      {canManageSettings && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingItem(taskClass.id);
+                              setEditingValue(taskClass.name);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTaskClass(taskClass.id)}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

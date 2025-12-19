@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
   EQUIPMENT_MODELS: 'rd_equipment_models',
   CAPACITY_LEVELS: 'rd_capacity_levels',
   TRAVEL_LABELS: 'rd_travel_labels',
-  USER_AVATARS: 'rd_user_avatars'
+  USER_AVATARS: 'rd_user_avatars',
+  TASK_CATEGORIES: 'rd_task_categories'
 };
 
 // --- Seed Data ---
@@ -1173,6 +1174,37 @@ class DataService {
     if (taskClass) {
       taskClass.is_deleted = true;
       localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(taskClasses));
+    }
+  }
+
+  // Task Category Management
+  getTaskCategories(): Record<string, string[]> {
+    const data = localStorage.getItem(STORAGE_KEYS.TASK_CATEGORIES);
+    return data ? JSON.parse(data) : {};
+  }
+
+  saveTaskCategory(taskClassCode: string, categories: string[]): void {
+    const allCategories = this.getTaskCategories();
+    allCategories[taskClassCode] = categories;
+    localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
+  }
+
+  addTaskCategory(taskClassCode: string, categoryName: string): void {
+    const allCategories = this.getTaskCategories();
+    if (!allCategories[taskClassCode]) {
+      allCategories[taskClassCode] = [];
+    }
+    if (!allCategories[taskClassCode].includes(categoryName)) {
+      allCategories[taskClassCode].push(categoryName);
+      localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
+    }
+  }
+
+  deleteTaskCategory(taskClassCode: string, categoryName: string): void {
+    const allCategories = this.getTaskCategories();
+    if (allCategories[taskClassCode]) {
+      allCategories[taskClassCode] = allCategories[taskClassCode].filter(c => c !== categoryName);
+      localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
     }
   }
 

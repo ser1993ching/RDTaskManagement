@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Task, TaskClass, User, Project, TaskStatus } from '../types';
+import { Task, TaskClass, User, Project, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
@@ -385,10 +385,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const openModal = (task?: Task) => {
     setEditingTask(task || null);
     const defaultCategory = activeTaskClass ? getCategoriesForTaskClass(activeTaskClass.code)[0] : '';
-    const taskData = task || {
+    const taskData: Task = task || {
       TaskClassID: activeTaskClassId,
       Category: defaultCategory,
-      Status: TaskStatus.NOT_STARTED
+      Status: TaskStatus.NOT_STARTED,
+      TaskID: '',
+      TaskName: '',
+      CreatedDate: '',
+      CreatedBy: ''
     };
     // 如果是编辑模式，设置人员姓名字段
     if (task && task.AssigneeID) {

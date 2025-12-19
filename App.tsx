@@ -4,7 +4,6 @@ import { Dashboard } from './components/Dashboard';
 import { PersonnelView } from './components/PersonnelView';
 import { ProjectView } from './components/ProjectView';
 import { TaskView } from './components/TaskView';
-import { TaskClassView } from './components/TaskClassView';
 import { Settings } from './components/Settings';
 import { dataService } from './services/dataService';
 import { User, Project, Task } from './types';
@@ -113,7 +112,6 @@ const App: React.FC = () => {
       {currentView === 'personnel' && <PersonnelView currentUser={currentUser} users={users} onRefresh={refreshData} />}
       {currentView === 'projects' && <ProjectView currentUser={currentUser} projects={projects} users={users} onRefresh={refreshData} />}
       {currentView === 'tasks' && <TaskView currentUser={currentUser} tasks={tasks} projects={projects} users={users} onRefresh={refreshData} />}
-      {currentView === 'task-classes' && <TaskClassView currentUser={currentUser} />}
       {currentView === 'settings' && <Settings currentUser={currentUser} />}
     </Layout>
   );

@@ -66,7 +66,28 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     dataService.saveTaskClass(taskClass);
     loadData();
     setEditingItem(null);
+    setEditingValue('');
     showMessage('success', '任务类别保存成功');
+  };
+
+  const handleAddTaskClass = () => {
+    if (!editingValue.trim()) return;
+    const [name, code] = editingValue.split('|');
+    if (!name || !code) {
+      showMessage('error', '请按格式输入：名称|编码');
+      return;
+    }
+    const newTaskClass: TaskClass = {
+      id: dataService.generateId('TC'),
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      description: '',
+    };
+    dataService.saveTaskClass(newTaskClass);
+    loadData();
+    setEditingItem(null);
+    setEditingValue('');
+    showMessage('success', '任务类别添加成功');
   };
 
   const handleDeleteTaskClass = (id: string) => {
@@ -245,30 +266,72 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
         {activeTab === 'task-classes' && (
           <div>
             <h3 className="text-lg font-semibold mb-4">任务类别管理</h3>
+            {!canManageSettings && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p className="text-yellow-800 text-sm">⚠️ 只有管理员和班组长可以管理任务类别</p>
+              </div>
+            )}
             <div className="space-y-3">
+              {canManageSettings && editingItem === 'new-task-class' ? (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      任务类别信息 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      placeholder="格式：任务类名称|编码 (如：市场配合|MARKET)"
+                      className="w-full border border-slate-300 rounded px-3 py-2"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">请使用 "|" 分隔名称和编码</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleAddTaskClass} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
+                      <Save size={16} />
+                      保存
+                    </button>
+                    <button onClick={() => { setEditingItem(null); setEditingValue(''); }} className="px-4 py-2 bg-slate-300 rounded flex items-center gap-2">
+                      <X size={16} />
+                      取消
+                    </button>
+                  </div>
+                </div>
+              ) : canManageSettings && (
+                <button
+                  onClick={() => setEditingItem('new-task-class')}
+                  className="w-full p-4 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} /> 新增任务类别
+                </button>
+              )}
+
               {taskClasses.map(taskClass => (
                 <div key={taskClass.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div>
                     <p className="font-medium">{taskClass.name}</p>
                     <p className="text-sm text-slate-500">{taskClass.code} - {taskClass.description}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingItem(taskClass.id);
-                        setEditingValue(taskClass.name);
-                      }}
-                      className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTaskClass(taskClass.id)}
-                      className="p-2 text-red-600 hover:bg-red-100 rounded"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {canManageSettings && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingItem(taskClass.id);
+                          setEditingValue(taskClass.name);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTaskClass(taskClass.id)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

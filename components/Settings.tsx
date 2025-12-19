@@ -19,11 +19,13 @@ interface SettingsProps {
   currentUser: User;
 }
 
-type TabType = 'task-classes' | 'models' | 'capacity-levels' | 'travel-labels' | 'profile' | 'password';
+type TabType = 'task-classes' | 'task-categories' | 'models' | 'capacity-levels' | 'travel-labels' | 'profile' | 'password';
 
 export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const [activeTab, setActiveTab] = useState<TabType>('task-classes');
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
+  const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
+  const [selectedTaskClassCode, setSelectedTaskClassCode] = useState<string>('');
   const [models, setModels] = useState<string[]>([]);
   const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
   const [travelLabels, setTravelLabels] = useState<string[]>([]);
@@ -49,6 +51,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
   const loadData = () => {
     setTaskClasses(dataService.getTaskClasses());
+    setTaskCategories(dataService.getTaskCategories());
     setModels(dataService.getEquipmentModels());
     setCapacityLevels(dataService.getCapacityLevels());
     setTravelLabels(dataService.getTravelLabels());
@@ -95,6 +98,27 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       dataService.deleteTaskClass(id);
       loadData();
       showMessage('success', '任务类别删除成功');
+    }
+  };
+
+  // Task Category Management
+  const handleAddTaskCategory = () => {
+    if (!selectedTaskClassCode || !editingValue.trim()) {
+      showMessage('error', '请选择任务类别并输入分类名称');
+      return;
+    }
+    dataService.addTaskCategory(selectedTaskClassCode, editingValue.trim());
+    setTaskCategories(dataService.getTaskCategories());
+    setEditingValue('');
+    showMessage('success', '任务分类添加成功');
+  };
+
+  const handleDeleteTaskCategory = (categoryName: string) => {
+    if (!selectedTaskClassCode) return;
+    if (confirm(`确定要删除分类"${categoryName}"吗？`)) {
+      dataService.deleteTaskCategory(selectedTaskClassCode, categoryName);
+      setTaskCategories(dataService.getTaskCategories());
+      showMessage('success', '任务分类删除成功');
     }
   };
 
@@ -211,6 +235,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
   const tabs = [
     { id: 'task-classes', label: '任务类别管理', icon: Edit2 },
+    { id: 'task-categories', label: '任务分类管理', icon: Edit2 },
     { id: 'models', label: '机型管理', icon: Shield },
     { id: 'capacity-levels', label: '容量等级管理', icon: Shield },
     { id: 'travel-labels', label: '差旅标签设置', icon: Shield },
@@ -334,6 +359,98 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Task Category Management */}
+        {activeTab === 'task-categories' && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">任务分类管理</h3>
+            {!canManageSettings && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p className="text-yellow-800 text-sm">⚠️ 只有管理员和班组长可以管理任务分类</p>
+              </div>
+            )}
+            <div className="space-y-4">
+              {/* Task Class Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  选择任务类别 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedTaskClassCode}
+                  onChange={(e) => setSelectedTaskClassCode(e.target.value)}
+                  className="w-full border border-slate-300 rounded px-3 py-2"
+                >
+                  <option value="">请选择任务类别</option>
+                  {taskClasses.map(taskClass => (
+                    <option key={taskClass.id} value={taskClass.code}>
+                      {taskClass.name} ({taskClass.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedTaskClassCode && (
+                <>
+                  {/* Add Category */}
+                  {canManageSettings && (
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <div className="mb-3">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          新增分类 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          placeholder="输入分类名称"
+                          className="w-full border border-slate-300 rounded px-3 py-2"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleAddTaskCategory} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
+                          <Save size={16} />
+                          添加
+                        </button>
+                        <button onClick={() => setEditingValue('')} className="px-4 py-2 bg-slate-300 rounded flex items-center gap-2">
+                          <X size={16} />
+                          清空
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Category List */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-slate-700">
+                      分类列表 ({taskCategories[selectedTaskClassCode]?.length || 0} 个)
+                    </h4>
+                    {taskCategories[selectedTaskClassCode] && taskCategories[selectedTaskClassCode].length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {taskCategories[selectedTaskClassCode].map(category => (
+                          <div key={category} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <span className="font-medium text-slate-900">{category}</span>
+                            {canManageSettings && (
+                              <button
+                                onClick={() => handleDeleteTaskCategory(category)}
+                                className="p-1 text-red-600 hover:bg-red-100 rounded"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                        <p>该任务类别下暂无分类</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

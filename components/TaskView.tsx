@@ -11,19 +11,6 @@ interface TaskViewProps {
   onRefresh: () => void;
 }
 
-// Config for Categories based on TaskClass
-const CATEGORY_CONFIG: Record<string, string[]> = {
-  'MARKET': ['标书', '复询', '技术方案', '其他'],
-  'EXECUTION': ['搭建生产资料', '设计院提资', 'CT配合与提资', '随机资料', '项目特殊项处理', '用户配合', '图纸会签', '传真回复', '其他'],
-  'PRODUCT_DEV': ['技术方案', '设计流程', '方案评审', '专利申请', '出图', '图纸改版', '设计总结'],
-  'RESEARCH': ['开题报告', '专利申请', '结题报告', '其他'],
-  'RENOVATION': ['前期项目配合', '方案编制', '其他'],
-  'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
-  'ADMIN_PARTY': ['报表填报', 'ppt汇报', '总结报告', '其他'],
-  'TRAVEL': ['市场配合出差', '项目执行出差', '产品研发出差', '科研出差', '生产服务出差', '其他'],
-  'OTHER': ['通用任务']
-};
-
 // Config for Capacity Level (Market tasks only)
 const CAPACITY_LEVEL_OPTIONS = [
   '300MW等级',
@@ -134,6 +121,7 @@ const AutocompleteInput: React.FC<AutocompleteProps> = ({
 
 export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh }) => {
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>(dataService.getTaskClasses());
+  const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -149,6 +137,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       setActiveTaskClassId(taskClasses[0].id);
     }
   }, [taskClasses, activeTaskClassId]);
+
+  // Load task categories
+  useEffect(() => {
+    setTaskCategories(dataService.getTaskCategories());
+  }, []);
 
   // Filtering
   const [filterProject, setFilterProject] = useState('');
@@ -367,7 +360,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   const openModal = (task?: Task) => {
     setEditingTask(task || null);
-    const defaultCategory = activeTaskClass ? CATEGORY_CONFIG[activeTaskClass.code]?.[0] || '' : '';
+    const defaultCategory = activeTaskClass ? taskCategories[activeTaskClass.code]?.[0] || '' : '';
     const taskData = task || {
       TaskClassID: activeTaskClassId,
       Category: defaultCategory,
@@ -421,7 +414,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 分类</label>
             <select required className="w-full border rounded p-2"
               value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})}>
-              {CATEGORY_CONFIG[activeTaskClass.code]?.map(v => <option key={v} value={v}>{v}</option>)}
+              {taskCategories[activeTaskClass.code]?.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
 
@@ -741,7 +734,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <label className="block text-xs text-slate-600 mb-1">分类</label>
               <select className="w-full border rounded px-2 py-2 text-sm" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
                 <option value="">所有分类</option>
-                {activeTaskClass && CATEGORY_CONFIG[activeTaskClass.code]?.map(c => <option key={c} value={c}>{c}</option>)}
+                {activeTaskClass && taskCategories[activeTaskClass.code]?.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="min-w-[130px]">

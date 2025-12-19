@@ -1,0 +1,51 @@
+# 任务详细信息弹窗优化方案
+
+## 1. Header部分优化 (969-985行)
+- 减小padding: p-4 -> px-4 py-2.5
+- 移除"Task Details"副标题
+- 减小图标大小: size={20} -> size={18}
+- 减小padding: p-1.5 -> p-1
+
+## 2. 基本信息卡片优化 (991-1031行)
+- 任务名称移到第一个显示位置（第1024-1030行 -> 第996-1003行）
+- 移除预估工时字段（第1016-1022行）
+- 保持任务ID和任务状态
+- 卡片背景从渐变色改为纯白色
+
+## 3. 分类信息卡片 (1034-1069行)
+- 移除渐变背景: bg-gradient-to-br from-blue-50 to-indigo-50 -> bg-white
+- 移除边框颜色: border-blue-200 -> border-slate-200
+- 内容背景从bg-white/80改为bg-white
+
+## 4. 人员信息卡片 (1072-1104行)
+- 移除渐变背景: bg-gradient-to-br from-purple-50 to-pink-50 -> bg-white
+- 移除边框颜色: border-purple-200 -> border-slate-200
+- 内容背景从bg-white/80改为bg-white
+
+## 5. 时间信息卡片 (1107-1128行)
+- 移除渐变背景: bg-gradient-to-br from-amber-50 to-orange-50 -> bg-white
+- 移除边框颜色: border-amber-200 -> border-slate-200
+- 内容背景从bg-white/80改为bg-white
+
+## 6. 差旅信息卡片 (1132-1154行)
+- 移除渐变背景: bg-gradient-to-br from-teal-50 to-cyan-50 -> bg-white
+- 移除边框颜色: border-teal-200 -> border-slate-200
+- 内容背景从bg-white/80改为bg-white
+
+## 7. 工作量统计卡片 (1158-1187行)
+- 添加负责人工时字段
+- 负责人工时(h) -> 负责人工时(h)
+- 保持校核人工时和审查人2工时
+- 移除渐变背景: bg-gradient-to-br from-rose-50 to-red-50 -> bg-white
+- 移除边框颜色: border-rose-200 -> border-slate-200
+- 内容背景从bg-white/80改为bg-white
+
+## 8. 创建信息卡片 (1190-1211行)
+- 移除渐变背景: bg-gradient-to-br from-emerald-50 to-teal-50 -> bg-white
+- 移除边框颜色: border-emerald-200 -> border-slate-200
+- 内容背景从bg-white/90改为bg-white
+- 移除边框: border-emerald-100
+
+## 9. 备注信息卡片 (1215-1224行)
+- 保持渐变背景，因为这是最后一个卡片
+- 内容背景保持bg-white

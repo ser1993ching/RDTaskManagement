@@ -76,6 +76,8 @@ export interface Project {
   startDate?: string;
   endDate?: string; // 截止/首台投运
   remark?: string;
+  isCommissioned?: boolean; // 是否已投运 (Execution)
+  isCompleted?: boolean; // 是否已完成 (Research/Renovation/Other)
   is_deleted?: boolean;
 }
 

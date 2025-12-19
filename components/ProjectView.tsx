@@ -142,9 +142,26 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                   <td className="px-6 py-4">{p.capacity || '-'}</td>
                   <td className="px-6 py-4">{p.model || '-'}</td>
                   <td className="px-6 py-4">{p.startDate}</td>
-                  <td className="px-6 py-4 text-xs text-slate-500">
-                    {p.isWon !== undefined && <span>{p.isWon ? '中标 ' : '未中标 '}</span>}
-                    {p.isForeign && <span className="text-orange-600">外贸</span>}
+                  <td className="px-6 py-4 text-xs">
+                    {/* 市场配合项目：中标/外贸 */}
+                    {activeTab === ProjectCategory.MARKET && (
+                      <>
+                        {p.isWon !== undefined && <span className={p.isWon ? 'text-green-600' : 'text-slate-500'}>{p.isWon ? '已中标 ' : '未中标 '}</span>}
+                        {p.isForeign && <span className="text-orange-600 ml-1">外贸</span>}
+                      </>
+                    )}
+                    {/* 项目执行：已投运 */}
+                    {activeTab === ProjectCategory.EXECUTION && (
+                      <span className={p.isCommissioned ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                        {p.isCommissioned ? '✓ 已投运' : '未投运'}
+                      </span>
+                    )}
+                    {/* 科研/改造/其他项目：已完成 */}
+                    {(activeTab === ProjectCategory.RESEARCH || activeTab === ProjectCategory.RENOVATION || activeTab === ProjectCategory.OTHER) && (
+                      <span className={p.isCompleted ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                        {p.isCompleted ? '✓ 已完成' : '进行中'}
+                      </span>
+                    )}
                   </td>
                   {canEdit && (
                     <td className="px-6 py-4 text-right">
@@ -204,6 +221,18 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                 <div className="col-span-2 flex gap-4">
                   <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isWon || false} onChange={e => setFormData({...formData, isWon: e.target.checked})} /> 已中标</label>
                   <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isForeign || false} onChange={e => setFormData({...formData, isForeign: e.target.checked})} /> 外贸项目</label>
+                </div>
+              )}
+
+              {activeTab === ProjectCategory.EXECUTION && (
+                <div className="col-span-2 flex gap-4">
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isCommissioned || false} onChange={e => setFormData({...formData, isCommissioned: e.target.checked})} /> 已投运</label>
+                </div>
+              )}
+
+              {(activeTab === ProjectCategory.RESEARCH || activeTab === ProjectCategory.RENOVATION || activeTab === ProjectCategory.OTHER) && (
+                <div className="col-span-2 flex gap-4">
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isCompleted || false} onChange={e => setFormData({...formData, isCompleted: e.target.checked})} /> 已完成</label>
                 </div>
               )}
 

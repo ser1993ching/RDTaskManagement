@@ -12,7 +12,9 @@ import {
   Lock,
   Shield,
   Camera,
-  GripVertical
+  GripVertical,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { dataService } from '../services/dataService';
 
@@ -37,6 +39,9 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
   const [draggedOverCategory, setDraggedOverCategory] = useState<string | null>(null);
+  const [showDeletePasswordPrompt, setShowDeletePasswordPrompt] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [taskClassToDelete, setTaskClassToDelete] = useState<TaskClass | null>(null);
 
   // Profile state
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -110,6 +115,16 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       return;
     }
 
+    // 重要任务类别列表（需要密码验证）
+    const importantTaskClassCodes = ['TC001', 'TC002', 'TC003', 'TC004', 'TC005', 'TC006', 'TC007', 'TC008', 'TC009'];
+
+    // 如果是重要类别，需要密码验证
+    if (importantTaskClassCodes.includes(taskClass.code)) {
+      setTaskClassToDelete(taskClass);
+      setShowDeletePasswordPrompt(true);
+      return;
+    }
+
     let confirmMessage = '';
     if (usage.hasTasks) {
       confirmMessage = `⚠️ 警告：删除任务类别"${taskClass.name}"可能会影响以下内容：\n\n` +
@@ -130,6 +145,32 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       loadData();
       showMessage('success', '任务类别删除成功');
     }
+  };
+
+  const handlePasswordVerification = () => {
+    // 使用管理员密码作为删除验证密码
+    // 默认管理员密码是 'admin'
+    if (deletePassword === 'admin') {
+      if (taskClassToDelete) {
+        dataService.deleteTaskClass(taskClassToDelete.id);
+        loadData();
+        showMessage('success', '任务类别删除成功');
+      }
+      setShowDeletePasswordPrompt(false);
+      setDeletePassword('');
+      setTaskClassToDelete(null);
+    } else {
+      showMessage('error', '密码错误，删除已取消');
+      setShowDeletePasswordPrompt(false);
+      setDeletePassword('');
+      setTaskClassToDelete(null);
+    }
+  };
+
+  const cancelPasswordVerification = () => {
+    setShowDeletePasswordPrompt(false);
+    setDeletePassword('');
+    setTaskClassToDelete(null);
   };
 
   const handleUpdateTaskClass = () => {
@@ -228,7 +269,6 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
       dataService.reorderTaskCategories(taskClassCode, newOrder);
       setTaskCategories(dataService.getTaskCategories());
-      showMessage('success', '分类排序已更新');
     }
 
     setDraggedCategory(null);
@@ -238,6 +278,40 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const handleDragEnd = () => {
     setDraggedCategory(null);
     setDraggedOverCategory(null);
+  };
+
+  // Move category up
+  const moveCategoryUp = (taskClassCode: string, categoryName: string) => {
+    const categories = taskCategories[taskClassCode];
+    if (!categories) return;
+
+    const currentIndex = categories.indexOf(categoryName);
+    if (currentIndex <= 0) return; // Already at the top
+
+    const newOrder = [...categories];
+    // Swap with previous element
+    [newOrder[currentIndex], newOrder[currentIndex - 1]] =
+    [newOrder[currentIndex - 1], newOrder[currentIndex]];
+
+    dataService.reorderTaskCategories(taskClassCode, newOrder);
+    setTaskCategories(dataService.getTaskCategories());
+  };
+
+  // Move category down
+  const moveCategoryDown = (taskClassCode: string, categoryName: string) => {
+    const categories = taskCategories[taskClassCode];
+    if (!categories) return;
+
+    const currentIndex = categories.indexOf(categoryName);
+    if (currentIndex === -1 || currentIndex >= categories.length - 1) return; // Already at the bottom
+
+    const newOrder = [...categories];
+    // Swap with next element
+    [newOrder[currentIndex], newOrder[currentIndex + 1]] =
+    [newOrder[currentIndex + 1], newOrder[currentIndex]];
+
+    dataService.reorderTaskCategories(taskClassCode, newOrder);
+    setTaskCategories(dataService.getTaskCategories());
   };
 
   // Model Management
@@ -554,7 +628,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
               </div>
             )}
             <div className="text-sm text-slate-600 mb-4">
-              💡 提示：拖拽分类项可以调整顺序，任务管理界面中的分类顺序将与此保持一致
+              💡 提示：可以通过拖拽分类项或点击上移/下移按钮调整顺序，任务管理界面中的分类顺序将与此保持一致
             </div>
             <div className="space-y-6">
               {taskClasses.map(taskClass => {
@@ -621,7 +695,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                           className="space-y-2"
                           onDragOver={(e) => e.preventDefault()}
                         >
-                          {categories.map(category => (
+                          {categories.map((category, index) => (
                             <div
                               key={category}
                               className={`group flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 transition-all ${
@@ -682,6 +756,33 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                                     <span className="font-medium text-slate-900">{category}</span>
                                     {canManageSettings && (
                                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {/* Move Up Button */}
+                                        <button
+                                          onClick={() => moveCategoryUp(taskClass.code, category)}
+                                          disabled={index === 0}
+                                          className={`p-1 rounded ${
+                                            index === 0
+                                              ? 'text-slate-300 cursor-not-allowed'
+                                              : 'text-slate-600 hover:bg-slate-200'
+                                          }`}
+                                          title="上移"
+                                        >
+                                          <ChevronUp size={14} />
+                                        </button>
+                                        {/* Move Down Button */}
+                                        <button
+                                          onClick={() => moveCategoryDown(taskClass.code, category)}
+                                          disabled={index === categories.length - 1}
+                                          className={`p-1 rounded ${
+                                            index === categories.length - 1
+                                              ? 'text-slate-300 cursor-not-allowed'
+                                              : 'text-slate-600 hover:bg-slate-200'
+                                          }`}
+                                          title="下移"
+                                        >
+                                          <ChevronDown size={14} />
+                                        </button>
+                                        {/* Edit Button */}
                                         <button
                                           onClick={() => startEditingCategory(category)}
                                           className="p-1 text-blue-600 hover:bg-blue-100 rounded"
@@ -689,6 +790,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                                         >
                                           <Edit2 size={14} />
                                         </button>
+                                        {/* Delete Button */}
                                         <button
                                           onClick={() => handleDeleteTaskCategory(taskClass.code, category)}
                                           className="p-1 text-red-600 hover:bg-red-100 rounded"
@@ -992,6 +1094,67 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
           </div>
         )}
       </div>
+
+      {/* Password Verification Dialog */}
+      {showDeletePasswordPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-red-100 p-2 rounded-lg">
+                  <Lock className="text-red-600" size={24} />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900">密码验证</h3>
+              </div>
+              <p className="text-slate-600 text-sm mb-2">
+                您正在尝试删除重要任务类别：
+              </p>
+              <p className="font-medium text-slate-900 mb-4">
+                {taskClassToDelete?.name} ({taskClassToDelete?.code})
+              </p>
+              <p className="text-red-600 text-sm mb-4">
+                ⚠️ 重要任务类别删除需要验证密码
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                请输入管理员密码：
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && deletePassword.trim()) {
+                    handlePasswordVerification();
+                  }
+                }}
+                placeholder="请输入密码"
+                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handlePasswordVerification}
+                disabled={!deletePassword.trim()}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                <Shield size={16} />
+                确认删除
+              </button>
+              <button
+                onClick={cancelPasswordVerification}
+                className="flex-1 px-4 py-2 bg-slate-300 text-slate-700 rounded-lg hover:bg-slate-400 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

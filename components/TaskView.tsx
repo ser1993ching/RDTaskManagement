@@ -160,6 +160,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [filterThisWeek, setFilterThisWeek] = useState(false);
   const [filterThisMonth, setFilterThisMonth] = useState(false);
   const [filterTaskName, setFilterTaskName] = useState('');
+  const [filterForceAssessment, setFilterForceAssessment] = useState<boolean | ''>('');
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
 
@@ -231,7 +232,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       (filterStartDateFrom ? (t.StartDate ? new Date(t.StartDate) >= new Date(filterStartDateFrom) : true) : true) &&
       (filterStartDateTo ? (t.StartDate ? new Date(t.StartDate) <= new Date(filterStartDateTo) : true) : true) &&
       (filterThisWeek ? isInCurrentWeek(t.StartDate || '') : true) &&
-      (filterThisMonth ? isInCurrentMonth(t.StartDate || '') : true);
+      (filterThisMonth ? isInCurrentMonth(t.StartDate || '') : true) &&
+      (filterForceAssessment === '' ? true : t.isForceAssessment === filterForceAssessment);
   });
 
   const handleExport = () => {
@@ -789,6 +791,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   setFilterTaskName('');
                   setFilterThisWeek(false);
                   setFilterThisMonth(false);
+                  setFilterForceAssessment('');
                   // No default time filter
                 }}
                 className="w-full text-sm text-slate-700 hover:text-slate-900 px-2 py-2 border border-slate-300 rounded hover:bg-slate-50 transition-colors focus:outline-none focus:ring-0"
@@ -832,22 +835,39 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <label className="block text-xs text-slate-600 mb-1">开始日期(到)</label>
               <input type="date" className="w-full border rounded px-2 py-2 text-sm" value={filterStartDateTo} onChange={e => setFilterStartDateTo(e.target.value)} />
             </div>
-            <div className="min-w-[130px] flex items-end pb-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={filterThisWeek} onChange={e => {
+            <div className="flex items-end pb-2">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" className="hidden" checked={filterThisWeek} onChange={e => {
                   setFilterThisWeek(e.target.checked);
                   if (e.target.checked) setFilterThisMonth(false);
                 }} />
-                <span className="text-slate-700">本周任务</span>
+                <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterThisWeek ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterThisWeek ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                </span>
+                <span className="text-sm text-slate-700 whitespace-nowrap">本周</span>
               </label>
             </div>
-            <div className="min-w-[130px] flex items-end pb-2">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={filterThisMonth} onChange={e => {
+            <div className="flex items-end pb-2">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" className="hidden" checked={filterThisMonth} onChange={e => {
                   setFilterThisMonth(e.target.checked);
                   if (e.target.checked) setFilterThisWeek(false);
                 }} />
-                <span className="text-slate-700">本月任务</span>
+                <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterThisMonth ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterThisMonth ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                </span>
+                <span className="text-sm text-slate-700 whitespace-nowrap">本月</span>
+              </label>
+            </div>
+            <div className="flex items-end pb-2 flex-shrink-0">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" className="hidden" checked={filterForceAssessment === true} onChange={e => {
+                  setFilterForceAssessment(e.target.checked ? true : '');
+                }} />
+                <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterForceAssessment === true ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterForceAssessment === true ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                </span>
+                <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
               </label>
             </div>
           </div>
@@ -855,7 +875,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
         <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-600 font-medium border-b sticky top-0">
+            <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-10 shadow-sm">
               <tr>
                 <th className="px-6 py-4">任务名称</th>
                 <th className="px-6 py-4">分类</th>
@@ -874,8 +894,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <tbody className="divide-y divide-slate-100">
               {filteredTasks.map(t => (
                 <tr key={t.TaskID} className="hover:bg-blue-50 transition-colors cursor-pointer" onDoubleClick={() => handleDoubleClick(t)}>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-slate-900">{t.TaskName}</div>
+                  <td className="px-6 py-4 relative">
+                    {t.isForceAssessment && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
+                    <div className={`font-medium ${t.isForceAssessment ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.TaskName}</div>
                     <div className="text-xs text-slate-400">{t.TaskID}</div>
                   </td>
                   <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.Category}</span></td>
@@ -920,8 +941,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 任务名称</label>
-                <input required type="text" className="w-full border rounded p-2 bg-slate-50"
-                  value={formData.TaskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
+                <div className="flex items-center gap-3">
+                  <input required type="text" className="flex-1 border rounded p-2 bg-slate-50"
+                    value={formData.TaskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="hidden" checked={formData.isForceAssessment || false} onChange={e => setFormData({...formData, isForceAssessment: e.target.checked})} />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">强制考核</span>
+                  </label>
+                </div>
               </div>
 
               {renderDynamicFields()}
@@ -1025,13 +1055,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
             {/* 头部 */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 flex justify-between items-center">
+            <div className="bg-blue-600 text-white px-4 py-2.5 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 p-1 rounded-lg">
                   <Info size={18} />
                 </div>
-                <div>
+                <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold">任务详细信息</h3>
+                  <div className="text-xs text-white/80 font-mono">ID: {selectedTask.TaskID}</div>
                 </div>
               </div>
               <button
@@ -1044,33 +1075,23 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
             {/* 内容 */}
             <div className="overflow-y-auto flex-1 p-4">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* 基本信息卡片 */}
-                <div className="bg-white rounded-lg p-3 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white rounded-lg p-2 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
                     <h4 className="text-sm font-semibold text-slate-800">基本信息</h4>
                   </div>
-                  <div className="mb-3 bg-white rounded-md p-3 shadow-sm">
+                  <div className="bg-white rounded-md p-2">
                     <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                       <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
                       任务名称
                     </label>
-                    <div className="text-slate-900 font-medium text-sm">{selectedTask.TaskName}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-md p-3 shadow-sm">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                        任务ID
-                      </label>
-                      <div className="text-slate-900 font-mono text-xs">{selectedTask.TaskID}</div>
-                    </div>
-                    <div className="bg-white rounded-md p-3 shadow-sm">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                        任务状态
-                      </label>
+                    <div className="flex items-center gap-3">
+                      <div className="text-slate-900 font-medium text-sm">{selectedTask.TaskName}</div>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${selectedTask.isForceAssessment ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {selectedTask.isForceAssessment ? '✓ 强制考核' : ''}
+                      </span>
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                         selectedTask.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
                         selectedTask.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
@@ -1082,34 +1103,34 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 分类信息卡片 */}
-                <div className="bg-white rounded-lg p-3 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white rounded-lg p-2 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
                     <h4 className="text-sm font-semibold text-slate-800">分类信息</h4>
                   </div>
                   <div className="grid grid-cols-4 gap-3">
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         任务分类
                       </label>
                       <div className="text-slate-900 font-medium text-sm">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
                     </div>
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         二级分类
                       </label>
                       <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
                     </div>
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         关联项目
                       </label>
                       <div className="text-slate-900 text-sm">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
                     </div>
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                         容量等级
@@ -1120,13 +1141,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 人员信息卡片 */}
-                <div className="bg-white rounded-lg p-3 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white rounded-lg p-2 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
                     <h4 className="text-sm font-semibold text-slate-800">人员信息</h4>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <UserIcon size={12} className="text-purple-500" />
                         负责人
@@ -1135,14 +1156,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     </div>
                     {selectedTask.TaskClassID !== 'TC008' && (
                       <>
-                        <div className="bg-white rounded-md p-3 shadow-sm">
+                        <div className="bg-white rounded-md p-2">
                           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                             <UserIcon size={12} className="text-purple-500" />
                             校核人
                           </label>
                           <div className="text-slate-900 text-sm">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
                         </div>
-                        <div className="bg-white rounded-md p-3 shadow-sm">
+                        <div className="bg-white rounded-md p-2">
                           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                             <UserIcon size={12} className="text-purple-500" />
                             审查人
@@ -1155,20 +1176,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 时间信息卡片 */}
-                <div className="bg-white rounded-lg p-3 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white rounded-lg p-2 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                     <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <Calendar size={12} className="text-amber-500" />
                         开始日期
                       </label>
                       <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
                     </div>
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <Calendar size={12} className="text-amber-500" />
                         截止日期
@@ -1180,20 +1201,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
                 {/* 差旅信息 */}
                 {selectedTask.TaskClassID === 'TC008' && (
-                  <div className="bg-white rounded-lg p-3 border border-slate-200">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="bg-white rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-teal-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">差旅信息</h4>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white rounded-md p-3 shadow-sm">
+                      <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <MapPin size={12} className="text-teal-500" />
                           出差地点
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.TravelLocation || '-'}</div>
                       </div>
-                      <div className="bg-white rounded-md p-3 shadow-sm">
+                      <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-teal-500" />
                           出差时长(天)
@@ -1206,34 +1227,34 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
                 {/* 管理员/班组长可见的额外信息 */}
                 {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
-                  <div className="bg-white rounded-lg p-3 border border-slate-200">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="bg-white rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-rose-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">工作量统计</h4>
                     </div>
                     <div className="grid grid-cols-4 gap-3">
-                      <div className="bg-white rounded-md p-3 shadow-sm">
+                      <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-rose-500" />
                           负责人工时(h)
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.Workload || '-'}</div>
                       </div>
-                      <div className="bg-white rounded-md p-3 shadow-sm">
+                      <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-rose-500" />
                           校核人工时(h)
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.ReviewerWorkload || '-'}</div>
                       </div>
-                      <div className="bg-white rounded-md p-3 shadow-sm">
+                      <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-rose-500" />
                           审查人2工时(h)
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.Reviewer2Workload || '-'}</div>
                       </div>
-                      <div className="bg-white rounded-md p-3 shadow-sm">
+                      <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <div className="w-1.5 h-1.5 bg-rose-400 rounded-full"></div>
                           难度系数
@@ -1245,20 +1266,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 )}
 
                 {/* 创建信息 */}
-                <div className="bg-white rounded-lg p-3 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white rounded-lg p-2 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
                     <h4 className="text-sm font-semibold text-slate-800">创建信息</h4>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <UserIcon size={12} className="text-emerald-600" />
                         创建人
                       </label>
                       <div className="text-slate-900 font-semibold text-sm">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
                     </div>
-                    <div className="bg-white rounded-md p-3 shadow-sm">
+                    <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <Calendar size={12} className="text-emerald-600" />
                         创建时间
@@ -1270,8 +1291,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
                 {/* 备注 */}
                 {selectedTask.Remark && (
-                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-3 border border-slate-200">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-slate-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">备注信息</h4>
                     </div>
@@ -1289,7 +1310,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <button
                   type="button"
                   onClick={() => setIsDetailModalOpen(false)}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium transition-all shadow-md"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium transition-all shadow-md"
                 >
                   关闭
                 </button>

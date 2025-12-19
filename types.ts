@@ -108,5 +108,6 @@ export interface Task {
   Reviewer2Name?: string; // 审查人姓名（非系统用户时使用）
   ReviewerWorkload?: number; // 校核人工时
   Reviewer2Workload?: number; // 审查人2工时
+  isForceAssessment?: boolean; // 是否强制考核
   is_deleted?: boolean;
 }

@@ -14,6 +14,19 @@ const STORAGE_KEYS = {
   TASK_CATEGORIES: 'rd_task_categories'
 };
 
+// Default task categories configuration
+const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
+  'MARKET': ['标书', '复询', '技术方案', '其他'],
+  'EXECUTION': ['搭建生产资料', '设计院提资', 'CT配合与提资', '随机资料', '项目特殊项处理', '用户配合', '图纸会签', '传真回复', '其他'],
+  'PRODUCT_DEV': ['技术方案', '设计流程', '方案评审', '专利申请', '出图', '图纸改版', '设计总结'],
+  'RESEARCH': ['开题报告', '专利申请', '结题报告', '其他'],
+  'RENOVATION': ['前期项目配合', '方案编制', '其他'],
+  'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
+  'ADMIN_PARTY': ['报表填报', 'ppt汇报', '总结报告', '其他'],
+  'TRAVEL': ['市场配合出差', '项目执行出差', '产品研发出差', '科研出差', '生产服务出差', '其他'],
+  'OTHER': ['通用任务']
+};
+
 // --- Seed Data ---
 
 const seedUsers: User[] = [
@@ -1049,6 +1062,10 @@ class DataService {
     if (!localStorage.getItem(STORAGE_KEYS.TASK_CLASSES)) {
       localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
     }
+    // Initialize task categories if not exist
+    if (!localStorage.getItem(STORAGE_KEYS.TASK_CATEGORIES)) {
+      localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
+    }
     // Initialize settings from existing data
     this.initializeSettings();
   }
@@ -1180,7 +1197,12 @@ class DataService {
   // Task Category Management
   getTaskCategories(): Record<string, string[]> {
     const data = localStorage.getItem(STORAGE_KEYS.TASK_CATEGORIES);
-    return data ? JSON.parse(data) : {};
+    if (data) {
+      return JSON.parse(data);
+    }
+    // If not initialized, save default categories to localStorage and return them
+    localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
+    return DEFAULT_TASK_CATEGORIES;
   }
 
   saveTaskCategory(taskClassCode: string, categories: string[]): void {
@@ -1205,6 +1227,17 @@ class DataService {
     if (allCategories[taskClassCode]) {
       allCategories[taskClassCode] = allCategories[taskClassCode].filter(c => c !== categoryName);
       localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
+    }
+  }
+
+  updateTaskCategory(taskClassCode: string, oldCategoryName: string, newCategoryName: string): void {
+    const allCategories = this.getTaskCategories();
+    if (allCategories[taskClassCode]) {
+      const index = allCategories[taskClassCode].indexOf(oldCategoryName);
+      if (index !== -1) {
+        allCategories[taskClassCode][index] = newCategoryName;
+        localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
+      }
     }
   }
 

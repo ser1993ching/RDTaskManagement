@@ -31,6 +31,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const [travelLabels, setTravelLabels] = useState<string[]>([]);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Profile state
@@ -135,6 +137,28 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       setTaskCategories(dataService.getTaskCategories());
       showMessage('success', '任务分类删除成功');
     }
+  };
+
+  const handleUpdateTaskCategory = (oldCategoryName: string, newCategoryName: string) => {
+    if (!selectedTaskClassCode || !newCategoryName.trim()) {
+      showMessage('error', '分类名称不能为空');
+      return;
+    }
+    dataService.updateTaskCategory(selectedTaskClassCode, oldCategoryName, newCategoryName.trim());
+    setTaskCategories(dataService.getTaskCategories());
+    setEditingCategory(null);
+    setEditingCategoryValue('');
+    showMessage('success', '任务分类更新成功');
+  };
+
+  const startEditingCategory = (categoryName: string) => {
+    setEditingCategory(categoryName);
+    setEditingCategoryValue(categoryName);
+  };
+
+  const cancelEditingCategory = () => {
+    setEditingCategory(null);
+    setEditingCategoryValue('');
   };
 
   // Model Management
@@ -479,15 +503,57 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                     {taskCategories[selectedTaskClassCode] && taskCategories[selectedTaskClassCode].length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {taskCategories[selectedTaskClassCode].map(category => (
-                          <div key={category} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
-                            <span className="font-medium text-slate-900">{category}</span>
-                            {canManageSettings && (
-                              <button
-                                onClick={() => handleDeleteTaskCategory(category)}
-                                className="p-1 text-red-600 hover:bg-red-100 rounded"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                          <div key={category} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            {editingCategory === category ? (
+                              // 编辑模式
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editingCategoryValue}
+                                  onChange={(e) => setEditingCategoryValue(e.target.value)}
+                                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
+                                  autoFocus
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleUpdateTaskCategory(category, editingCategoryValue)}
+                                    className="flex-1 px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center justify-center gap-1"
+                                  >
+                                    <Save size={14} />
+                                    保存
+                                  </button>
+                                  <button
+                                    onClick={cancelEditingCategory}
+                                    className="flex-1 px-3 py-1.5 bg-slate-300 text-slate-700 rounded text-sm hover:bg-slate-400 flex items-center justify-center gap-1"
+                                  >
+                                    <X size={14} />
+                                    取消
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              // 显示模式
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-slate-900">{category}</span>
+                                {canManageSettings && (
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => startEditingCategory(category)}
+                                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                      title="编辑分类名称"
+                                    >
+                                      <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteTaskCategory(category)}
+                                      className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                      title="删除分类"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         ))}

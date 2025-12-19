@@ -23,19 +23,6 @@ const CAPACITY_LEVEL_OPTIONS = [
   '调相机'
 ];
 
-// Default categories for backward compatibility
-const DEFAULT_CATEGORY_CONFIG: Record<string, string[]> = {
-  'MARKET': ['标书', '复询', '技术方案', '其他'],
-  'EXECUTION': ['搭建生产资料', '设计院提资', 'CT配合与提资', '随机资料', '项目特殊项处理', '用户配合', '图纸会签', '传真回复', '其他'],
-  'PRODUCT_DEV': ['技术方案', '设计流程', '方案评审', '专利申请', '出图', '图纸改版', '设计总结'],
-  'RESEARCH': ['开题报告', '专利申请', '结题报告', '其他'],
-  'RENOVATION': ['前期项目配合', '方案编制', '其他'],
-  'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
-  'ADMIN_PARTY': ['报表填报', 'ppt汇报', '总结报告', '其他'],
-  'TRAVEL': ['市场配合出差', '项目执行出差', '产品研发出差', '科研出差', '生产服务出差', '其他'],
-  'OTHER': ['通用任务']
-};
-
 // 自动完成输入框组件
 interface AutocompleteProps {
   value: string;
@@ -154,12 +141,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   // Load task categories
   useEffect(() => {
     const categories = dataService.getTaskCategories();
-    // If no categories exist, use default config
-    if (Object.keys(categories).length === 0) {
-      setTaskCategories(DEFAULT_CATEGORY_CONFIG);
-    } else {
-      setTaskCategories(categories);
-    }
+    setTaskCategories(categories);
   }, []);
 
   // Helper function to get categories for a task class
@@ -180,6 +162,32 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [filterTaskName, setFilterTaskName] = useState('');
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
+
+  // Map task class codes to project categories
+  const getProjectCategoryForTaskClass = (taskClassCode: string): ProjectCategory | null => {
+    switch (taskClassCode) {
+      case 'MARKET':
+        return ProjectCategory.MARKET;
+      case 'EXECUTION':
+        return ProjectCategory.EXECUTION;
+      case 'PRODUCT_DEV':
+      case 'RESEARCH':
+        return ProjectCategory.RESEARCH;
+      case 'RENOVATION':
+        return ProjectCategory.RENOVATION;
+      case 'OTHER':
+        return ProjectCategory.OTHER;
+      default:
+        return null;
+    }
+  };
+
+  // Get projects filtered by task class
+  const getProjectsForTaskClass = (taskClassCode: string): Project[] => {
+    const category = getProjectCategoryForTaskClass(taskClassCode);
+    if (!category) return [];
+    return projects.filter(p => p.category === category);
+  };
 
   // Initialize default filter - no time filter by default
   useEffect(() => {
@@ -301,19 +309,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
   }, [formData.ProjectID, formData.Category, isModalOpen, projects, activeTaskClass, editingTask]);
 
-  // Auto-match project based on task name
+  // Auto-match project based on task name (only for matching categories)
   useEffect(() => {
-    if (isModalOpen && formData.TaskName && formData.TaskName.includes('项目')) {
-      const projectNames = projects.map(p => p.name);
+    if (isModalOpen && formData.TaskName && formData.TaskName.includes('项目') && activeTaskClass) {
+      const matchingProjects = getProjectsForTaskClass(activeTaskClass.code);
+      const projectNames = matchingProjects.map(p => p.name);
       const matchedProject = projectNames.find(name => formData.TaskName?.includes(name));
       if (matchedProject) {
-        const project = projects.find(p => p.name === matchedProject);
+        const project = matchingProjects.find(p => p.name === matchedProject);
         if (project && formData.ProjectID !== project.id) {
           setFormData(prev => ({ ...prev, ProjectID: project.id }));
         }
       }
     }
-  }, [formData.TaskName, isModalOpen, projects]);
+  }, [formData.TaskName, isModalOpen, projects, activeTaskClass]);
 
   // Handle new project creation
   const handleCreateProject = () => {
@@ -370,6 +379,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 验证项目与任务类型的匹配性
+    if (formData.ProjectID && activeTaskClass) {
+      const project = projects.find(p => p.id === formData.ProjectID);
+      const expectedCategory = getProjectCategoryForTaskClass(activeTaskClass.code);
+      if (project && expectedCategory && project.category !== expectedCategory) {
+        alert(`保存失败：选择的项目"${project.name}"属于${project.category}，与当前任务类型${activeTaskClass.name}不匹配。\n\n请选择正确的项目类别或联系管理员调整项目分类。`);
+        return;
+      }
+    }
+
     const taskToSave: Task = {
       ...(editingTask || {}),
       ...formData as Task,
@@ -394,6 +414,15 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       CreatedDate: '',
       CreatedBy: ''
     };
+    // 如果是编辑模式，验证项目与任务类型的匹配性
+    if (task && task.ProjectID && activeTaskClass) {
+      const project = projects.find(p => p.id === task.ProjectID);
+      const expectedCategory = getProjectCategoryForTaskClass(activeTaskClass.code);
+      if (project && expectedCategory && project.category !== expectedCategory) {
+        alert(`警告：该任务当前关联的项目"${project.name}"属于${project.category}，与当前任务类型${activeTaskClass.name}不匹配。\n\n建议：\n1. 修改任务类型为匹配的项目类别，或\n2. 更换为正确的项目，或\n3. 联系管理员调整项目分类`);
+        // 不阻断编辑，但保留原关联
+      }
+    }
     // 如果是编辑模式，设置人员姓名字段
     if (task && task.AssigneeID) {
       const assignee = users.find(u => u.UserID === task.AssigneeID);
@@ -448,13 +477,22 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
           {isProjectRelated && (
             <div>
-              <label className="block text-sm font-medium mb-1">关联项目</label>
+              <label className="block text-sm font-medium mb-1">
+                关联项目
+                <span className="text-xs text-slate-500 ml-2">
+                  (仅显示{activeTaskClass?.code === 'MARKET' ? '市场配合项目' :
+                           activeTaskClass?.code === 'EXECUTION' ? '项目执行项目' :
+                           activeTaskClass?.code === 'PRODUCT_DEV' || activeTaskClass?.code === 'RESEARCH' ? '科研项目' :
+                           activeTaskClass?.code === 'RENOVATION' ? '改造项目' :
+                           activeTaskClass?.code === 'OTHER' ? '其他项目' : '匹配项目'})
+                </span>
+              </label>
               <AutocompleteInput
                 id="project-autocomplete"
                 value={projects.find(p => p.id === formData.ProjectID)?.name || ''}
-                options={projects.map(p => p.name)}
+                options={getProjectsForTaskClass(activeTaskClass?.code || '').map(p => p.name)}
                 onChange={(value) => {
-                  const project = projects.find(p => p.name === value);
+                  const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   setFormData({...formData, ProjectID: project?.id || ''});
                   // If input doesn't match any existing project, show create option
                   if (value.trim() && !project) {
@@ -463,7 +501,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   }
                 }}
                 onSelect={(value) => {
-                  const project = projects.find(p => p.name === value);
+                  const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   if (project) {
                     setFormData({...formData, ProjectID: project.id});
                   }

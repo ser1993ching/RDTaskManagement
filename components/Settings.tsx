@@ -43,7 +43,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Check if user is Admin or Leader
-  const canManageSettings = currentUser.SystemRole === SystemRole.ADMIN || currentUser.SystemRole === SystemRole.LEADER;
+  const canManageSettings = currentUser?.SystemRole === SystemRole.ADMIN || currentUser?.SystemRole === SystemRole.LEADER;
 
   useEffect(() => {
     loadData();
@@ -55,8 +55,10 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     setModels(dataService.getEquipmentModels());
     setCapacityLevels(dataService.getCapacityLevels());
     setTravelLabels(dataService.getTravelLabels());
-    const userAvatar = dataService.getAvatar(currentUser.UserID);
-    setAvatar(userAvatar);
+    if (currentUser) {
+      const userAvatar = dataService.getAvatar(currentUser.UserID);
+      setAvatar(userAvatar);
+    }
   };
 
   const showMessage = (type: 'success' | 'error', text: string) => {
@@ -209,12 +211,13 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   };
 
   const handleSaveAvatar = () => {
-    if (!avatar) return;
+    if (!avatar || !currentUser) return;
     dataService.saveAvatar(currentUser.UserID, avatar);
     showMessage('success', '头像保存成功');
   };
 
   const handleRemoveAvatar = () => {
+    if (!currentUser) return;
     if (confirm('确定要删除头像吗？')) {
       dataService.deleteAvatar(currentUser.UserID);
       setAvatar(null);
@@ -225,6 +228,11 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
   // Password Change
   const handlePasswordChange = () => {
+    if (!currentUser) {
+      showMessage('error', '用户信息不存在');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       showMessage('error', '新密码与确认密码不一致');
       return;
@@ -658,65 +666,69 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
             <h3 className="text-lg font-semibold mb-4">用户资料</h3>
             <div className="max-w-md">
               {/* Avatar Section */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 mb-2">头像</label>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    {avatar ? (
-                      <img src={avatar} alt="Avatar" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg" />
-                    ) : (
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-lg">
-                        {currentUser.Name.charAt(0)}
-                      </div>
-                    )}
-                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 shadow-lg">
-                      <Camera size={14} />
-                      <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                    </label>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveAvatar}
-                      disabled={!avatarFile}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
-                    >
-                      保存头像
-                    </button>
-                    {avatar && (
+              {currentUser && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">头像</label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      {avatar ? (
+                        <img src={avatar} alt="Avatar" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg" />
+                      ) : (
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-lg">
+                          {currentUser.Name.charAt(0)}
+                        </div>
+                      )}
+                      <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 shadow-lg">
+                        <Camera size={14} />
+                        <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                      </label>
+                    </div>
+                    <div className="flex gap-2">
                       <button
-                        onClick={handleRemoveAvatar}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        onClick={handleSaveAvatar}
+                        disabled={!avatarFile}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
                       >
-                        删除
+                        保存头像
                       </button>
-                    )}
+                      {avatar && (
+                        <button
+                          onClick={handleRemoveAvatar}
+                          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                          删除
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* User Info */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">工号</label>
-                  <p className="mt-1 text-slate-900">{currentUser.UserID}</p>
+              {currentUser && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">工号</label>
+                    <p className="mt-1 text-slate-900">{currentUser.UserID}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">姓名</label>
+                    <p className="mt-1 text-slate-900">{currentUser.Name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">角色</label>
+                    <p className="mt-1 text-slate-900">{currentUser.SystemRole}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">办公地点</label>
+                    <p className="mt-1 text-slate-900">{currentUser.OfficeLocation}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">状态</label>
+                    <p className="mt-1 text-slate-900">{currentUser.Status}</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">姓名</label>
-                  <p className="mt-1 text-slate-900">{currentUser.Name}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">角色</label>
-                  <p className="mt-1 text-slate-900">{currentUser.SystemRole}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">办公地点</label>
-                  <p className="mt-1 text-slate-900">{currentUser.OfficeLocation}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">状态</label>
-                  <p className="mt-1 text-slate-900">{currentUser.Status}</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}

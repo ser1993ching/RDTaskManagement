@@ -4,10 +4,10 @@ import { Dashboard } from './components/Dashboard';
 import { PersonnelView } from './components/PersonnelView';
 import { ProjectView } from './components/ProjectView';
 import { TaskView } from './components/TaskView';
-import { Settings } from './components/Settings';
+import { Settings as SettingsComponent } from './components/Settings';
 import { dataService } from './services/dataService';
 import { User, Project, Task } from './types';
-import { Lock } from 'lucide-react';
+import { Lock, Settings } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -55,6 +55,11 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setLoginId('');
     setLoginPwd('');
+    setLoginError('');
+    setCurrentView('dashboard');
+    setUsers([]);
+    setProjects([]);
+    setTasks([]);
   };
 
   if (!currentUser) {
@@ -62,7 +67,10 @@ const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">汽发任务管理系统</h1>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center justify-center gap-3">
+              <Settings className="text-blue-600" size={28} />
+              汽发任务管理系统
+            </h1>
             <p className="text-slate-500 mt-2">研发团队任务管理系统</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -112,7 +120,7 @@ const App: React.FC = () => {
       {currentView === 'personnel' && <PersonnelView currentUser={currentUser} users={users} onRefresh={refreshData} />}
       {currentView === 'projects' && <ProjectView currentUser={currentUser} projects={projects} users={users} onRefresh={refreshData} />}
       {currentView === 'tasks' && <TaskView currentUser={currentUser} tasks={tasks} projects={projects} users={users} onRefresh={refreshData} />}
-      {currentView === 'settings' && <Settings currentUser={currentUser} />}
+      {currentView === 'settings' && <SettingsComponent currentUser={currentUser} />}
     </Layout>
   );
 };

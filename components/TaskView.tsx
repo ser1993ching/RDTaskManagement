@@ -123,10 +123,49 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     return projects.filter(p => p.category === category);
   };
 
+  // Get projects for travel tasks based on category
+  const getProjectsForTravelTask = (category: string): Project[] => {
+    switch (category) {
+      case '市场配合出差':
+        return projects.filter(p => p.category === ProjectCategory.MARKET);
+      case '常规项目执行出差':
+        return projects.filter(p => p.category === ProjectCategory.EXECUTION);
+      case '核电项目执行出差':
+        return projects.filter(p => p.category === ProjectCategory.NUCLEAR);
+      case '科研出差':
+        return projects.filter(p => p.category === ProjectCategory.RESEARCH);
+      case '改造服务出差':
+        return projects.filter(p => p.category === ProjectCategory.RENOVATION);
+      case '其他任务出差':
+        return projects.filter(p => p.category === ProjectCategory.OTHER);
+      default:
+        return projects;
+    }
+  };
+
   // Initialize default filter - no time filter by default
   useEffect(() => {
     // Don't set any default time filter
   }, []);
+
+  // Clear project and label when travel task category changes
+  useEffect(() => {
+    if (isTravel && formData.Category) {
+      // Check if current project belongs to the selected category
+      const availableProjects = getProjectsForTravelTask(formData.Category);
+      const currentProject = projects.find(p => p.id === formData.ProjectID);
+      const isProjectValid = currentProject && availableProjects.some(p => p.id === currentProject.id);
+
+      // Clear project and label if they don't match the new category
+      if (!isProjectValid || formData.TravelLabel) {
+        setFormData(prev => ({
+          ...prev,
+          ProjectID: '',
+          TravelLabel: ''
+        }));
+      }
+    }
+  }, [formData.Category, isTravel, projects]);
 
   // Helper function to get filtered tasks for sidebar count (consistent with main content)
   const getSidebarTaskCount = (taskClassId: string) => {
@@ -155,11 +194,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   };
 
   const filteredTasks = tasks.filter(t => {
-    // 会议培训任务不受状态和强制考核筛选器影响
+    // 会议培训任务和差旅任务不受状态和强制考核筛选器影响
     const isMeetingTask = t.TaskClassID === 'TC007';
+    const isTravelTask = t.TaskClassID === 'TC009';
     return t.TaskClassID === activeTaskClassId &&
       (filterProject ? t.ProjectID === filterProject : true) &&
-      (isMeetingTask ? true : (filterStatus ? t.Status === filterStatus : true)) &&
+      ((isMeetingTask || isTravelTask) ? true : (filterStatus ? t.Status === filterStatus : true)) &&
       (filterCategory ? t.Category === filterCategory : true) &&
       (filterAssignee ? t.AssigneeID === filterAssignee : true) &&
       (filterCapacityLevel ? (t.CapacityLevel || '').toLowerCase().includes(filterCapacityLevel.toLowerCase()) : true) &&
@@ -168,7 +208,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       (filterStartDateTo ? (t.StartDate ? new Date(t.StartDate) <= new Date(filterStartDateTo) : true) : true) &&
       (filterThisWeek ? isInCurrentWeek(t.StartDate || '') : true) &&
       (filterThisMonth ? isInCurrentMonth(t.StartDate || '') : true) &&
-      (isMeetingTask ? true : (filterForceAssessment === '' ? true : t.isForceAssessment === filterForceAssessment));
+      ((isMeetingTask || isTravelTask) ? true : (filterForceAssessment === '' ? true : t.isForceAssessment === filterForceAssessment));
   });
 
   const handleExport = () => {
@@ -258,14 +298,52 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       const proj = projects.find(p => p.id === formData.ProjectID);
       const projName = proj ? proj.name : '';
       const category = formData.Category || '';
+      const travelLabel = formData.TravelLabel || '';
+
       if (activeTaskClass?.code !== 'MEETING_TRAINING') { // Meeting usually custom name
+        let taskName = '';
+
+        // 差旅任务特殊命名格式：[项目名]-[分类]-[标签]
+        if (isTravel) {
+          if (projName && category && travelLabel) {
+            taskName = `${projName}-${category}-${travelLabel}`;
+          } else if (projName && category) {
+            taskName = `${projName}-${category}`;
+          }
+        } else {
+          // 其他任务命名格式：[项目名]-[分类]
+          if (projName && category) {
+            taskName = `${projName}-${category}`;
+          }
+        }
+
+        if (taskName) {
+          setFormData(prev => ({
+             ...prev,
+             TaskName: taskName
+          }));
+        }
+      }
+    }
+  }, [formData.ProjectID, formData.Category, formData.TravelLabel, isModalOpen, projects, activeTaskClass, editingTask, isTravel]);
+
+  // 差旅任务专用：当标签改变时自动更新任务名称
+  useEffect(() => {
+    if (isModalOpen && !editingTask && isTravel && formData.ProjectID && formData.Category) {
+      const proj = projects.find(p => p.id === formData.ProjectID);
+      const projName = proj ? proj.name : '';
+      const category = formData.Category || '';
+      const travelLabel = formData.TravelLabel || '';
+
+      if (travelLabel) {
+        const newTaskName = `${projName}-${category}-${travelLabel}`;
         setFormData(prev => ({
-           ...prev,
-           TaskName: projName && category ? `${projName}-${category}` : prev.TaskName
+          ...prev,
+          TaskName: newTaskName
         }));
       }
     }
-  }, [formData.ProjectID, formData.Category, isModalOpen, projects, activeTaskClass, editingTask]);
+  }, [formData.TravelLabel, isModalOpen, isTravel, formData.ProjectID, formData.Category, projects]);
 
   // Auto-match project based on task name (only for matching categories)
   useEffect(() => {
@@ -444,8 +522,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
     return (
       <>
-        {/* 第一行：分类 + 关联项目 + 容量等级（市场配合任务） */}
-        <div className="grid grid-cols-3 gap-3 col-span-2">
+        {/* 第一行：分类 + 关联项目 + 容量等级（非差旅任务） */}
+        {!isTravel && (
+          <div className="grid grid-cols-3 gap-3 col-span-2">
           <div>
             <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 分类</label>
             <select required className="w-full border rounded p-2"
@@ -520,34 +599,109 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </div>
           )}
         </div>
+        )}
 
-        {/* 第二行：负责人（差旅任务只显示负责人，会议培训显示负责人+会议日期+会议时长，其他任务显示负责人、校核人、审查人） */}
-        {isTravel ? (
-          // 差旅任务只显示负责人
-          <div className="col-span-2">
-            <div className="max-w-xs">
-              <label className="block text-sm font-medium mb-1">负责人</label>
+        {/* 第二行：差旅任务的分类 + 标签 + 关联项目 */}
+        {isTravel && (
+          <div className="grid grid-cols-3 gap-3 col-span-2">
+            <div>
+              <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 分类</label>
+              <select required className="w-full border rounded p-2"
+                value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})}>
+                {activeTaskClass && getCategoriesForTaskClass(activeTaskClass.code).map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">差旅标签</label>
+              <select className="w-full border rounded p-2"
+                value={formData.TravelLabel || ''} onChange={e => setFormData({...formData, TravelLabel: e.target.value})}>
+                <option value="">选择标签</option>
+                {formData.Category === '市场配合出差' && (
+                  <>
+                    <option value="技术交流">技术交流</option>
+                    <option value="现场投标">现场投标</option>
+                    <option value="技术协议">技术协议</option>
+                    <option value="其他">其他</option>
+                  </>
+                )}
+                {(formData.Category === '常规项目执行出差' || formData.Category === '核电项目执行出差') && (
+                  <>
+                    <option value="联络会">联络会</option>
+                    <option value="安装现场服务">安装现场服务</option>
+                    <option value="其他">其他</option>
+                  </>
+                )}
+                {(formData.Category === '科研出差' || formData.Category === '改造服务出差' || formData.Category === '其他任务出差') && (
+                  <>
+                    <option value="现场调研">现场调研</option>
+                    <option value="技术交流">技术交流</option>
+                    <option value="其他">其他</option>
+                  </>
+                )}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">关联项目</label>
               <AutocompleteInput
-                id="assignee-autocomplete"
-                value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
-                options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                id="travel-project-autocomplete"
+                value={projects.find(p => p.id === formData.ProjectID)?.name || ''}
+                options={getProjectsForTravelTask(formData.Category || '').map(p => p.name)}
                 onChange={(value) => {
-                  const user = users.find(u => u.Name === value && u.Status !== '离岗');
-                  if (user) {
-                    setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
-                  } else {
-                    setFormData({...formData, AssigneeID: '', AssigneeName: value});
-                  }
+                  const project = getProjectsForTravelTask(formData.Category || '').find(p => p.name === value);
+                  setFormData({...formData, ProjectID: project?.id || ''});
                 }}
                 onSelect={(value) => {
-                  const user = users.find(u => u.Name === value && u.Status !== '离岗');
-                  if (user) {
-                    setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                  const project = getProjectsForTravelTask(formData.Category || '').find(p => p.name === value);
+                  if (project) {
+                    setFormData({...formData, ProjectID: project.id});
                   }
                 }}
-                placeholder="搜索或输入负责人姓名..."
+                placeholder="搜索或输入项目名称..."
                 className="w-full border rounded p-2"
               />
+            </div>
+          </div>
+        )}
+
+        {/* 第三行：负责人（会议培训显示负责人+会议日期+会议时长，差旅任务显示负责人+开始日期+出差天数，其他任务显示负责人、校核人、审查人） */}
+        {isTravel ? (
+          // 差旅任务显示负责人+开始日期+出差天数
+          <div className="col-span-2">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">负责人</label>
+                <AutocompleteInput
+                  id="travel-assignee-autocomplete"
+                  value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
+                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  onChange={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                    } else {
+                      setFormData({...formData, AssigneeID: '', AssigneeName: value});
+                    }
+                  }}
+                  onSelect={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                    }
+                  }}
+                  placeholder="搜索或输入负责人姓名..."
+                  className="w-full border rounded p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">开始日期</label>
+                <input type="date" className="w-full border rounded p-2"
+                  value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">出差天数(天)</label>
+                <input type="number" step="0.5" className="w-full border rounded p-2"
+                  value={formData.TravelDuration || ''} onChange={e => setFormData({...formData, TravelDuration: parseFloat(e.target.value)})} />
+              </div>
             </div>
           </div>
         ) : isMeeting ? (
@@ -670,9 +824,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           </div>
         )}
 
-        {/* 第四行：任务状态 + 截止日期（会议培训任务不显示） */}
+        {/* 第四行：任务状态 + 截止日期（会议培训任务和差旅任务不显示） */}
         <div className="grid grid-cols-3 gap-3 col-span-2">
-          {!isMeeting && (
+          {!isMeeting && !isTravel && (
             <div>
               <label className="block text-sm font-medium mb-1">任务状态</label>
               <select className="w-full border rounded p-2"
@@ -681,14 +835,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               </select>
             </div>
           )}
-          {!isMeeting && (
+          {!isMeeting && !isTravel && (
             <div>
               <label className="block text-sm font-medium mb-1">任务开始日期</label>
               <input type="date" className="w-full border rounded p-2"
                 value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
             </div>
           )}
-          {!isMeeting && (
+          {!isMeeting && !isTravel && (
             <div>
               <label className="block text-sm font-medium mb-1">截止日期</label>
               <input type="date" className="w-full border rounded p-2"
@@ -697,8 +851,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           )}
         </div>
 
-        {/* 第五行：负责人工时 + 校核人工时 + 审查人工时（仅班组长/管理员可见，会议培训任务不显示） */}
-        {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && !isMeeting && (
+        {/* 第五行：负责人工时 + 校核人工时 + 审查人工时（仅班组长/管理员可见，会议培训任务和差旅任务不显示） */}
+        {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && !isMeeting && !isTravel && (
           <div className="col-span-2">
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -720,24 +874,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           </div>
         )}
 
-        {/* 差旅任务的特殊字段 */}
+        {/* 差旅任务的出差地点 */}
         {isTravel && (
-          <>
-            <div className="col-span-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 出差地点</label>
-                  <input required type="text" className="w-full border rounded p-2"
-                    value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">出差时长(天)</label>
-                  <input type="number" step="0.5" className="w-full border rounded p-2"
-                    value={formData.TravelDuration || ''} onChange={e => setFormData({...formData, TravelDuration: parseFloat(e.target.value)})} />
-                </div>
-              </div>
-            </div>
-          </>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">出差地点</label>
+            <input type="text" className="w-full border rounded p-2"
+              value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})}
+              placeholder="多个城市请用逗号分隔，如：北京,上海,广州" />
+          </div>
         )}
 
         {/* 会议与培训任务的特殊字段 */}
@@ -1123,8 +1267,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   setFilterTaskName('');
                   setFilterThisWeek(false);
                   setFilterThisMonth(false);
-                  // 会议培训任务不显示状态和强制考核筛选器，所以不清空它们的筛选器
-                  if (!isMeeting) {
+                  // 会议培训任务和差旅任务不显示状态和强制考核筛选器，所以不清空它们的筛选器
+                  if (!isMeeting && !isTravel) {
                     setFilterStatus('');
                     setFilterForceAssessment('');
                   }
@@ -1153,8 +1297,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 id="filter-capacity-autocomplete"
               />
             </div>
-            {/* 会议培训任务不显示状态筛选器 */}
-            {!isMeeting && (
+            {/* 会议培训任务和差旅任务不显示状态筛选器 */}
+            {!isMeeting && !isTravel && (
               <div className="min-w-[130px]">
                 <label className="block text-xs text-slate-600 mb-1">状态</label>
                 <select className="w-full border rounded px-2 py-2 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
@@ -1202,8 +1346,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <span className="text-sm text-slate-700 whitespace-nowrap">本月</span>
               </label>
             </div>
-            {/* 会议培训任务不显示强制考核筛选器 */}
-            {!isMeeting && (
+            {/* 会议培训任务和差旅任务不显示强制考核筛选器 */}
+            {!isMeeting && !isTravel && (
               <div className="flex items-end pb-2 flex-shrink-0">
                 <label className="flex items-center gap-1 cursor-pointer">
                   <input type="checkbox" className="hidden" checked={filterForceAssessment === true} onChange={e => {
@@ -1225,9 +1369,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <tr>
                 <th className="px-6 py-4">任务名称</th>
                 <th className="px-6 py-4">分类</th>
+                {/* 差旅任务显示标签列 */}
+                {isTravel && <th className="px-6 py-4">标签</th>}
                 <th className="px-6 py-4">容量等级</th>
-                {/* 会议培训任务不显示状态列 */}
-                {!isMeeting && <th className="px-6 py-4">状态</th>}
+                {/* 会议培训任务和差旅任务不显示状态列 */}
+                {!isMeeting && !isTravel && <th className="px-6 py-4">状态</th>}
                 <th className="px-6 py-4">负责人</th>
                 {/* 差旅任务和会议培训任务不显示校核人列 */}
                 {filteredTasks.length > 0 && !filteredTasks.every(t => t.TaskClassID === 'TC009' || t.TaskClassID === 'TC007') && (
@@ -1235,8 +1381,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 )}
                 {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
                 <th className="px-6 py-4">{isMeeting ? '会议日期' : '开始日'}</th>
-                {/* 会议培训任务不显示截止日 */}
-                {!isMeeting && <th className="px-6 py-4">截止日</th>}
+                {/* 会议培训任务和差旅任务不显示截止日 */}
+                {!isMeeting && !isTravel && <th className="px-6 py-4">截止日</th>}
+                {/* 差旅任务显示出差天数 */}
+                {isTravel && <th className="px-6 py-4">出差天数</th>}
                 {/* 会议培训任务显示会议时长和参会人数 */}
                 {isMeeting && (
                   <>
@@ -1253,14 +1401,18 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 return (
                   <tr key={t.TaskID} className="hover:bg-blue-50 transition-colors cursor-pointer" onDoubleClick={() => handleDoubleClick(t)}>
                     <td className="px-6 py-4 relative">
-                      {t.isForceAssessment && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
-                      <div className={`font-medium ${t.isForceAssessment ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.TaskName}</div>
+                      {t.isForceAssessment && t.TaskClassID !== 'TC009' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
+                      <div className={`font-medium ${t.isForceAssessment && t.TaskClassID !== 'TC009' ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.TaskName}</div>
                       <div className="text-xs text-slate-400">{t.TaskID}</div>
                     </td>
                     <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.Category}</span></td>
+                    {/* 差旅任务显示标签列 */}
+                    {t.TaskClassID === 'TC009' && (
+                      <td className="px-6 py-4">{t.TravelLabel || '-'}</td>
+                    )}
                     <td className="px-6 py-4">{t.CapacityLevel || '-'}</td>
-                    {/* 会议培训任务不显示状态列 */}
-                    {!isMeetingTask && (
+                    {/* 会议培训任务和差旅任务不显示状态列 */}
+                    {!isMeetingTask && t.TaskClassID !== 'TC009' && (
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded text-xs ${
                           t.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
@@ -1281,9 +1433,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     )}
                     {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
                     <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
-                    {/* 会议培训任务不显示截止日 */}
-                    {!isMeetingTask && (
+                    {/* 会议培训任务和差旅任务不显示截止日 */}
+                    {!isMeetingTask && t.TaskClassID !== 'TC009' && (
                       <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
+                    )}
+                    {/* 差旅任务显示出差天数 */}
+                    {t.TaskClassID === 'TC009' && (
+                      <td className="px-6 py-4 text-slate-500">{t.TravelDuration ? `${t.TravelDuration}天` : '-'}</td>
                     )}
                     {/* 会议培训任务显示会议时长和参会人数 */}
                     {isMeetingTask && (
@@ -1300,7 +1456,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 );
               })}
               {filteredTasks.length === 0 && (
-                <tr><td colSpan={isMeeting ? 8 : 9} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
+                <tr><td colSpan={isMeeting ? 8 : (isTravel ? 9 : 9)} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
               )}
             </tbody>
           </table>
@@ -1317,7 +1473,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <div className="flex items-center gap-3">
                   <input required type="text" className="flex-1 border rounded p-2 bg-slate-50"
                     value={formData.TaskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
-                  {!isMeeting && (
+                  {!isMeeting && !isTravel && (
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" className="hidden" checked={formData.isForceAssessment || false} onChange={e => setFormData({...formData, isForceAssessment: e.target.checked})} />
                       <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
@@ -1485,61 +1641,87 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     </label>
                     <div className="flex items-center gap-3">
                       <div className="text-slate-900 font-medium text-sm">{selectedTask.TaskName}</div>
-                      {/* 会议培训任务不显示强制考核和状态 */}
-                      {selectedTask.TaskClassID !== 'TC007' && (
-                        <>
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${selectedTask.isForceAssessment ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
-                            {selectedTask.isForceAssessment ? '✓ 强制考核' : ''}
-                          </span>
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                            selectedTask.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                            selectedTask.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {selectedTask.Status}
-                          </span>
-                        </>
+                      {/* 非差旅任务和会议培训任务显示强制考核 */}
+                      {selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && (
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${selectedTask.isForceAssessment ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {selectedTask.isForceAssessment ? '✓ 强制考核' : ''}
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* 分类信息卡片 */}
-                <div className="bg-white rounded-lg p-2 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                    <h4 className="text-sm font-semibold text-slate-800">分类信息</h4>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="bg-white rounded-md p-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                        任务分类
-                      </label>
-                      <div className="text-slate-900 font-medium text-sm">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
+                {selectedTask.TaskClassID === 'TC009' ? (
+                  // 差旅任务显示分类、标签、关联项目
+                  <div className="bg-white rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">分类信息</h4>
                     </div>
-                    <div className="bg-white rounded-md p-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                        二级分类
-                      </label>
-                      <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
-                    </div>
-                    <div className="bg-white rounded-md p-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                        关联项目
-                      </label>
-                      <div className="text-slate-900 text-sm">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
-                    </div>
-                    <div className="bg-white rounded-md p-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                        容量等级
-                      </label>
-                      <div className="text-slate-900 text-sm">{selectedTask.CapacityLevel || '-'}</div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          分类
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          标签
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.TravelLabel || '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          关联项目
+                        </label>
+                        <div className="text-slate-900 text-sm">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  // 其他任务显示原有信息
+                  <div className="bg-white rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">分类信息</h4>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          任务分类
+                        </label>
+                        <div className="text-slate-900 font-medium text-sm">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          二级分类
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          关联项目
+                        </label>
+                        <div className="text-slate-900 text-sm">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                          容量等级
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.CapacityLevel || '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* 人员信息卡片 */}
                 <div className="bg-white rounded-lg p-2 border border-slate-200">
@@ -1595,29 +1777,28 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 时间信息卡片 */}
-                <div className="bg-white rounded-lg p-2 border border-slate-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
-                    <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-md p-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <Calendar size={12} className="text-amber-500" />
-                        {selectedTask.TaskClassID === 'TC007' ? '会议日期' : '开始日期'}
-                      </label>
-                      <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
+                {selectedTask.TaskClassID === 'TC009' ? (
+                  // 差旅任务显示出差天数和截止日期
+                  <div className="bg-white rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
                     </div>
-                    {/* 会议培训任务显示会议时长，其他任务显示截止日期 */}
-                    {selectedTask.TaskClassID === 'TC007' ? (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Calendar size={12} className="text-amber-500" />
+                          开始日期
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
+                      </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-amber-500" />
-                          会议时长(小时)
+                          出差天数
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.MeetingDuration || '-'}</div>
+                        <div className="text-slate-900 text-sm">{selectedTask.TravelDuration ? `${selectedTask.TravelDuration}天` : '-'}</div>
                       </div>
-                    ) : (
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Calendar size={12} className="text-amber-500" />
@@ -1625,18 +1806,53 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  // 其他任务显示原有时间信息
+                  <div className="bg-white rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Calendar size={12} className="text-amber-500" />
+                          {selectedTask.TaskClassID === 'TC007' ? '会议日期' : '开始日期'}
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
+                      </div>
+                      {/* 会议培训任务显示会议时长，其他任务显示截止日期 */}
+                      {selectedTask.TaskClassID === 'TC007' ? (
+                        <div className="bg-white rounded-md p-2">
+                          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                            <Clock size={12} className="text-amber-500" />
+                            会议时长(小时)
+                          </label>
+                          <div className="text-slate-900 text-sm">{selectedTask.MeetingDuration || '-'}</div>
+                        </div>
+                      ) : (
+                        <div className="bg-white rounded-md p-2">
+                          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                            <Calendar size={12} className="text-amber-500" />
+                            截止日期
+                          </label>
+                          <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* 差旅信息 */}
-                {selectedTask.TaskClassID === 'TC008' && (
+                {selectedTask.TaskClassID === 'TC009' && (
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-teal-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">差旅信息</h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <MapPin size={12} className="text-teal-500" />
@@ -1644,19 +1860,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.TravelLocation || '-'}</div>
                       </div>
-                      <div className="bg-white rounded-md p-2">
-                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                          <Clock size={12} className="text-teal-500" />
-                          出差时长(天)
-                        </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.TravelDuration || '-'}</div>
-                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* 管理员/班组长可见的额外信息（会议培训任务不显示） */}
-                {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && selectedTask.TaskClassID !== 'TC007' && (
+                {/* 管理员/班组长可见的额外信息（会议培训任务和差旅任务不显示） */}
+                {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && (
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-rose-500 rounded-full"></div>

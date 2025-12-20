@@ -102,6 +102,7 @@ export interface Task {
   TravelDuration?: number; // For Travel tasks
   MeetingDuration?: number; // For Meeting tasks
   CapacityLevel?: string; // 容量等级 (For Market tasks)
+  TravelLabel?: string; // For Travel tasks (差旅标签)
   ReviewerID?: string; // 校核人
   ReviewerID2?: string; // 审查人
   AssigneeName?: string; // 负责人姓名（非系统用户时使用）

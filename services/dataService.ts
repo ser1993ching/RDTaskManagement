@@ -24,7 +24,7 @@ const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
   'RENOVATION': ['前期项目配合', '方案编制', '其他'],
   'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
   'ADMIN_PARTY': ['报表填报', 'ppt汇报', '总结报告', '其他'],
-  'TRAVEL': ['市场配合出差', '常规项目出差', '核电项目出差', '产品研发出差', '科研出差', '生产服务出差', '其他'],
+  'TRAVEL': ['市场配合出差', '常规项目执行出差', '核电项目执行出差', '科研出差', '改造服务出差', '其他任务出差'],
   'OTHER': ['通用任务']
 };
 
@@ -1243,9 +1243,9 @@ const seedTasks: Task[] = [
   },
   {
     TaskID: 'T-20250225-071',
-    TaskName: '常规项目出差-常规项目出差',
+    TaskName: '常规项目执行出差-常规项目执行出差',
     TaskClassID: 'TC009',
-    Category: '常规项目出差',
+    Category: '常规项目执行出差',
     ProjectID: 'P007',
     AssigneeID: 'USER004',
     Status: TaskStatus.IN_PROGRESS,
@@ -1260,9 +1260,9 @@ const seedTasks: Task[] = [
   },
   {
     TaskID: 'T-20250310-072',
-    TaskName: '核电项目出差-核电项目出差',
+    TaskName: '核电项目执行出差-核电项目执行出差',
     TaskClassID: 'TC009',
-    Category: '核电项目出差',
+    Category: '核电项目执行出差',
     ProjectID: 'P011',
     AssigneeID: 'USER005',
     Status: TaskStatus.NOT_STARTED,

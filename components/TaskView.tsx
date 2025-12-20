@@ -108,6 +108,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       );
     }
 
+    // 行政与党建任务可以从所有项目中获取
+    if (taskClassCode === 'ADMIN_PARTY') {
+      return projects;
+    }
+
     const category = getProjectCategoryForTaskClass(taskClassCode);
     if (!category) return [];
     return projects.filter(p => p.category === category);
@@ -185,7 +190,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       ];
 
       // 如果不是差旅任务，添加校核人和审查人
-      if (t.TaskClassID !== 'TC008') {
+      if (t.TaskClassID !== 'TC009') {
         baseRow.splice(4, 0, reviewerName);
         baseRow.splice(5, 0, reviewer2Name);
       }
@@ -330,8 +335,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       CreatedBy: editingTask?.CreatedBy || currentUser.UserID
     };
 
-    // 如果是市场配合任务且有关联项目，从项目中获取容量等级（始终覆盖）
-    if (activeTaskClass?.code === 'MARKET' && formData.ProjectID) {
+    // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级（始终覆盖）
+    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '') && formData.ProjectID) {
       const project = projects.find(p => p.id === formData.ProjectID);
       if (project) {
         taskToSave.CapacityLevel = project.capacity;
@@ -383,8 +388,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       }
     }
 
-    // 如果是市场配合任务且有关联项目，从项目中获取容量等级
-    if (task && task.ProjectID && activeTaskClass?.code === 'MARKET') {
+    // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级
+    if (task && task.ProjectID && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '')) {
       const project = projects.find(p => p.id === task.ProjectID);
       if (project) {
         taskData.CapacityLevel = project.capacity;
@@ -409,7 +414,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
     const isMeeting = activeTaskClass.code === 'MEETING_TRAINING';
     const isTravel = activeTaskClass.code === 'TRAVEL';
-    const isProjectRelated = ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION'].includes(activeTaskClass.code);
+    const isProjectRelated = ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass.code);
 
     return (
       <>
@@ -434,10 +439,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   const newFormData = {...formData, ProjectID: project?.id || ''};
 
-                  // 如果是市场配合任务且选择了项目，自动获取容量等级（始终覆盖）
-                  if (activeTaskClass?.code === 'MARKET' && project) {
+                  // 如果是支持容量等级的任务且选择了项目，自动获取容量等级（始终覆盖）
+                  if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '') && project) {
                     newFormData.CapacityLevel = project.capacity;
-                  } else if (activeTaskClass?.code === 'MARKET' && !project && value.trim()) {
+                  } else if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '') && !project && value.trim()) {
                     // 如果清除项目选择，清空容量等级
                     newFormData.CapacityLevel = '';
                   }
@@ -452,8 +457,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   if (project) {
                     const newFormData = {...formData, ProjectID: project.id};
-                    // 如果是市场配合任务，自动获取容量等级（始终覆盖）
-                    if (activeTaskClass?.code === 'MARKET') {
+                    // 如果是支持容量等级的任务，自动获取容量等级（始终覆盖）
+                    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '')) {
                       newFormData.CapacityLevel = project.capacity;
                     }
                     setFormData(newFormData);
@@ -475,7 +480,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </div>
           )}
 
-          {activeTaskClass.code === 'MARKET' && (
+          {['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass.code) && (
             <div>
               <label className="block text-sm font-medium mb-1">容量等级</label>
               <AutocompleteInput
@@ -840,7 +845,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <th className="px-6 py-4">状态</th>
                 <th className="px-6 py-4">负责人</th>
                 {/* 差旅任务不显示校核人列 */}
-                {filteredTasks.length > 0 && filteredTasks[0].TaskClassID !== 'TC008' && (
+                {filteredTasks.length > 0 && !filteredTasks.every(t => t.TaskClassID === 'TC009') && (
                   <th className="px-6 py-4">校核人</th>
                 )}
                 <th className="px-6 py-4">开始日</th>
@@ -870,7 +875,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     {users.find(u => u.UserID === t.AssigneeID)?.Name || t.AssigneeName || '-'}
                   </td>
                   {/* 差旅任务不显示校核人列 */}
-                  {t.TaskClassID !== 'TC008' && (
+                  {t.TaskClassID !== 'TC009' && (
                     <td className="px-6 py-4">
                       {users.find(u => u.UserID === t.ReviewerID)?.Name || t.ReviewerName || '-'}
                     </td>
@@ -1134,7 +1139,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       </label>
                       <div className="text-slate-900 font-medium text-sm">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
                     </div>
-                    {selectedTask.TaskClassID !== 'TC008' && (
+                    {selectedTask.TaskClassID !== 'TC009' && (
                       <>
                         <div className="bg-white rounded-md p-2">
                           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">

@@ -525,15 +525,15 @@ const seedTaskClasses: TaskClass[] = [
   },
   {
     id: 'TC002',
-    name: '常规项目',
+    name: '常规项目执行',
     code: 'EXECUTION',
     description: '常规项目执行相关任务'
   },
   {
     id: 'TC003',
-    name: '核电项目',
+    name: '核电项目执行',
     code: 'NUCLEAR',
-    description: '核电项目相关任务'
+    description: '核电项目执行相关任务'
   },
   {
     id: 'TC004',
@@ -554,16 +554,16 @@ const seedTaskClasses: TaskClass[] = [
     description: '改造服务相关任务'
   },
   {
-    id: 'TC007',
-    name: '内部会议与培训',
-    code: 'MEETING_TRAINING',
-    description: '内部会议与培训相关工作'
-  },
-  {
     id: 'TC008',
     name: '行政与党建',
     code: 'ADMIN_PARTY',
     description: '行政与党建相关工作'
+  },
+  {
+    id: 'TC007',
+    name: '内部会议与培训',
+    code: 'MEETING_TRAINING',
+    description: '内部会议与培训相关工作'
   },
   {
     id: 'TC009',
@@ -1383,6 +1383,9 @@ class DataService {
       localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
     }
     if (!localStorage.getItem(STORAGE_KEYS.TASK_CLASSES)) {
+      localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
+    } else {
+      // 临时：强制重新加载任务分类顺序（导航顺序调整）
       localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
     }
     // Initialize task categories if not exist

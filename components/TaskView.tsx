@@ -1929,17 +1929,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 备注 */}
-                {selectedTask.Remark && (
-                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-2 border border-slate-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-1 h-4 bg-slate-500 rounded-full"></div>
-                      <h4 className="text-sm font-semibold text-slate-800">备注信息</h4>
-                    </div>
-                    <div className="bg-white rounded-md p-3 shadow-sm border border-slate-200">
-                      <div className="text-slate-900 text-sm leading-relaxed">{selectedTask.Remark}</div>
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-2 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-4 bg-slate-500 rounded-full"></div>
+                    <h4 className="text-sm font-semibold text-slate-800">备注信息</h4>
+                  </div>
+                  <div className="bg-white rounded-md p-3 shadow-sm border border-slate-200">
+                    <div className="text-slate-900 text-sm leading-relaxed">
+                      {selectedTask.Remark || <span className="text-slate-400 italic">暂无备注信息</span>}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 

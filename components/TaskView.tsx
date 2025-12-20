@@ -745,29 +745,30 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           <div className="col-span-2">
             <label className="block text-sm font-medium mb-1">参会人员 <span className="text-xs font-normal text-slate-500">({formData.Participants?.length || 0}人已选择)</span></label>
             <div className="border rounded p-3 bg-slate-50">
-              {/* 搜索和操作区域 */}
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    placeholder="搜索人员姓名..."
-                    value={participantSearchTerm}
-                    className="w-full px-3 py-1.5 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onChange={(e) => setParticipantSearchTerm(e.target.value)}
-                  />
-                  {participantSearchTerm && (
-                    <button
-                      type="button"
-                      onClick={() => setParticipantSearchTerm('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
+              {/* 搜索和已选人员区域 */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="搜索人员姓名..."
+                      value={participantSearchTerm}
+                      className="w-full px-3 py-1.5 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setParticipantSearchTerm(e.target.value)}
+                    />
+                    {participantSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setParticipantSearchTerm('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
                     // 排除系统管理员，只选择班组长和组员
                     const filteredUsers = users.filter(u =>
                       u.Status !== '离岗' &&
@@ -830,6 +831,36 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     (formData.Participants?.length === users.filter(u => u.Status !== '离岗' && u.SystemRole !== '管理员').length ? '取消全选' : '全选')
                   }
                 </button>
+                </div>
+                {/* 已选择的人员显示 */}
+                {formData.Participants && formData.Participants.length > 0 && (
+                  <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+                    {formData.ParticipantNames?.filter(name => {
+                      const user = users.find(u => u.Name === name);
+                      return user && user.SystemRole !== '管理员';
+                    }).map(name => (
+                      <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                        {name}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const user = users.find(u => u.Name === name);
+                            if (user) {
+                              setFormData({
+                                ...formData,
+                                Participants: formData.Participants?.filter(id => id !== user.UserID) || [],
+                                ParticipantNames: formData.ParticipantNames?.filter(n => n !== name) || []
+                              });
+                            }
+                          }}
+                          className="text-blue-500 hover:text-blue-700 ml-0.5"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 人员选择区域 */}
@@ -1008,39 +1039,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   );
                 })()}
               </div>
-
-              {/* 已选择的人员显示（排除系统管理员） */}
-              {formData.Participants && formData.Participants.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-200">
-                  <div className="text-xs text-slate-600 mb-2">已选择人员 ({formData.Participants.length}人):</div>
-                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                    {formData.ParticipantNames?.filter(name => {
-                      const user = users.find(u => u.Name === name);
-                      return user && user.SystemRole !== '管理员';
-                    }).map(name => (
-                      <span key={name} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                        {name}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const user = users.find(u => u.Name === name);
-                            if (user) {
-                              setFormData({
-                                ...formData,
-                                Participants: formData.Participants?.filter(id => id !== user.UserID) || [],
-                                ParticipantNames: formData.ParticipantNames?.filter(n => n !== name) || []
-                              });
-                            }
-                          }}
-                          className="text-blue-500 hover:text-blue-700 ml-0.5"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}

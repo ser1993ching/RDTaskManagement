@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Project, ProjectCategory, User, SystemRole } from '../types';
-import { Plus, Download, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, Filter, X, RefreshCw } from 'lucide-react';
 import { dataService } from '../services/dataService';
+import AutocompleteInput from './AutocompleteInput';
 
 interface ProjectViewProps {
   currentUser: User;
@@ -10,14 +11,112 @@ interface ProjectViewProps {
   onRefresh: () => void;
 }
 
+interface FilterCriteria {
+  name: string;
+  workNo: string;
+  capacity: string;
+  model: string;
+  startDateFrom: string;
+  startDateTo: string;
+  isWon?: boolean;
+  isForeign?: boolean;
+  isCommissioned?: boolean;
+  isCompleted?: boolean;
+}
+
 export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects, users, onRefresh }) => {
   const [activeTab, setActiveTab] = useState<ProjectCategory>(ProjectCategory.MARKET);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [formData, setFormData] = useState<Partial<Project>>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterCriteria>({
+    name: '',
+    workNo: '',
+    capacity: '',
+    model: '',
+    startDateFrom: '',
+    startDateTo: ''
+  });
+  const [equipmentModels, setEquipmentModels] = useState<string[]>([]);
+  const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
 
   const canEdit = currentUser.SystemRole === SystemRole.ADMIN || currentUser.SystemRole === SystemRole.LEADER;
-  const filteredProjects = projects.filter(p => p.category === activeTab);
+
+  // 加载设置数据
+  useEffect(() => {
+    setEquipmentModels(dataService.getEquipmentModels());
+    setCapacityLevels(dataService.getCapacityLevels());
+  }, []);
+
+  // 筛选项目列表
+  const filteredProjects = useMemo(() => {
+    let result = projects.filter(p => p.category === activeTab);
+
+    // 名称筛选（模糊匹配）
+    if (filters.name) {
+      result = result.filter(p => p.name.toLowerCase().includes(filters.name.toLowerCase()));
+    }
+
+    // 工作号筛选（模糊匹配）
+    if (filters.workNo) {
+      result = result.filter(p => (p.workNo || '').toLowerCase().includes(filters.workNo.toLowerCase()));
+    }
+
+    // 容量等级筛选
+    if (filters.capacity) {
+      result = result.filter(p => (p.capacity || '').toLowerCase().includes(filters.capacity.toLowerCase()));
+    }
+
+    // 机型筛选
+    if (filters.model) {
+      result = result.filter(p => (p.model || '').toLowerCase().includes(filters.model.toLowerCase()));
+    }
+
+    // 启动时间范围筛选
+    if (filters.startDateFrom) {
+      result = result.filter(p => !p.startDate || p.startDate >= filters.startDateFrom);
+    }
+    if (filters.startDateTo) {
+      result = result.filter(p => !p.startDate || p.startDate <= filters.startDateTo);
+    }
+
+    // 特殊属性筛选
+    if (activeTab === ProjectCategory.MARKET) {
+      if (filters.isWon !== undefined) {
+        result = result.filter(p => p.isWon === filters.isWon);
+      }
+      if (filters.isForeign !== undefined) {
+        result = result.filter(p => p.isForeign === filters.isForeign);
+      }
+    } else if (activeTab === ProjectCategory.EXECUTION || activeTab === ProjectCategory.NUCLEAR) {
+      if (filters.isCommissioned !== undefined) {
+        result = result.filter(p => p.isCommissioned === filters.isCommissioned);
+      }
+    } else if (activeTab === ProjectCategory.RESEARCH || activeTab === ProjectCategory.RENOVATION || activeTab === ProjectCategory.OTHER) {
+      if (filters.isCompleted !== undefined) {
+        result = result.filter(p => p.isCompleted === filters.isCompleted);
+      }
+    }
+
+    return result;
+  }, [projects, activeTab, filters]);
+
+  // 清除筛选
+  const clearFilters = () => {
+    setFilters({
+      name: '',
+      workNo: '',
+      capacity: '',
+      model: '',
+      startDateFrom: '',
+      startDateTo: '',
+      isWon: undefined,
+      isForeign: undefined,
+      isCommissioned: undefined,
+      isCompleted: undefined
+    });
+  };
 
   const handleExport = () => {
     const headers = ['ID', '项目名称', '工作号', '容量', '机型', '日期'];
@@ -118,50 +217,260 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
             <button onClick={handleExport} className="flex items-center gap-2 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 focus:outline-none">
               <Download size={16} /> 导出
             </button>
+            <button
+              onClick={() => {
+                if (confirm('将重新加载所有示例数据（保留当前登录状态），是否继续？')) {
+                  dataService.reinitializeData();
+                  onRefresh();
+                  alert('数据已刷新！');
+                }
+              }}
+              className="flex items-center gap-2 border border-orange-300 bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 focus:outline-none"
+              title="重新加载示例数据"
+            >
+              <RefreshCw size={16} /> 刷新数据
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0">
-          <table className="w-full text-sm text-left whitespace-nowrap">
+        {/* 筛选区域 */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+          <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 text-slate-700 hover:text-blue-600 font-medium"
+              >
+                <Filter size={18} />
+                {showFilters ? '隐藏筛选' : '显示筛选'}
+                {(filters.name || filters.workNo || filters.capacity || filters.model || filters.startDateFrom || filters.startDateTo) && (
+                  <span className="ml-2 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded">已筛选</span>
+                )}
+              </button>
+              <span className="text-sm text-slate-600">
+                共 <span className="font-semibold text-blue-600">{filteredProjects.length}</span> 个项目
+              </span>
+            </div>
+            {(filters.name || filters.workNo || filters.capacity || filters.model || filters.startDateFrom || filters.startDateTo || filters.isWon !== undefined || filters.isForeign !== undefined || filters.isCommissioned !== undefined || filters.isCompleted !== undefined) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 text-slate-500 hover:text-red-600 text-sm"
+              >
+                <X size={16} />
+                清除筛选
+              </button>
+            )}
+          </div>
+
+          {showFilters && (
+            <div className="p-4 bg-slate-50">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-slate-600">项目名称</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded p-2 text-sm"
+                    value={filters.name}
+                    onChange={e => setFilters({...filters, name: e.target.value})}
+                    placeholder="输入项目名称"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-slate-600">工作号</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded p-2 text-sm"
+                    value={filters.workNo}
+                    onChange={e => setFilters({...filters, workNo: e.target.value})}
+                    placeholder="输入工作号"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-slate-600">容量等级</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded p-2 text-sm"
+                    value={filters.capacity}
+                    onChange={e => setFilters({...filters, capacity: e.target.value})}
+                    placeholder="如：1000MW"
+                    list="capacityList"
+                  />
+                  <datalist id="capacityList">
+                    <option value="1000MW" />
+                    <option value="600MW" />
+                    <option value="300MW" />
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-slate-600">机型</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded p-2 text-sm"
+                    value={filters.model}
+                    onChange={e => setFilters({...filters, model: e.target.value})}
+                    placeholder="如：Francis"
+                    list="modelList"
+                  />
+                  <datalist id="modelList">
+                    <option value="Francis" />
+                    <option value="Pelton" />
+                    <option value="Kaplan" />
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-slate-600">启动时间（从）</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded p-2 text-sm"
+                    value={filters.startDateFrom}
+                    onChange={e => setFilters({...filters, startDateFrom: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-slate-600">启动时间（到）</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded p-2 text-sm"
+                    value={filters.startDateTo}
+                    onChange={e => setFilters({...filters, startDateTo: e.target.value})}
+                  />
+                </div>
+
+                {/* 特殊属性筛选 - 市场配合项目 */}
+                {activeTab === ProjectCategory.MARKET && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-slate-600">中标状态</label>
+                      <select
+                        className="w-full border rounded p-2 text-sm"
+                        value={filters.isWon === undefined ? '' : filters.isWon.toString()}
+                        onChange={e => setFilters({...filters, isWon: e.target.value === '' ? undefined : e.target.value === 'true'})}
+                      >
+                        <option value="">全部</option>
+                        <option value="true">已中标</option>
+                        <option value="false">未中标</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-slate-600">外贸类型</label>
+                      <select
+                        className="w-full border rounded p-2 text-sm"
+                        value={filters.isForeign === undefined ? '' : filters.isForeign.toString()}
+                        onChange={e => setFilters({...filters, isForeign: e.target.value === '' ? undefined : e.target.value === 'true'})}
+                      >
+                        <option value="">全部</option>
+                        <option value="true">外贸</option>
+                        <option value="false">内销</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* 特殊属性筛选 - 常规项目/核电项目 */}
+                {(activeTab === ProjectCategory.EXECUTION || activeTab === ProjectCategory.NUCLEAR) && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-slate-600">投运状态</label>
+                    <select
+                      className="w-full border rounded p-2 text-sm"
+                      value={filters.isCommissioned === undefined ? '' : filters.isCommissioned.toString()}
+                      onChange={e => setFilters({...filters, isCommissioned: e.target.value === '' ? undefined : e.target.value === 'true'})}
+                    >
+                      <option value="">全部</option>
+                      <option value="true">已投运</option>
+                      <option value="false">未投运</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* 特殊属性筛选 - 科研/改造/其他项目 */}
+                {(activeTab === ProjectCategory.RESEARCH || activeTab === ProjectCategory.RENOVATION || activeTab === ProjectCategory.OTHER) && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-slate-600">完成状态</label>
+                    <select
+                      className="w-full border rounded p-2 text-sm"
+                      value={filters.isCompleted === undefined ? '' : filters.isCompleted.toString()}
+                      onChange={e => setFilters({...filters, isCompleted: e.target.value === '' ? undefined : e.target.value === 'true'})}
+                    >
+                      <option value="">全部</option>
+                      <option value="true">已完成</option>
+                      <option value="false">进行中</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0 pr-4">
+          <table className="w-full text-sm text-left whitespace-nowrap table-fixed">
             <thead className="bg-slate-50 text-slate-600 font-medium border-b sticky top-0">
               <tr>
-                <th className="px-6 py-4">项目名称</th>
-                <th className="px-6 py-4">工作号/ID</th>
-                <th className="px-6 py-4">容量等级</th>
-                <th className="px-6 py-4">机型</th>
-                <th className="px-6 py-4">启动时间</th>
-                <th className="px-6 py-4">特殊属性</th>
-                {canEdit && <th className="px-6 py-4 text-right">操作</th>}
+                <th className="px-6 py-4 w-[22%]">项目名称</th>
+                <th className="px-6 py-4 w-[11%]">工作号/ID</th>
+                <th className="px-6 py-4 w-[10%]">容量等级</th>
+                <th className="px-6 py-4 w-[10%]">机型</th>
+                <th className="px-6 py-4 w-[10%]">启动时间</th>
+                <th className="px-6 py-4 w-[12%]">特殊属性</th>
+                <th className="px-6 py-4 w-[19%]">备注</th>
+                {canEdit && <th className="px-6 py-4 w-[6%] text-right">操作</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredProjects.map(p => (
                 <tr key={p.id} className="hover:bg-blue-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-slate-900">{p.name}</td>
-                  <td className="px-6 py-4 text-slate-500">{p.workNo || p.id}</td>
-                  <td className="px-6 py-4">{p.capacity || '-'}</td>
-                  <td className="px-6 py-4">{p.model || '-'}</td>
-                  <td className="px-6 py-4">{p.startDate}</td>
+                  <td className="px-6 py-4 font-medium text-slate-900">
+                    <div className="truncate" title={p.name}>{p.name}</div>
+                  </td>
+                  <td className="px-6 py-4 text-slate-500">
+                    <div className="truncate" title={p.workNo || p.id}>{p.workNo || p.id}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="truncate" title={p.capacity || '-'}>{p.capacity || '-'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="truncate" title={p.model || '-'}>{p.model || '-'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="truncate" title={p.startDate}>{p.startDate}</div>
+                  </td>
                   <td className="px-6 py-4 text-xs">
                     {/* 市场配合项目：中标/外贸 */}
                     {activeTab === ProjectCategory.MARKET && (
-                      <>
-                        {p.isWon !== undefined && <span className={p.isWon ? 'text-green-600' : 'text-slate-500'}>{p.isWon ? '已中标 ' : '未中标 '}</span>}
-                        {p.isForeign && <span className="text-orange-600 ml-1">外贸</span>}
-                      </>
+                      <div className="truncate" title={p.isWon !== undefined ? (p.isWon ? '已中标' : '未中标') + (p.isForeign ? ' 外贸' : '') : ''}>
+                        {p.isWon !== undefined && (
+                          <span className={p.isWon ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                            {p.isWon ? '✓ 中标' : '未中标'}
+                          </span>
+                        )}
+                        {p.isForeign && <span className="text-orange-600 ml-2">外贸</span>}
+                      </div>
                     )}
-                    {/* 项目执行：已投运 */}
-                    {activeTab === ProjectCategory.EXECUTION && (
-                      <span className={p.isCommissioned ? 'text-green-600 font-medium' : 'text-slate-500'}>
-                        {p.isCommissioned ? '✓ 已投运' : '未投运'}
-                      </span>
+                    {/* 常规项目/核电项目：已投运 */}
+                    {(activeTab === ProjectCategory.EXECUTION || activeTab === ProjectCategory.NUCLEAR) && (
+                      <div className="truncate" title={p.isCommissioned ? '已投运' : '未投运'}>
+                        <span className={p.isCommissioned ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                          {p.isCommissioned ? '✓ 投运' : '未投运'}
+                        </span>
+                      </div>
                     )}
                     {/* 科研/改造/其他项目：已完成 */}
                     {(activeTab === ProjectCategory.RESEARCH || activeTab === ProjectCategory.RENOVATION || activeTab === ProjectCategory.OTHER) && (
-                      <span className={p.isCompleted ? 'text-green-600 font-medium' : 'text-slate-500'}>
-                        {p.isCompleted ? '✓ 已完成' : '进行中'}
-                      </span>
+                      <div className="truncate" title={p.isCompleted ? '已完成' : '进行中'}>
+                        <span className={p.isCompleted ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                          {p.isCompleted ? '✓ 完成' : '进行中'}
+                        </span>
+                      </div>
                     )}
+                  </td>
+                  <td className="px-6 py-4 text-xs">
+                    <div className="truncate" title={p.remark || ''}>
+                      {p.remark ? (
+                        <span className="text-slate-600">{p.remark}</span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </div>
                   </td>
                   {canEdit && (
                     <td className="px-6 py-4 text-right">
@@ -172,7 +481,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                 </tr>
               ))}
               {filteredProjects.length === 0 && (
-                <tr><td colSpan={canEdit ? 7 : 6} className="px-6 py-12 text-center text-slate-400">该分类下暂无项目</td></tr>
+                <tr><td colSpan={canEdit ? 8 : 7} className="px-6 py-12 text-center text-slate-400">该分类下暂无项目</td></tr>
               )}
             </tbody>
           </table>
@@ -200,22 +509,31 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                   value={formData.startDate || ''} onChange={e => setFormData({...formData, startDate: e.target.value})} />
               </div>
 
-              {(activeTab === ProjectCategory.MARKET || activeTab === ProjectCategory.EXECUTION) && (
-                <>
-                  <div className="col-span-1">
-                    <label className="block text-sm font-medium mb-1">容量等级</label>
-                    <input list="capacityList" className="w-full border rounded p-2"
-                      value={formData.capacity || ''} onChange={e => setFormData({...formData, capacity: e.target.value})} />
-                      <datalist id="capacityList"><option value="1000MW"/><option value="600MW"/><option value="300MW"/></datalist>
-                  </div>
-                   <div className="col-span-1">
-                    <label className="block text-sm font-medium mb-1">机型</label>
-                    <input list="modelList" className="w-full border rounded p-2"
-                      value={formData.model || ''} onChange={e => setFormData({...formData, model: e.target.value})} />
-                      <datalist id="modelList"><option value="Francis"/><option value="Pelton"/><option value="Kaplan"/></datalist>
-                  </div>
-                </>
-              )}
+              {/* 所有项目类型都显示容量等级和机型字段 */}
+              <>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">容量等级</label>
+                  <AutocompleteInput
+                    value={formData.capacity || ''}
+                    options={capacityLevels}
+                    onChange={(value) => setFormData({...formData, capacity: value})}
+                    placeholder="选择或输入容量等级"
+                    className="w-full border rounded p-2"
+                    id="capacity-autocomplete"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">机型</label>
+                  <AutocompleteInput
+                    value={formData.model || ''}
+                    options={equipmentModels}
+                    onChange={(value) => setFormData({...formData, model: value})}
+                    placeholder="选择或输入机型"
+                    className="w-full border rounded p-2"
+                    id="model-autocomplete"
+                  />
+                </div>
+              </>
 
               {activeTab === ProjectCategory.MARKET && (
                 <div className="col-span-2 flex gap-4">
@@ -224,7 +542,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                 </div>
               )}
 
-              {activeTab === ProjectCategory.EXECUTION && (
+              {(activeTab === ProjectCategory.EXECUTION || activeTab === ProjectCategory.NUCLEAR) && (
                 <div className="col-span-2 flex gap-4">
                   <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isCommissioned || false} onChange={e => setFormData({...formData, isCommissioned: e.target.checked})} /> 已投运</label>
                 </div>
@@ -235,6 +553,18 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                   <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isCompleted || false} onChange={e => setFormData({...formData, isCompleted: e.target.checked})} /> 已完成</label>
                 </div>
               )}
+
+              {/* 备注字段 */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">备注</label>
+                <textarea
+                  className="w-full border rounded p-2 text-sm"
+                  rows={3}
+                  value={formData.remark || ''}
+                  onChange={e => setFormData({...formData, remark: e.target.value})}
+                  placeholder="输入项目备注信息..."
+                />
+              </div>
 
               <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>

@@ -20,7 +20,8 @@ export enum PersonnelStatus {
 
 export enum ProjectCategory {
   MARKET = '市场配合项目',
-  EXECUTION = '项目执行',
+  EXECUTION = '常规项目',
+  NUCLEAR = '核电项目',
   RESEARCH = '科研项目',
   RENOVATION = '改造项目',
   OTHER = '其他项目'

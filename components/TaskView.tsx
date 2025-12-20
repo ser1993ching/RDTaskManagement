@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Task, TaskClass, User, Project, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info } from 'lucide-react';
 import { dataService } from '../services/dataService';
+import AutocompleteInput from './AutocompleteInput';
 
 interface TaskViewProps {
   currentUser: User;
@@ -23,113 +24,19 @@ const CAPACITY_LEVEL_OPTIONS = [
   '调相机'
 ];
 
-// 自动完成输入框组件
-interface AutocompleteProps {
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-  onSelect?: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  allowCustom?: boolean; // 是否允许输入自定义值
-  id?: string; // 唯一标识符，用于隔离状态
-}
-
-const AutocompleteInput: React.FC<AutocompleteProps> = ({
-  value,
-  options,
-  onChange,
-  onSelect,
-  placeholder,
-  className,
-  allowCustom = true,
-  id
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [internalValue, setInternalValue] = useState(value);
-
-  // 当外部 value 变化时更新内部值
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
-
-  const handleInputChange = (newValue: string) => {
-    setInternalValue(newValue);
-    onChange(newValue);
-  };
-
-  const handleSelect = (option: string) => {
-    setInternalValue(option);
-    onChange(option);
-    onSelect?.(option);
-    setIsOpen(false);
-  };
-
-  const handleFocus = () => {
-    // 聚焦时直接打开下拉框
-    setIsOpen(true);
-  };
-
-  const handleBlur = () => {
-    // 延迟关闭，允许点击下拉选项
-    setTimeout(() => setIsOpen(false), 200);
-  };
-
-  // 获取过滤后的选项
-  const getFilteredOptions = () => {
-    if (!internalValue.trim()) {
-      return options;
-    }
-    return options.filter(opt =>
-      opt.toLowerCase().includes(internalValue.toLowerCase())
-    );
-  };
-
-  const filteredOptions = getFilteredOptions();
-
-  return (
-    <div className="relative">
-      <input
-        type="text"
-        className={className}
-        value={internalValue}
-        onChange={(e) => handleInputChange(e.target.value)}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        placeholder={placeholder}
-        autoComplete="off"
-      />
-      {isOpen && filteredOptions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-300 rounded shadow-lg max-h-48 overflow-y-auto">
-          {filteredOptions.map((option, index) => (
-            <div
-              key={`${id}-${index}`}
-              className="px-3 py-2 hover:bg-slate-100 cursor-pointer text-sm"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelect(option);
-              }}
-            >
-              {option}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh }) => {
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>(dataService.getTaskClasses());
   const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [capacityLevels, setCapacityLevels] = useState<string[]>(dataService.getCapacityLevels());
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState<Partial<Task>>({});
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [projectFormData, setProjectFormData] = useState<Partial<Project>>({});
+  const [equipmentModels, setEquipmentModels] = useState<string[]>([]);
 
   // Set default active task class
   useEffect(() => {
@@ -142,6 +49,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   useEffect(() => {
     const categories = dataService.getTaskCategories();
     setTaskCategories(categories);
+  }, []);
+
+  // Load equipment models
+  useEffect(() => {
+    setEquipmentModels(dataService.getEquipmentModels());
   }, []);
 
   // Helper function to get categories for a task class
@@ -171,6 +83,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         return ProjectCategory.MARKET;
       case 'EXECUTION':
         return ProjectCategory.EXECUTION;
+      case 'NUCLEAR':
+        return ProjectCategory.NUCLEAR;
       case 'PRODUCT_DEV':
       case 'RESEARCH':
         return ProjectCategory.RESEARCH;
@@ -185,6 +99,15 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   // Get projects filtered by task class
   const getProjectsForTaskClass = (taskClassCode: string): Project[] => {
+    // 产品研发任务可以从常规项目、核电项目和科研项目中获取
+    if (taskClassCode === 'PRODUCT_DEV') {
+      return projects.filter(p =>
+        p.category === ProjectCategory.EXECUTION ||
+        p.category === ProjectCategory.NUCLEAR ||
+        p.category === ProjectCategory.RESEARCH
+      );
+    }
+
     const category = getProjectCategoryForTaskClass(taskClassCode);
     if (!category) return [];
     return projects.filter(p => p.category === category);
@@ -227,7 +150,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       (filterStatus ? t.Status === filterStatus : true) &&
       (filterCategory ? t.Category === filterCategory : true) &&
       (filterAssignee ? t.AssigneeID === filterAssignee : true) &&
-      (filterCapacityLevel ? t.CapacityLevel === filterCapacityLevel : true) &&
+      (filterCapacityLevel ? (t.CapacityLevel || '').toLowerCase().includes(filterCapacityLevel.toLowerCase()) : true) &&
       (filterTaskName ? t.TaskName.toLowerCase().includes(filterTaskName.toLowerCase()) : true) &&
       (filterStartDateFrom ? (t.StartDate ? new Date(t.StartDate) >= new Date(filterStartDateFrom) : true) : true) &&
       (filterStartDateTo ? (t.StartDate ? new Date(t.StartDate) <= new Date(filterStartDateTo) : true) : true) &&
@@ -327,56 +250,63 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   }, [formData.TaskName, isModalOpen, projects, activeTaskClass]);
 
   // Handle new project creation
-  const handleCreateProject = () => {
-    if (!newProjectName.trim()) return;
+  // Open project creation modal
+  const openProjectModal = (projectName?: string) => {
+    if (projectName) {
+      setProjectFormData({
+        name: projectName,
+        category: getProjectCategoryForTaskClass(activeTaskClass?.code || '') || ProjectCategory.OTHER,
+        startDate: new Date().toISOString().split('T')[0]
+      });
+    } else {
+      setProjectFormData({
+        category: getProjectCategoryForTaskClass(activeTaskClass?.code || '') || ProjectCategory.OTHER,
+        startDate: new Date().toISOString().split('T')[0]
+      });
+    }
+    setIsProjectModalOpen(true);
+  };
+
+  const handleCreateProject = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!projectFormData.name?.trim()) {
+      alert('请输入项目名称！');
+      return;
+    }
 
     // Check if project already exists
-    const existingProject = projects.find(p => p.name === newProjectName);
+    const existingProject = projects.find(p => p.name === projectFormData.name);
     if (existingProject) {
       alert('项目已存在！');
       return;
     }
 
-    // Determine project category based on task class
-    let category = ProjectCategory.OTHER;
-    if (activeTaskClass) {
-      switch (activeTaskClass.code) {
-        case 'MARKET':
-          category = ProjectCategory.MARKET;
-          break;
-        case 'EXECUTION':
-          category = ProjectCategory.EXECUTION;
-          break;
-        case 'PRODUCT_DEV':
-        case 'RESEARCH':
-          category = ProjectCategory.RESEARCH;
-          break;
-        case 'RENOVATION':
-          category = ProjectCategory.RENOVATION;
-          break;
-      }
-    }
-
     const newProject: Project = {
       id: dataService.generateId('PROJ'),
-      name: newProjectName,
-      category,
-      startDate: new Date().toISOString().split('T')[0]
+      name: projectFormData.name,
+      category: projectFormData.category || ProjectCategory.OTHER,
+      workNo: projectFormData.workNo,
+      capacity: projectFormData.capacity,
+      model: projectFormData.model,
+      startDate: projectFormData.startDate,
+      remark: projectFormData.remark,
+      isWon: projectFormData.isWon,
+      isForeign: projectFormData.isForeign,
+      isCommissioned: projectFormData.isCommissioned,
+      isCompleted: projectFormData.isCompleted
     };
 
     dataService.saveProject(newProject);
-    setFormData(prev => ({ ...prev, ProjectID: newProject.id }));
-    setIsCreatingProject(false);
-    setNewProjectName('');
-    onRefresh(); // Refresh projects list
-  };
 
-  // Handle project name input and confirm
-  const handleProjectNameConfirm = () => {
-    if (newProjectName.trim()) {
-      // Show confirmation dialog
-      setIsCreatingProject(true);
+    // If creating from task view, auto-associate with current task
+    if (isModalOpen) {
+      setFormData(prev => ({ ...prev, ProjectID: newProject.id, CapacityLevel: newProject.capacity }));
     }
+
+    setIsProjectModalOpen(false);
+    setProjectFormData({});
+    onRefresh(); // Refresh projects list
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -399,6 +329,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       CreatedDate: editingTask?.CreatedDate || new Date().toISOString().split('T')[0],
       CreatedBy: editingTask?.CreatedBy || currentUser.UserID
     };
+
+    // 如果是市场配合任务且有关联项目，从项目中获取容量等级（始终覆盖）
+    if (activeTaskClass?.code === 'MARKET' && formData.ProjectID) {
+      const project = projects.find(p => p.id === formData.ProjectID);
+      if (project) {
+        taskToSave.CapacityLevel = project.capacity;
+      }
+    }
     dataService.saveTask(taskToSave);
     setIsModalOpen(false);
     onRefresh();
@@ -444,6 +382,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         taskData.Reviewer2Name = reviewer2.Name;
       }
     }
+
+    // 如果是市场配合任务且有关联项目，从项目中获取容量等级
+    if (task && task.ProjectID && activeTaskClass?.code === 'MARKET') {
+      const project = projects.find(p => p.id === task.ProjectID);
+      if (project) {
+        taskData.CapacityLevel = project.capacity;
+      }
+    }
     setFormData(taskData);
     setIsModalOpen(true);
   };
@@ -463,7 +409,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
     const isMeeting = activeTaskClass.code === 'MEETING_TRAINING';
     const isTravel = activeTaskClass.code === 'TRAVEL';
-    const isProjectRelated = ['MARKET', 'EXECUTION', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION'].includes(activeTaskClass.code);
+    const isProjectRelated = ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION'].includes(activeTaskClass.code);
 
     return (
       <>
@@ -479,60 +425,67 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
           {isProjectRelated && (
             <div>
-              <label className="block text-sm font-medium mb-1">
-                关联项目
-                <span className="text-xs text-slate-500 ml-2">
-                  (仅显示{activeTaskClass?.code === 'MARKET' ? '市场配合项目' :
-                           activeTaskClass?.code === 'EXECUTION' ? '项目执行项目' :
-                           activeTaskClass?.code === 'PRODUCT_DEV' || activeTaskClass?.code === 'RESEARCH' ? '科研项目' :
-                           activeTaskClass?.code === 'RENOVATION' ? '改造项目' :
-                           activeTaskClass?.code === 'OTHER' ? '其他项目' : '匹配项目'})
-                </span>
-              </label>
+              <label className="block text-sm font-medium mb-1">关联项目</label>
               <AutocompleteInput
                 id="project-autocomplete"
                 value={projects.find(p => p.id === formData.ProjectID)?.name || ''}
                 options={getProjectsForTaskClass(activeTaskClass?.code || '').map(p => p.name)}
                 onChange={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
-                  setFormData({...formData, ProjectID: project?.id || ''});
-                  // If input doesn't match any existing project, show create option
-                  if (value.trim() && !project) {
-                    setNewProjectName(value.trim());
-                    setIsCreatingProject(true);
+                  const newFormData = {...formData, ProjectID: project?.id || ''};
+
+                  // 如果是市场配合任务且选择了项目，自动获取容量等级（始终覆盖）
+                  if (activeTaskClass?.code === 'MARKET' && project) {
+                    newFormData.CapacityLevel = project.capacity;
+                  } else if (activeTaskClass?.code === 'MARKET' && !project && value.trim()) {
+                    // 如果清除项目选择，清空容量等级
+                    newFormData.CapacityLevel = '';
+                  }
+
+                  setFormData(newFormData);
+                  // 仅市场配合任务支持自动创建项目
+                  if (activeTaskClass?.code === 'MARKET' && value.trim() && !project) {
+                    openProjectModal(value.trim());
                   }
                 }}
                 onSelect={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   if (project) {
-                    setFormData({...formData, ProjectID: project.id});
+                    const newFormData = {...formData, ProjectID: project.id};
+                    // 如果是市场配合任务，自动获取容量等级（始终覆盖）
+                    if (activeTaskClass?.code === 'MARKET') {
+                      newFormData.CapacityLevel = project.capacity;
+                    }
+                    setFormData(newFormData);
                   }
                 }}
                 placeholder="搜索或输入项目名称..."
                 className="w-full border rounded p-2"
               />
-              {/* 新建项目按钮 */}
-              <button
-                type="button"
-                onClick={() => {
-                  setNewProjectName('');
-                  setIsCreatingProject(true);
-                }}
-                className="mt-1 text-xs text-blue-600 hover:text-blue-800"
-              >
-                + 新建项目
-              </button>
+              {/* 仅市场配合任务显示新建项目按钮 */}
+              {activeTaskClass?.code === 'MARKET' && (
+                <button
+                  type="button"
+                  onClick={() => openProjectModal()}
+                  className="mt-1 text-xs text-blue-600 hover:text-blue-800"
+                >
+                  + 新建项目
+                </button>
+              )}
             </div>
           )}
 
           {activeTaskClass.code === 'MARKET' && (
             <div>
               <label className="block text-sm font-medium mb-1">容量等级</label>
-              <select className="w-full border rounded p-2"
-                value={formData.CapacityLevel || ''} onChange={e => setFormData({...formData, CapacityLevel: e.target.value})}>
-                <option value="">请选择容量等级...</option>
-                {CAPACITY_LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
-              </select>
+              <AutocompleteInput
+                value={formData.CapacityLevel || ''}
+                options={capacityLevels}
+                onChange={(value) => setFormData({...formData, CapacityLevel: value})}
+                placeholder="选择或输入容量等级"
+                className="w-full border rounded p-2"
+                id="capacity-level-autocomplete"
+              />
             </div>
           )}
         </div>
@@ -808,10 +761,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </div>
             <div className="min-w-[130px]">
               <label className="block text-xs text-slate-600 mb-1">容量等级</label>
-              <select className="w-full border rounded px-2 py-2 text-sm" value={filterCapacityLevel} onChange={e => setFilterCapacityLevel(e.target.value)}>
-                <option value="">所有容量等级</option>
-                {CAPACITY_LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
-              </select>
+              <AutocompleteInput
+                value={filterCapacityLevel}
+                options={capacityLevels}
+                onChange={(value) => setFilterCapacityLevel(value)}
+                placeholder="搜索容量等级"
+                className="w-full border rounded px-2 py-2 text-sm"
+                id="filter-capacity-autocomplete"
+              />
             </div>
             <div className="min-w-[130px]">
               <label className="block text-xs text-slate-600 mb-1">状态</label>
@@ -973,79 +930,102 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         </div>
       )}
 
-      {/* 项目创建输入对话框（新建项目按钮被点击后显示） */}
-      {isCreatingProject && !newProjectName && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">输入新项目名称</h3>
-            <input
-              type="text"
-              className="w-full border rounded p-2 mb-4"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleProjectNameConfirm()}
-              placeholder="请输入项目名称..."
-              autoFocus
-            />
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreatingProject(false);
-                  setNewProjectName('');
-                }}
-                className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={handleProjectNameConfirm}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none"
-                disabled={!newProjectName.trim()}
-              >
-                下一步
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 新建项目完整表单模态框 */}
+      {isProjectModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 relative">
+            <h3 className="text-xl font-bold mb-4">创建新项目</h3>
+            <form onSubmit={handleCreateProject} className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">项目名称 *</label>
+                <input required type="text" className="w-full border rounded p-2"
+                  value={projectFormData.name || ''} onChange={e => setProjectFormData({...projectFormData, name: e.target.value})} />
+              </div>
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">工作号</label>
+                <input type="text" className="w-full border rounded p-2"
+                  value={projectFormData.workNo || ''} onChange={e => setProjectFormData({...projectFormData, workNo: e.target.value})} />
+              </div>
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">启动时间</label>
+                <input type="date" className="w-full border rounded p-2"
+                  value={projectFormData.startDate || ''} onChange={e => setProjectFormData({...projectFormData, startDate: e.target.value})} />
+              </div>
 
-      {/* 新建项目确认对话框 */}
-      {isCreatingProject && newProjectName && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold mb-4">创建新项目</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              项目名称：<strong>{newProjectName}</strong>
-            </p>
-            <p className="text-sm text-slate-600 mb-4">
-              将根据当前任务类型自动设置项目类别为：<strong>
-                {activeTaskClass?.code === 'MARKET' ? '市场配合项目' :
-                 activeTaskClass?.code === 'EXECUTION' ? '项目执行' :
-                 activeTaskClass?.code === 'PRODUCT_DEV' || activeTaskClass?.code === 'RESEARCH' ? '科研项目' :
-                 activeTaskClass?.code === 'RENOVATION' ? '改造项目' : '其他项目'}
-              </strong>
-            </p>
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreatingProject(false);
-                  setNewProjectName('');
-                }}
-                className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateProject}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none"
-              >
-                确认创建
-              </button>
-            </div>
+              {/* 所有项目类型都显示容量等级和机型字段 */}
+              <>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">容量等级</label>
+                  <AutocompleteInput
+                    value={projectFormData.capacity || ''}
+                    options={capacityLevels}
+                    onChange={(value) => setProjectFormData({...projectFormData, capacity: value})}
+                    placeholder="选择或输入容量等级"
+                    className="w-full border rounded p-2"
+                    id="project-capacity-autocomplete"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium mb-1">机型</label>
+                  <AutocompleteInput
+                    value={projectFormData.model || ''}
+                    options={equipmentModels}
+                    onChange={(value) => setProjectFormData({...projectFormData, model: value})}
+                    placeholder="选择或输入机型"
+                    className="w-full border rounded p-2"
+                    id="project-model-autocomplete"
+                  />
+                </div>
+              </>
+
+              {projectFormData.category === ProjectCategory.MARKET && (
+                <div className="col-span-2 flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={projectFormData.isWon || false} onChange={e => setProjectFormData({...projectFormData, isWon: e.target.checked})} />
+                    已中标
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={projectFormData.isForeign || false} onChange={e => setProjectFormData({...projectFormData, isForeign: e.target.checked})} />
+                    外贸项目
+                  </label>
+                </div>
+              )}
+
+              {(projectFormData.category === ProjectCategory.EXECUTION || projectFormData.category === ProjectCategory.NUCLEAR) && (
+                <div className="col-span-2 flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={projectFormData.isCommissioned || false} onChange={e => setProjectFormData({...projectFormData, isCommissioned: e.target.checked})} />
+                    已投运
+                  </label>
+                </div>
+              )}
+
+              {(projectFormData.category === ProjectCategory.RESEARCH || projectFormData.category === ProjectCategory.RENOVATION || projectFormData.category === ProjectCategory.OTHER) && (
+                <div className="col-span-2 flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={projectFormData.isCompleted || false} onChange={e => setProjectFormData({...projectFormData, isCompleted: e.target.checked})} />
+                    已完成
+                  </label>
+                </div>
+              )}
+
+              {/* 备注字段 */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">备注</label>
+                <textarea
+                  className="w-full border rounded p-2 text-sm"
+                  rows={3}
+                  value={projectFormData.remark || ''}
+                  onChange={e => setProjectFormData({...projectFormData, remark: e.target.value})}
+                  placeholder="输入项目备注信息..."
+                />
+              </div>
+
+              <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t">
+                <button type="button" onClick={() => setIsProjectModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none">保存项目</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

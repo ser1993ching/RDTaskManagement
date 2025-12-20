@@ -18,13 +18,28 @@ const STORAGE_KEYS = {
 const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
   'MARKET': ['标书', '复询', '技术方案', '其他'],
   'EXECUTION': ['搭建生产资料', '设计院提资', 'CT配合与提资', '随机资料', '项目特殊项处理', '用户配合', '图纸会签', '传真回复', '其他'],
+  'NUCLEAR': ['核电设计', '核安全审查', '设备调试', '常规岛配合', '核岛接口', '技术方案', '其他'],
   'PRODUCT_DEV': ['技术方案', '设计流程', '方案评审', '专利申请', '出图', '图纸改版', '设计总结'],
   'RESEARCH': ['开题报告', '专利申请', '结题报告', '其他'],
   'RENOVATION': ['前期项目配合', '方案编制', '其他'],
   'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
   'ADMIN_PARTY': ['报表填报', 'ppt汇报', '总结报告', '其他'],
-  'TRAVEL': ['市场配合出差', '项目执行出差', '产品研发出差', '科研出差', '生产服务出差', '其他'],
+  'TRAVEL': ['市场配合出差', '常规项目出差', '核电项目出差', '产品研发出差', '科研出差', '生产服务出差', '其他'],
   'OTHER': ['通用任务']
+};
+
+// TaskClassID to Category Code mapping
+const TASKCLASS_TO_CATEGORY: Record<string, string> = {
+  'TC001': 'MARKET',
+  'TC002': 'EXECUTION',
+  'TC003': 'NUCLEAR',
+  'TC004': 'PRODUCT_DEV',
+  'TC005': 'RESEARCH',
+  'TC006': 'RENOVATION',
+  'TC007': 'MEETING_TRAINING',
+  'TC008': 'ADMIN_PARTY',
+  'TC009': 'TRAVEL',
+  'TC010': 'OTHER'
 };
 
 // --- Seed Data ---
@@ -123,64 +138,381 @@ const seedUsers: User[] = [
 ];
 
 const seedProjects: Project[] = [
+  // 市场配合项目 (5个)
   {
     id: 'P001',
-    name: 'HBR-1000MW高效机组',
-    category: ProjectCategory.EXECUTION,
-    workNo: 'WORK-2023-001',
-    capacity: '1000MW',
-    startDate: '2023-01-10',
-    model: 'Francis'
+    name: '某国外抽水蓄能电站投标项目',
+    category: ProjectCategory.MARKET,
+    workNo: 'MARKET-2025-001',
+    capacity: '1200MW',
+    model: 'Francis',
+    startDate: '2025-01-15',
+    endDate: '2025-06-30',
+    isWon: true,
+    isForeign: true,
+    remark: '海外大型抽水蓄能项目，技术要求高，需要定制化设计方案'
   },
   {
     id: 'P002',
-    name: '某海外抽水蓄能投标',
+    name: '国内大型水电站投标项目',
     category: ProjectCategory.MARKET,
-    isWon: false,
-    isForeign: true,
-    startDate: '2023-08-01'
+    workNo: 'MARKET-2025-002',
+    capacity: '1000MW',
+    model: 'Francis',
+    startDate: '2025-02-10',
+    endDate: '2025-07-15',
+    isWon: true,
+    isForeign: false,
+    remark: '国内重点水电项目，竞争激烈'
   },
   {
     id: 'P003',
-    name: '新型水轮机叶片研发',
-    category: ProjectCategory.RESEARCH,
-    workNo: 'RESEARCH-2023-002',
-    capacity: '800MW',
-    startDate: '2023-03-01',
-    model: 'Kaplan'
+    name: '海外小水电投标项目',
+    category: ProjectCategory.MARKET,
+    workNo: 'MARKET-2025-003',
+    capacity: '50MW',
+    model: 'Pelton',
+    startDate: '2025-03-01',
+    endDate: '2025-05-30',
+    isWon: false,
+    isForeign: true,
+    remark: '非洲地区小水电项目，价格敏感'
   },
   {
     id: 'P004',
-    name: '三峡机组改造项目',
-    category: ProjectCategory.RENOVATION,
-    workNo: 'RENO-2023-003',
-    capacity: '700MW',
-    startDate: '2023-05-15',
-    model: 'Francis'
+    name: '一带一路水电项目投标',
+    category: ProjectCategory.MARKET,
+    workNo: 'MARKET-2025-004',
+    capacity: '800MW',
+    model: 'Kaplan',
+    startDate: '2025-01-20',
+    endDate: '2025-08-20',
+    isWon: false,
+    isForeign: true,
+    remark: '配合一带一路倡议的重要水电项目'
   },
   {
     id: 'P005',
-    name: '国内某大型水电站投标',
+    name: '抽水蓄能电站技术方案项目',
     category: ProjectCategory.MARKET,
+    workNo: 'MARKET-2025-005',
+    capacity: '600MW',
+    model: 'Francis',
+    startDate: '2025-04-01',
+    endDate: '2025-09-30',
     isWon: true,
     isForeign: false,
-    startDate: '2023-06-01'
+    remark: '国内重点抽水蓄能项目，技术方案已中标'
   },
+
+  // 常规项目 (5个)
   {
     id: 'P006',
-    name: '抽水蓄能机组优化设计',
+    name: '白鹤滩水电站左岸机组制造',
     category: ProjectCategory.EXECUTION,
-    workNo: 'WORK-2023-004',
-    capacity: '300MW',
-    startDate: '2023-07-20',
-    model: 'Francis'
+    workNo: 'EXECUTION-2025-001',
+    capacity: '1000MW',
+    model: 'Francis',
+    startDate: '2025-01-05',
+    endDate: '2025-12-20',
+    isCommissioned: false,
+    remark: '世界最大水电站机组制造项目，技术难度极高'
   },
   {
     id: 'P007',
-    name: '智能化监控系统研发',
+    name: '溪洛渡水电站机组改造项目',
+    category: ProjectCategory.EXECUTION,
+    workNo: 'EXECUTION-2025-002',
+    capacity: '770MW',
+    model: 'Francis',
+    startDate: '2025-02-15',
+    endDate: '2025-10-30',
+    isCommissioned: true,
+    remark: '提升机组效率，降低水耗'
+  },
+  {
+    id: 'P008',
+    name: '向家坝水电站优化项目',
+    category: ProjectCategory.EXECUTION,
+    workNo: 'EXECUTION-2025-003',
+    capacity: '600MW',
+    model: 'Francis',
+    startDate: '2025-03-10',
+    endDate: '2025-11-15',
+    isCommissioned: false,
+    remark: '优化水轮机水力性能，提高发电效率'
+  },
+  {
+    id: 'P009',
+    name: '乌东德水电站维护项目',
+    category: ProjectCategory.EXECUTION,
+    workNo: 'EXECUTION-2025-004',
+    capacity: '850MW',
+    model: 'Francis',
+    startDate: '2025-01-20',
+    endDate: '2025-09-20',
+    isCommissioned: true,
+    remark: '定期维护保养，确保机组安全稳定运行'
+  },
+  {
+    id: 'P010',
+    name: '龙滩水电站扩建项目',
+    category: ProjectCategory.EXECUTION,
+    workNo: 'EXECUTION-2025-005',
+    capacity: '700MW',
+    model: 'Francis',
+    startDate: '2025-04-05',
+    endDate: '2025-12-31',
+    isCommissioned: false,
+    remark: '增加机组容量，提升整体发电能力'
+  },
+
+  // 核电项目 (5个)
+  {
+    id: 'P011',
+    name: '华龙一号常规岛设计项目',
+    category: ProjectCategory.NUCLEAR,
+    workNo: 'NUCLEAR-2025-001',
+    capacity: '1200MW',
+    model: 'Nuclear Steam Turbine',
+    startDate: '2025-01-10',
+    endDate: '2025-12-15',
+    isCommissioned: false,
+    remark: '自主三代核电技术常规岛设计，安全性要求极高'
+  },
+  {
+    id: 'P012',
+    name: 'CAP1400核电项目配合',
+    category: ProjectCategory.NUCLEAR,
+    workNo: 'NUCLEAR-2025-002',
+    capacity: '1400MW',
+    model: 'CAP1400',
+    startDate: '2025-02-01',
+    endDate: '2025-11-30',
+    isCommissioned: false,
+    remark: '大型先进压水堆核电项目，参与常规岛部分设计'
+  },
+  {
+    id: 'P013',
+    name: '某核电站汽轮机改造项目',
+    category: ProjectCategory.NUCLEAR,
+    workNo: 'NUCLEAR-2025-003',
+    capacity: '1000MW',
+    model: 'Nuclear Steam Turbine',
+    startDate: '2025-03-15',
+    endDate: '2025-10-20',
+    isCommissioned: true,
+    remark: '提升核电汽轮机效率和可靠性'
+  },
+  {
+    id: 'P014',
+    name: '高温气冷堆常规岛项目',
+    category: ProjectCategory.NUCLEAR,
+    workNo: 'NUCLEAR-2025-004',
+    capacity: '200MW',
+    model: 'HTR Steam Turbine',
+    startDate: '2025-04-01',
+    endDate: '2025-12-01',
+    isCommissioned: false,
+    remark: '第四代核电技术，常温气体冷却反应堆'
+  },
+  {
+    id: 'P015',
+    name: '核电设备国产化项目',
+    category: ProjectCategory.NUCLEAR,
+    workNo: 'NUCLEAR-2025-005',
+    capacity: '1100MW',
+    model: 'AP1000',
+    startDate: '2025-01-25',
+    endDate: '2025-11-25',
+    isCommissioned: false,
+    remark: '推进核电关键设备国产化，降低依赖性'
+  },
+
+  // 科研项目 (5个)
+  {
+    id: 'P016',
+    name: '新型水轮机叶片材料研发',
     category: ProjectCategory.RESEARCH,
-    workNo: 'RESEARCH-2023-005',
-    startDate: '2023-09-01'
+    workNo: 'RESEARCH-2025-001',
+    capacity: '1000MW',
+    model: 'Francis',
+    startDate: '2025-01-08',
+    endDate: '2025-12-08',
+    isCompleted: false,
+    remark: '研发高强度、抗空化新型叶片材料，延长使用寿命'
+  },
+  {
+    id: 'P017',
+    name: '水电站智能化运维系统研发',
+    category: ProjectCategory.RESEARCH,
+    workNo: 'RESEARCH-2025-002',
+    capacity: '500MW',
+    model: 'Kaplan',
+    startDate: '2025-02-20',
+    endDate: '2025-10-20',
+    isCompleted: false,
+    remark: '基于AI和大数据的智能运维平台开发'
+  },
+  {
+    id: 'P018',
+    name: '水轮机增容改造技术研究',
+    category: ProjectCategory.RESEARCH,
+    workNo: 'RESEARCH-2025-003',
+    capacity: '700MW',
+    model: 'Francis',
+    startDate: '2025-03-05',
+    endDate: '2025-11-05',
+    isCompleted: false,
+    remark: '研究在不更换主要设备前提下提升机组容量技术'
+  },
+  {
+    id: 'P019',
+    name: '绿色能源储能技术研发',
+    category: ProjectCategory.RESEARCH,
+    workNo: 'RESEARCH-2025-004',
+    capacity: '300MW',
+    model: 'Pump-Turbine',
+    startDate: '2025-01-30',
+    endDate: '2025-09-30',
+    isCompleted: false,
+    remark: '研发高效储能技术，支撑新能源并网'
+  },
+  {
+    id: 'P020',
+    name: '水电机组振动控制技术研发',
+    category: ProjectCategory.RESEARCH,
+    workNo: 'RESEARCH-2025-005',
+    capacity: '800MW',
+    model: 'Francis',
+    startDate: '2025-04-10',
+    endDate: '2025-12-10',
+    isCompleted: false,
+    remark: '研发主动振动控制技术，保障机组安全运行'
+  },
+
+  // 改造项目 (5个)
+  {
+    id: 'P021',
+    name: '三峡左岸机组改造升级',
+    category: ProjectCategory.RENOVATION,
+    workNo: 'RENOVATION-2025-001',
+    capacity: '700MW',
+    model: 'Francis',
+    startDate: '2025-01-12',
+    endDate: '2025-08-12',
+    isCompleted: false,
+    remark: '提升三峡左岸机组效率和稳定性，延长服役年限'
+  },
+  {
+    id: 'P022',
+    name: '葛洲坝水电站机电改造',
+    category: ProjectCategory.RENOVATION,
+    workNo: 'RENOVATION-2025-002',
+    capacity: '170MW',
+    model: 'Rotary',
+    startDate: '2025-02-25',
+    endDate: '2025-09-25',
+    isCompleted: false,
+    remark: '更换老旧机电设备，提升自动化水平'
+  },
+  {
+    id: 'P023',
+    name: '小浪底水电站设备更新',
+    category: ProjectCategory.RENOVATION,
+    workNo: 'RENOVATION-2025-003',
+    capacity: '300MW',
+    model: 'Francis',
+    startDate: '2025-03-15',
+    endDate: '2025-10-15',
+    isCompleted: false,
+    remark: '更新主要发电设备，提高可靠性'
+  },
+  {
+    id: 'P024',
+    name: '二滩水电站自动化改造',
+    category: ProjectCategory.RENOVATION,
+    workNo: 'RENOVATION-2025-004',
+    capacity: '550MW',
+    model: 'Francis',
+    startDate: '2025-01-28',
+    endDate: '2025-08-28',
+    isCompleted: true,
+    remark: '全面升级自动化系统，实现远程监控'
+  },
+  {
+    id: 'P025',
+    name: '水口水电站增效扩容改造',
+    category: ProjectCategory.RENOVATION,
+    workNo: 'RENOVATION-2025-005',
+    capacity: '200MW',
+    model: 'Kaplan',
+    startDate: '2025-04-08',
+    endDate: '2025-11-08',
+    isCompleted: false,
+    remark: '通过技术改造提升机组效率和容量'
+  },
+
+  // 其他项目 (5个)
+  {
+    id: 'P026',
+    name: '水电站员工技能培训项目',
+    category: ProjectCategory.OTHER,
+    workNo: 'OTHER-2025-001',
+    capacity: '1000MW',
+    model: 'Francis',
+    startDate: '2025-01-15',
+    endDate: '2025-06-15',
+    isCompleted: true,
+    remark: '提升员工专业技能和运维水平'
+  },
+  {
+    id: 'P027',
+    name: '水电行业标准制定项目',
+    category: ProjectCategory.OTHER,
+    workNo: 'OTHER-2025-002',
+    capacity: '500MW',
+    model: 'Kaplan',
+    startDate: '2025-02-01',
+    endDate: '2025-12-31',
+    isCompleted: false,
+    remark: '参与制定水电行业技术标准和规范'
+  },
+  {
+    id: 'P028',
+    name: '水电站安全评估项目',
+    category: ProjectCategory.OTHER,
+    workNo: 'OTHER-2025-003',
+    capacity: '800MW',
+    model: 'Francis',
+    startDate: '2025-03-10',
+    endDate: '2025-07-10',
+    isCompleted: true,
+    remark: '全面评估水电站运行安全状况'
+  },
+  {
+    id: 'P029',
+    name: '水电技术国际交流项目',
+    category: ProjectCategory.OTHER,
+    workNo: 'OTHER-2025-004',
+    capacity: '600MW',
+    model: 'Pelton',
+    startDate: '2025-01-20',
+    endDate: '2025-11-20',
+    isCompleted: false,
+    remark: '与国际同行开展技术交流与合作'
+  },
+  {
+    id: 'P030',
+    name: '水电站环境影响评价项目',
+    category: ProjectCategory.OTHER,
+    workNo: 'OTHER-2025-005',
+    capacity: '400MW',
+    model: 'Francis',
+    startDate: '2025-04-01',
+    endDate: '2025-10-01',
+    isCompleted: false,
+    remark: '评估水电站对生态环境的影响，提出改善措施'
   }
 ];
 
@@ -193,48 +525,54 @@ const seedTaskClasses: TaskClass[] = [
   },
   {
     id: 'TC002',
-    name: '项目执行',
+    name: '常规项目',
     code: 'EXECUTION',
-    description: '项目执行相关任务'
+    description: '常规项目执行相关任务'
   },
   {
     id: 'TC003',
+    name: '核电项目',
+    code: 'NUCLEAR',
+    description: '核电项目相关任务'
+  },
+  {
+    id: 'TC004',
     name: '产品研发',
     code: 'PRODUCT_DEV',
     description: '产品研发相关任务'
   },
   {
-    id: 'TC004',
+    id: 'TC005',
     name: '科研任务',
     code: 'RESEARCH',
     description: '科研任务相关工作'
   },
   {
-    id: 'TC005',
+    id: 'TC006',
     name: '改造服务',
     code: 'RENOVATION',
     description: '改造服务相关任务'
   },
   {
-    id: 'TC006',
+    id: 'TC007',
     name: '内部会议与培训',
     code: 'MEETING_TRAINING',
     description: '内部会议与培训相关工作'
   },
   {
-    id: 'TC007',
+    id: 'TC008',
     name: '行政与党建',
     code: 'ADMIN_PARTY',
     description: '行政与党建相关工作'
   },
   {
-    id: 'TC008',
+    id: 'TC009',
     name: '差旅任务',
     code: 'TRAVEL',
     description: '差旅相关任务'
   },
   {
-    id: 'TC009',
+    id: 'TC010',
     name: '其他任务',
     code: 'OTHER',
     description: '其他类型任务'
@@ -242,802 +580,787 @@ const seedTaskClasses: TaskClass[] = [
 ];
 
 const seedTasks: Task[] = [
-  // 市场配合任务 (TC001)
+  // 市场配合任务 (TC001) - 对应P001-P005
   {
-    TaskID: 'T-20231001-001',
-    TaskName: 'HBR-1000MW高效机组-图纸会签',
-    TaskClassID: 'TC002',
-    Category: '图纸会签',
+    TaskID: 'T-20250105-001',
+    TaskName: '某国外抽水蓄能电站投标项目-技术方案',
+    TaskClassID: 'TC001',
+    Category: '技术方案',
     ProjectID: 'P001',
     AssigneeID: 'USER001',
     Status: TaskStatus.IN_PROGRESS,
-    Workload: 5,
-    Difficulty: 1.2,
-    CreatedDate: '2023-10-01',
+    Workload: 8,
+    Difficulty: 1.5,
+    CapacityLevel: '1200MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-01-15',
+    CreatedDate: '2025-01-15',
     CreatedBy: 'LEADER001'
   },
   {
-    TaskID: 'T-20231101-001',
-    TaskName: '海外抽水蓄能投标-技术方案',
-    TaskClassID: 'TC001',
-    Category: '技术方案',
-    ProjectID: 'P002',
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 8,
-    Difficulty: 1.5,
-    CapacityLevel: '1000MW等级',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
-    CreatedDate: '2023-11-01',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20231102-001',
-    TaskName: '国内大型水电站投标-标书制作',
+    TaskID: 'T-20250120-002',
+    TaskName: '某国外抽水蓄能电站投标项目-标书制作',
     TaskClassID: 'TC001',
     Category: '标书',
-    ProjectID: 'P005',
+    ProjectID: 'P001',
     AssigneeID: 'LEADER001',
     Status: TaskStatus.COMPLETED,
-    Workload: 12,
+    Workload: 15,
     Difficulty: 1.8,
-    CapacityLevel: '600MW等级',
+    CapacityLevel: '1200MW',
     ReviewerID: 'USER002',
-    ReviewerID2: 'USER003',
-    CreatedDate: '2023-11-02',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-01-20',
+    CreatedDate: '2025-01-20',
     CreatedBy: 'admin'
   },
   {
-    TaskID: 'T-20231103-001',
-    TaskName: '海外项目复询-技术澄清',
+    TaskID: 'T-20250201-003',
+    TaskName: '国内大型水电站投标项目-复询',
     TaskClassID: 'TC001',
     Category: '复询',
     ProjectID: 'P002',
-    AssigneeID: 'USER002',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 3,
-    Difficulty: 1.0,
-    CapacityLevel: '1000MW等级',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
-    CreatedDate: '2023-11-03',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20231104-001',
-    TaskName: '市场调研-竞品分析',
-    TaskClassID: 'TC001',
-    Category: '其他',
-    ProjectID: undefined,
-    AssigneeID: 'USER004',
-    Status: TaskStatus.COMPLETED,
-    Workload: 4,
-    Difficulty: 0.8,
-    CapacityLevel: '300MW等级',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
-    CreatedDate: '2023-11-04',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20231105-001',
-    TaskName: '新客户拜访-技术交流',
-    TaskClassID: 'TC001',
-    Category: '其他',
-    ProjectID: undefined,
-    AssigneeID: 'USER006',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 2,
-    Difficulty: 0.5,
-    CapacityLevel: 'F级燃机',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
-    CreatedDate: '2023-11-05',
-    CreatedBy: 'LEADER001'
-  },
-
-  // 项目执行任务 (TC002)
-  {
-    TaskID: 'T-20231002-001',
-    TaskName: 'HBR-1000MW高效机组-设计院提资',
-    TaskClassID: 'TC002',
-    Category: '设计院提资',
-    ProjectID: 'P001',
-    AssigneeID: 'USER002',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 6,
-    Difficulty: 1.3,
-    CreatedDate: '2023-10-02',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20231003-001',
-    TaskName: 'HBR-1000MW高效机组-CT配合与提资',
-    TaskClassID: 'TC002',
-    Category: 'CT配合与提资',
-    ProjectID: 'P001',
     AssigneeID: 'USER003',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 1.0,
-    CreatedDate: '2023-10-03',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20231004-001',
-    TaskName: 'HBR-1000MW高效机组-随机资料',
-    TaskClassID: 'TC002',
-    Category: '随机资料',
-    ProjectID: 'P001',
-    AssigneeID: 'USER001',
-    Status: TaskStatus.COMPLETED,
-    Workload: 3,
-    Difficulty: 0.8,
-    CreatedDate: '2023-10-04',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20231005-001',
-    TaskName: '抽水蓄能机组优化设计-项目特殊项处理',
-    TaskClassID: 'TC002',
-    Category: '项目特殊项处理',
-    ProjectID: 'P006',
-    AssigneeID: 'USER005',
     Status: TaskStatus.IN_PROGRESS,
-    Workload: 7,
-    Difficulty: 1.6,
-    CreatedDate: '2023-10-05',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20231006-001',
-    TaskName: 'HBR-1000MW高效机组-用户配合',
-    TaskClassID: 'TC002',
-    Category: '用户配合',
-    ProjectID: 'P001',
-    AssigneeID: 'USER006',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 2,
-    Difficulty: 0.5,
-    CreatedDate: '2023-10-06',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20231007-001',
-    TaskName: '抽水蓄能机组优化设计-图纸会签',
-    TaskClassID: 'TC002',
-    Category: '图纸会签',
-    ProjectID: 'P006',
-    AssigneeID: 'USER003',
-    Status: TaskStatus.NOT_STARTED,
     Workload: 5,
     Difficulty: 1.2,
-    CreatedDate: '2023-10-07',
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-02-10',
+    CreatedDate: '2025-02-10',
     CreatedBy: 'LEADER001'
   },
   {
-    TaskID: 'T-20231008-001',
-    TaskName: '抽水蓄能机组优化设计-传真回复',
-    TaskClassID: 'TC002',
-    Category: '传真回复',
-    ProjectID: 'P006',
-    AssigneeID: 'USER001',
+    TaskID: 'T-20250215-004',
+    TaskName: '国内大型水电站投标项目-技术交流',
+    TaskClassID: 'TC001',
+    Category: '其他',
+    ProjectID: 'P002',
+    AssigneeID: 'USER002',
     Status: TaskStatus.COMPLETED,
-    Workload: 1,
-    Difficulty: 0.3,
-    CreatedDate: '2023-10-08',
+    Workload: 6,
+    Difficulty: 1.0,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-02-15',
+    CreatedDate: '2025-02-15',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250305-005',
+    TaskName: '海外小水电投标项目-标书',
+    TaskClassID: 'TC001',
+    Category: '标书',
+    ProjectID: 'P003',
+    AssigneeID: 'USER004',
+    Status: TaskStatus.NOT_STARTED,
+    Workload: 10,
+    Difficulty: 1.3,
+    CapacityLevel: '50MW',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-03-05',
+    CreatedDate: '2025-03-05',
     CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250310-006',
+    TaskName: '一带一路水电项目投标-技术方案',
+    TaskClassID: 'TC001',
+    Category: '技术方案',
+    ProjectID: 'P004',
+    AssigneeID: 'USER005',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 12,
+    Difficulty: 1.6,
+    CapacityLevel: '800MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-03-10',
+    CreatedDate: '2025-03-10',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250401-007',
+    TaskName: '抽水蓄能电站技术方案项目-复询',
+    TaskClassID: 'TC001',
+    Category: '复询',
+    ProjectID: 'P005',
+    AssigneeID: 'LEADER001',
+    Status: TaskStatus.COMPLETED,
+    Workload: 4,
+    Difficulty: 1.0,
+    CapacityLevel: '600MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-04-01',
+    CreatedDate: '2025-04-01',
+    CreatedBy: 'admin'
   },
 
-  // 产品研发任务 (TC003)
+  // 常规项目任务 (TC002) - 对应P006-P010
   {
-    TaskID: 'T-20231201-001',
-    TaskName: '新型水轮机叶片研发-技术方案',
-    TaskClassID: 'TC003',
-    Category: '技术方案',
-    ProjectID: 'P003',
+    TaskID: 'T-20250105-010',
+    TaskName: '白鹤滩水电站左岸机组制造-设计院提资',
+    TaskClassID: 'TC002',
+    Category: '设计院提资',
+    ProjectID: 'P006',
     AssigneeID: 'USER001',
     Status: TaskStatus.IN_PROGRESS,
     Workload: 10,
-    Difficulty: 2.0,
-    CreatedDate: '2023-12-01',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20231202-001',
-    TaskName: '智能化监控系统研发-设计流程',
-    TaskClassID: 'TC003',
-    Category: '设计流程',
-    ProjectID: 'P007',
-    AssigneeID: 'USER007',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 8,
     Difficulty: 1.8,
-    CreatedDate: '2023-12-02',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20231203-001',
-    TaskName: '新型水轮机叶片研发-方案评审',
-    TaskClassID: 'TC003',
-    Category: '方案评审',
-    ProjectID: 'P003',
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 3,
-    Difficulty: 1.0,
-    CreatedDate: '2023-12-03',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20231204-001',
-    TaskName: '智能化监控系统研发-专利申请',
-    TaskClassID: 'TC003',
-    Category: '专利申请',
-    ProjectID: 'P007',
-    AssigneeID: 'USER006',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 1.2,
-    CreatedDate: '2023-12-04',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20231205-001',
-    TaskName: '新型水轮机叶片研发-出图',
-    TaskClassID: 'TC003',
-    Category: '出图',
-    ProjectID: 'P003',
-    AssigneeID: 'USER002',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 6,
-    Difficulty: 1.5,
-    CreatedDate: '2023-12-05',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20231206-001',
-    TaskName: '智能化监控系统研发-图纸改版',
-    TaskClassID: 'TC003',
-    Category: '图纸改版',
-    ProjectID: 'P007',
-    AssigneeID: 'USER002',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 3,
-    Difficulty: 1.0,
-    CreatedDate: '2023-12-06',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20231207-001',
-    TaskName: '新型水轮机叶片研发-设计总结',
-    TaskClassID: 'TC003',
-    Category: '设计总结',
-    ProjectID: 'P003',
-    AssigneeID: 'USER003',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 2,
-    Difficulty: 0.8,
-    CreatedDate: '2023-12-07',
-    CreatedBy: 'admin'
-  },
-
-  // 科研任务 (TC004)
-  {
-    TaskID: 'T-20240101-001',
-    TaskName: '水轮机效率优化研究-开题报告',
-    TaskClassID: 'TC004',
-    Category: '开题报告',
-    ProjectID: 'P003',
-    AssigneeID: 'USER007',
-    Status: TaskStatus.COMPLETED,
-    Workload: 3,
-    Difficulty: 1.0,
-    CreatedDate: '2024-01-01',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240102-001',
-    TaskName: '水轮机效率优化研究-专利申请',
-    TaskClassID: 'TC004',
-    Category: '专利申请',
-    ProjectID: 'P003',
-    AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 5,
-    Difficulty: 1.5,
-    CreatedDate: '2024-01-02',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240103-001',
-    TaskName: '水轮机效率优化研究-结题报告',
-    TaskClassID: 'TC004',
-    Category: '结题报告',
-    ProjectID: 'P003',
-    AssigneeID: 'USER003',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 1.2,
-    CreatedDate: '2024-01-03',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240104-001',
-    TaskName: '智能化监控系统研究-其他',
-    TaskClassID: 'TC004',
-    Category: '其他',
-    ProjectID: 'P007',
-    AssigneeID: 'USER007',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 6,
-    Difficulty: 1.8,
-    CreatedDate: '2024-01-04',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240105-001',
-    TaskName: '新材料应用研究-开题报告',
-    TaskClassID: 'TC004',
-    Category: '开题报告',
-    ProjectID: undefined,
-    AssigneeID: 'USER004',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 3,
-    Difficulty: 1.0,
-    CreatedDate: '2024-01-05',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240106-001',
-    TaskName: '新材料应用研究-结题报告',
-    TaskClassID: 'TC004',
-    Category: '结题报告',
-    ProjectID: undefined,
-    AssigneeID: 'USER004',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 1.2,
-    CreatedDate: '2024-01-06',
-    CreatedBy: 'LEADER001'
-  },
-
-  // 改造服务任务 (TC005)
-  {
-    TaskID: 'T-20240201-001',
-    TaskName: '三峡机组改造-前期项目配合',
-    TaskClassID: 'TC005',
-    Category: '前期项目配合',
-    ProjectID: 'P004',
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 5,
-    Difficulty: 1.3,
-    CreatedDate: '2024-02-01',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240202-001',
-    TaskName: '三峡机组改造-方案编制',
-    TaskClassID: 'TC005',
-    Category: '方案编制',
-    ProjectID: 'P004',
-    AssigneeID: 'USER005',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 8,
-    Difficulty: 1.8,
-    CreatedDate: '2024-02-02',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240203-001',
-    TaskName: '三峡机组改造-其他',
-    TaskClassID: 'TC005',
-    Category: '其他',
-    ProjectID: 'P004',
-    AssigneeID: 'USER006',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 2,
-    Difficulty: 0.8,
-    CreatedDate: '2024-02-03',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240204-001',
-    TaskName: '老旧机组改造调研-前期项目配合',
-    TaskClassID: 'TC005',
-    Category: '前期项目配合',
-    ProjectID: undefined,
-    AssigneeID: 'USER004',
-    Status: TaskStatus.COMPLETED,
-    Workload: 3,
-    Difficulty: 1.0,
-    CreatedDate: '2024-02-04',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240205-001',
-    TaskName: '老旧机组改造调研-方案编制',
-    TaskClassID: 'TC005',
-    Category: '方案编制',
-    ProjectID: undefined,
-    AssigneeID: 'USER005',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 1.2,
-    CreatedDate: '2024-02-05',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240206-001',
-    TaskName: '老旧机组改造调研-其他',
-    TaskClassID: 'TC005',
-    Category: '其他',
-    ProjectID: undefined,
-    AssigneeID: 'USER006',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 2,
-    Difficulty: 0.8,
-    CreatedDate: '2024-02-06',
-    CreatedBy: 'LEADER001'
-  },
-
-  // 内部会议与培训任务 (TC006)
-  {
-    TaskID: 'T-20240301-001',
-    TaskName: '水轮机技术培训-学习与培训',
-    TaskClassID: 'TC006',
-    Category: '学习与培训',
-    ProjectID: undefined,
-    AssigneeID: 'USER001',
-    Status: TaskStatus.COMPLETED,
-    Workload: 8,
-    Difficulty: 1.0,
-    CreatedDate: '2024-03-01',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240302-001',
-    TaskName: '党支部学习会-党建会议',
-    TaskClassID: 'TC006',
-    Category: '党建会议',
-    ProjectID: undefined,
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.COMPLETED,
-    Workload: 2,
-    Difficulty: 0.5,
-    CreatedDate: '2024-03-02',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240303-001',
-    TaskName: '周例会-班务会',
-    TaskClassID: 'TC006',
-    Category: '班务会',
-    ProjectID: undefined,
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 1,
-    Difficulty: 0.3,
-    CreatedDate: '2024-03-03',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240304-001',
-    TaskName: 'HBR项目评审会-设计评审会',
-    TaskClassID: 'TC006',
-    Category: '设计评审会',
-    ProjectID: 'P001',
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 3,
-    Difficulty: 0.8,
-    CreatedDate: '2024-03-04',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240305-001',
-    TaskName: '技术方案讨论会-资料讨论会',
-    TaskClassID: 'TC006',
-    Category: '资料讨论会',
-    ProjectID: 'P003',
-    AssigneeID: 'USER001',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 2,
-    Difficulty: 0.5,
-    CreatedDate: '2024-03-05',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240306-001',
-    TaskName: '月度总结会-其他',
-    TaskClassID: 'TC006',
-    Category: '其他',
-    ProjectID: undefined,
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 1,
-    Difficulty: 0.3,
-    CreatedDate: '2024-03-06',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240307-001',
-    TaskName: '新员工入职培训-学习与培训',
-    TaskClassID: 'TC006',
-    Category: '学习与培训',
-    ProjectID: undefined,
-    AssigneeID: 'USER003',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 0.8,
-    CreatedDate: '2024-03-07',
-    CreatedBy: 'LEADER001'
-  },
-
-  // 行政与党建任务 (TC007)
-  {
-    TaskID: 'T-20240401-001',
-    TaskName: '月度工作报表-报表填报',
-    TaskClassID: 'TC007',
-    Category: '报表填报',
-    ProjectID: undefined,
-    AssigneeID: 'USER006',
-    Status: TaskStatus.COMPLETED,
-    Workload: 2,
-    Difficulty: 0.5,
-    CreatedDate: '2024-04-01',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240402-001',
-    TaskName: '年度总结汇报-ppt汇报',
-    TaskClassID: 'TC007',
-    Category: 'ppt汇报',
-    ProjectID: undefined,
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.COMPLETED,
-    Workload: 6,
-    Difficulty: 1.2,
-    CreatedDate: '2024-04-02',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240403-001',
-    TaskName: '项目总结报告-总结报告',
-    TaskClassID: 'TC007',
-    Category: '总结报告',
-    ProjectID: 'P001',
-    AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 5,
-    Difficulty: 1.0,
-    CreatedDate: '2024-04-03',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240404-001',
-    TaskName: '党费缴纳-其他',
-    TaskClassID: 'TC007',
-    Category: '其他',
-    ProjectID: undefined,
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.COMPLETED,
-    Workload: 0.5,
-    Difficulty: 0.2,
-    CreatedDate: '2024-04-04',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240405-001',
-    TaskName: '季度安全检查-报表填报',
-    TaskClassID: 'TC007',
-    Category: '报表填报',
-    ProjectID: undefined,
-    AssigneeID: 'USER006',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 3,
-    Difficulty: 0.8,
-    CreatedDate: '2024-04-05',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240406-001',
-    TaskName: '技术分享会-ppt汇报',
-    TaskClassID: 'TC007',
-    Category: 'ppt汇报',
-    ProjectID: undefined,
-    AssigneeID: 'USER002',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 1.0,
-    CreatedDate: '2024-04-06',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240407-001',
-    TaskName: '部门年度总结-总结报告',
-    TaskClassID: 'TC007',
-    Category: '总结报告',
-    ProjectID: undefined,
-    AssigneeID: 'LEADER001',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 8,
-    Difficulty: 1.5,
-    CreatedDate: '2024-04-07',
-    CreatedBy: 'admin'
-  },
-
-  // 差旅任务 (TC008)
-  {
-    TaskID: 'T-20240501-001',
-    TaskName: '客户现场技术支持-市场配合',
-    TaskClassID: 'TC008',
-    Category: '市场配合出差',
-    ProjectID: 'P005',
-    AssigneeID: 'USER001',
-    Status: TaskStatus.COMPLETED,
-    Workload: 3,
-    Difficulty: 0.8,
-    TravelLocation: '北京',
-    TravelDuration: 3,
+    CapacityLevel: '1000MW',
     ReviewerID: 'USER002',
-    ReviewerID2: 'LEADER001',
-    CreatedDate: '2024-05-01',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-01-05',
+    CreatedDate: '2025-01-05',
     CreatedBy: 'LEADER001'
   },
   {
-    TaskID: 'T-20240502-001',
-    TaskName: '项目执行现场配合-项目执行',
-    TaskClassID: 'TC008',
-    Category: '项目执行出差',
-    ProjectID: 'P001',
-    AssigneeID: 'USER003',
+    TaskID: 'T-20250201-011',
+    TaskName: '白鹤滩水电站左岸机组制造-CT配合与提资',
+    TaskClassID: 'TC002',
+    Category: 'CT配合与提资',
+    ProjectID: 'P006',
+    AssigneeID: 'USER002',
     Status: TaskStatus.IN_PROGRESS,
-    Workload: 5,
+    Workload: 8,
+    Difficulty: 1.5,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-02-01',
+    CreatedDate: '2025-02-01',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250215-012',
+    TaskName: '溪洛渡水电站机组改造项目-搭建生产资料',
+    TaskClassID: 'TC002',
+    Category: '搭建生产资料',
+    ProjectID: 'P007',
+    AssigneeID: 'USER003',
+    Status: TaskStatus.COMPLETED,
+    Workload: 7,
+    Difficulty: 1.3,
+    CapacityLevel: '770MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-02-15',
+    CreatedDate: '2025-02-15',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250310-013',
+    TaskName: '向家坝水电站优化项目-项目特殊项处理',
+    TaskClassID: 'TC002',
+    Category: '项目特殊项处理',
+    ProjectID: 'P008',
+    AssigneeID: 'USER004',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 9,
+    Difficulty: 1.6,
+    CapacityLevel: '600MW',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-03-10',
+    CreatedDate: '2025-03-10',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250320-014',
+    TaskName: '乌东德水电站维护项目-用户配合',
+    TaskClassID: 'TC002',
+    Category: '用户配合',
+    ProjectID: 'P009',
+    AssigneeID: 'USER005',
+    Status: TaskStatus.COMPLETED,
+    Workload: 6,
     Difficulty: 1.2,
-    TravelLocation: '三峡工地',
-    TravelDuration: 5,
+    CapacityLevel: '850MW',
     ReviewerID: 'USER001',
     ReviewerID2: 'USER007',
-    CreatedDate: '2024-05-02',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240503-001',
-    TaskName: '新产品研发测试-产品研发',
-    TaskClassID: 'TC008',
-    Category: '产品研发出差',
-    ProjectID: 'P003',
-    AssigneeID: 'USER007',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 7,
-    Difficulty: 1.5,
-    TravelLocation: '上海',
-    TravelDuration: 7,
-    ReviewerID: 'USER003',
-    ReviewerID2: 'USER002',
-    CreatedDate: '2024-05-03',
+    StartDate: '2025-03-20',
+    CreatedDate: '2025-03-20',
     CreatedBy: 'admin'
   },
   {
-    TaskID: 'T-20240504-001',
-    TaskName: '学术会议参会-科研',
-    TaskClassID: 'TC008',
-    Category: '科研出差',
-    ProjectID: undefined,
-    AssigneeID: 'USER001',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 2,
-    Difficulty: 0.5,
-    TravelLocation: '西安',
-    TravelDuration: 2,
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
-    CreatedDate: '2024-05-04',
-    CreatedBy: 'admin'
-  },
-  {
-    TaskID: 'T-20240505-001',
-    TaskName: '设备验收-生产服务',
-    TaskClassID: 'TC008',
-    Category: '生产服务出差',
-    ProjectID: 'P006',
+    TaskID: 'T-20250405-015',
+    TaskName: '龙滩水电站扩建项目-图纸会签',
+    TaskClassID: 'TC002',
+    Category: '图纸会签',
+    ProjectID: 'P010',
     AssigneeID: 'USER006',
     Status: TaskStatus.NOT_STARTED,
-    Workload: 4,
-    Difficulty: 1.0,
-    TravelLocation: '哈尔滨',
-    TravelDuration: 4,
-    ReviewerID: 'USER004',
-    ReviewerID2: 'USER005',
-    CreatedDate: '2024-05-05',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240506-001',
-    TaskName: '供应商考察-其他',
-    TaskClassID: 'TC008',
-    Category: '其他',
-    ProjectID: undefined,
-    AssigneeID: 'USER004',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 2,
-    Difficulty: 0.5,
-    TravelLocation: '广州',
-    TravelDuration: 2,
-    ReviewerID: 'USER006',
-    ReviewerID2: 'USER005',
-    CreatedDate: '2024-05-06',
+    Workload: 11,
+    Difficulty: 1.7,
+    CapacityLevel: '700MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-04-05',
+    CreatedDate: '2025-04-05',
     CreatedBy: 'LEADER001'
   },
 
-  // 其他任务 (TC009)
+  // 核电项目任务 (TC003) - 对应P011-P015
   {
-    TaskID: 'T-20240601-001',
-    TaskName: '通用技术调研',
-    TaskClassID: 'TC009',
-    Category: '通用任务',
-    ProjectID: undefined,
-    AssigneeID: 'USER004',
+    TaskID: 'T-20250110-020',
+    TaskName: '华龙一号常规岛设计项目-核电设计',
+    TaskClassID: 'TC003',
+    Category: '核电设计',
+    ProjectID: 'P011',
+    AssigneeID: 'USER001',
     Status: TaskStatus.IN_PROGRESS,
-    Workload: 3,
-    Difficulty: 1.0,
-    CreatedDate: '2024-06-01',
+    Workload: 15,
+    Difficulty: 2.0,
+    CapacityLevel: '1200MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-01-10',
+    CreatedDate: '2025-01-10',
     CreatedBy: 'LEADER001'
   },
   {
-    TaskID: 'T-20240602-001',
-    TaskName: '设备维护保养',
-    TaskClassID: 'TC009',
-    Category: '通用任务',
+    TaskID: 'T-20250201-021',
+    TaskName: '华龙一号常规岛设计项目-核岛接口',
+    TaskClassID: 'TC003',
+    Category: '核岛接口',
+    ProjectID: 'P011',
+    AssigneeID: 'USER002',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 12,
+    Difficulty: 1.8,
+    CapacityLevel: '1200MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-02-01',
+    CreatedDate: '2025-02-01',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250215-022',
+    TaskName: 'CAP1400核电项目配合-核安全审查',
+    TaskClassID: 'TC003',
+    Category: '核安全审查',
+    ProjectID: 'P012',
+    AssigneeID: 'USER003',
+    Status: TaskStatus.COMPLETED,
+    Workload: 10,
+    Difficulty: 1.9,
+    CapacityLevel: '1400MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-02-15',
+    CreatedDate: '2025-02-15',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250315-023',
+    TaskName: '某核电站汽轮机改造项目-设备调试',
+    TaskClassID: 'TC003',
+    Category: '设备调试',
+    ProjectID: 'P013',
+    AssigneeID: 'USER004',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 9,
+    Difficulty: 1.6,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-03-15',
+    CreatedDate: '2025-03-15',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250401-024',
+    TaskName: '高温气冷堆常规岛项目-技术方案',
+    TaskClassID: 'TC003',
+    Category: '技术方案',
+    ProjectID: 'P014',
+    AssigneeID: 'USER005',
+    Status: TaskStatus.NOT_STARTED,
+    Workload: 13,
+    Difficulty: 1.9,
+    CapacityLevel: '200MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-04-01',
+    CreatedDate: '2025-04-01',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250410-025',
+    TaskName: '核电设备国产化项目-常规岛配合',
+    TaskClassID: 'TC003',
+    Category: '常规岛配合',
+    ProjectID: 'P015',
+    AssigneeID: 'USER006',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 11,
+    Difficulty: 1.7,
+    CapacityLevel: '1100MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-04-10',
+    CreatedDate: '2025-04-10',
+    CreatedBy: 'LEADER001'
+  },
+
+  // 科研项目任务 (TC005) - 对应P016-P020
+  {
+    TaskID: 'T-20250108-030',
+    TaskName: '新型水轮机叶片材料研发-技术方案',
+    TaskClassID: 'TC005',
+    Category: '技术方案',
+    ProjectID: 'P016',
+    AssigneeID: 'USER001',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 12,
+    Difficulty: 1.8,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-01-08',
+    CreatedDate: '2025-01-08',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250220-031',
+    TaskName: '新型水轮机叶片材料研发-专利申请',
+    TaskClassID: 'TC005',
+    Category: '专利申请',
+    ProjectID: 'P016',
+    AssigneeID: 'USER002',
+    Status: TaskStatus.NOT_STARTED,
+    Workload: 6,
+    Difficulty: 1.3,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-02-20',
+    CreatedDate: '2025-02-20',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250301-032',
+    TaskName: '水电站智能化运维系统研发-设计流程',
+    TaskClassID: 'TC005',
+    Category: '设计流程',
+    ProjectID: 'P017',
+    AssigneeID: 'USER003',
+    Status: TaskStatus.COMPLETED,
+    Workload: 8,
+    Difficulty: 1.5,
+    CapacityLevel: '500MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-03-01',
+    CreatedDate: '2025-03-01',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250315-033',
+    TaskName: '水轮机增容改造技术研究-方案评审',
+    TaskClassID: 'TC005',
+    Category: '方案评审',
+    ProjectID: 'P018',
+    AssigneeID: 'USER004',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 7,
+    Difficulty: 1.4,
+    CapacityLevel: '700MW',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-03-15',
+    CreatedDate: '2025-03-15',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250401-034',
+    TaskName: '绿色能源储能技术研发-开题报告',
+    TaskClassID: 'TC005',
+    Category: '开题报告',
+    ProjectID: 'P019',
+    AssigneeID: 'USER005',
+    Status: TaskStatus.NOT_STARTED,
+    Workload: 5,
+    Difficulty: 1.2,
+    CapacityLevel: '300MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-04-01',
+    CreatedDate: '2025-04-01',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250410-035',
+    TaskName: '水电机组振动控制技术研发-设计总结',
+    TaskClassID: 'TC005',
+    Category: '设计总结',
+    ProjectID: 'P020',
+    AssigneeID: 'USER006',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 9,
+    Difficulty: 1.6,
+    CapacityLevel: '800MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-04-10',
+    CreatedDate: '2025-04-10',
+    CreatedBy: 'LEADER001'
+  },
+
+  // 改造项目任务 (TC006) - 对应P021-P025
+  {
+    TaskID: 'T-20250112-040',
+    TaskName: '三峡左岸机组改造升级-方案编制',
+    TaskClassID: 'TC006',
+    Category: '方案编制',
+    ProjectID: 'P021',
+    AssigneeID: 'USER001',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 10,
+    Difficulty: 1.7,
+    CapacityLevel: '700MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-01-12',
+    CreatedDate: '2025-01-12',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250225-041',
+    TaskName: '葛洲坝水电站机电改造-前期项目配合',
+    TaskClassID: 'TC006',
+    Category: '前期项目配合',
+    ProjectID: 'P022',
+    AssigneeID: 'USER002',
+    Status: TaskStatus.NOT_STARTED,
+    Workload: 8,
+    Difficulty: 1.4,
+    CapacityLevel: '170MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER003',
+    StartDate: '2025-02-25',
+    CreatedDate: '2025-02-25',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250315-042',
+    TaskName: '小浪底水电站设备更新-方案编制',
+    TaskClassID: 'TC006',
+    Category: '方案编制',
+    ProjectID: 'P023',
+    AssigneeID: 'USER003',
+    Status: TaskStatus.COMPLETED,
+    Workload: 9,
+    Difficulty: 1.5,
+    CapacityLevel: '300MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-03-15',
+    CreatedDate: '2025-03-15',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250401-043',
+    TaskName: '二滩水电站自动化改造-前期项目配合',
+    TaskClassID: 'TC006',
+    Category: '前期项目配合',
+    ProjectID: 'P024',
+    AssigneeID: 'USER004',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 7,
+    Difficulty: 1.3,
+    CapacityLevel: '550MW',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-04-01',
+    CreatedDate: '2025-04-01',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250408-044',
+    TaskName: '水口水电站增效扩容改造-方案编制',
+    TaskClassID: 'TC006',
+    Category: '方案编制',
+    ProjectID: 'P025',
+    AssigneeID: 'USER005',
+    Status: TaskStatus.NOT_STARTED,
+    Workload: 11,
+    Difficulty: 1.8,
+    CapacityLevel: '200MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-04-08',
+    CreatedDate: '2025-04-08',
+    CreatedBy: 'admin'
+  },
+
+  // 内部会议与培训任务 (TC007) - 无特定项目
+  {
+    TaskID: 'T-20250115-050',
+    TaskName: '月度技术评审会-设计评审会',
+    TaskClassID: 'TC007',
+    Category: '设计评审会',
+    ProjectID: undefined,
+    AssigneeID: 'LEADER001',
+    Status: TaskStatus.COMPLETED,
+    Workload: 3,
+    Difficulty: 0.5,
+    CapacityLevel: 'N/A',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-01-15',
+    CreatedDate: '2025-01-15',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250201-051',
+    TaskName: '新员工入职培训-学习与培训',
+    TaskClassID: 'TC007',
+    Category: '学习与培训',
+    ProjectID: undefined,
+    AssigneeID: 'USER003',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 4,
+    Difficulty: 0.8,
+    CapacityLevel: 'N/A',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-02-01',
+    CreatedDate: '2025-02-01',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250215-052',
+    TaskName: '党支部会议-党建会议',
+    TaskClassID: 'TC007',
+    Category: '党建会议',
+    ProjectID: undefined,
+    AssigneeID: 'USER002',
+    Status: TaskStatus.COMPLETED,
+    Workload: 2,
+    Difficulty: 0.3,
+    CapacityLevel: 'N/A',
+    ReviewerID: 'LEADER001',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-02-15',
+    CreatedDate: '2025-02-15',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250301-053',
+    TaskName: '技术讨论会-资料讨论会',
+    TaskClassID: 'TC007',
+    Category: '资料讨论会',
+    ProjectID: 'P001',
+    AssigneeID: 'USER004',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 2,
+    Difficulty: 0.5,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-03-01',
+    CreatedDate: '2025-03-01',
+    CreatedBy: 'LEADER001'
+  },
+
+  // 行政与党建任务 (TC008) - 无特定项目
+  {
+    TaskID: 'T-20250105-060',
+    TaskName: '月度工作报表-报表填报',
+    TaskClassID: 'TC008',
+    Category: '报表填报',
     ProjectID: undefined,
     AssigneeID: 'USER006',
     Status: TaskStatus.COMPLETED,
     Workload: 2,
-    Difficulty: 0.8,
-    CreatedDate: '2024-06-02',
-    CreatedBy: 'LEADER001'
-  },
-  {
-    TaskID: 'T-20240603-001',
-    TaskName: '文档整理归档',
-    TaskClassID: 'TC009',
-    Category: '通用任务',
-    ProjectID: undefined,
-    AssigneeID: 'USER006',
-    Status: TaskStatus.IN_PROGRESS,
-    Workload: 4,
     Difficulty: 0.5,
-    CreatedDate: '2024-06-03',
+    CapacityLevel: 'N/A',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-01-05',
+    CreatedDate: '2025-01-05',
     CreatedBy: 'admin'
   },
   {
-    TaskID: 'T-20240604-001',
-    TaskName: '技术支持热线',
-    TaskClassID: 'TC009',
-    Category: '通用任务',
+    TaskID: 'T-20250210-061',
+    TaskName: '年度总结汇报-ppt汇报',
+    TaskClassID: 'TC008',
+    Category: 'ppt汇报',
     ProjectID: undefined,
+    AssigneeID: 'LEADER001',
+    Status: TaskStatus.COMPLETED,
+    Workload: 6,
+    Difficulty: 1.2,
+    CapacityLevel: 'N/A',
+    ReviewerID: 'admin',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-02-10',
+    CreatedDate: '2025-02-10',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250315-062',
+    TaskName: '项目总结报告-总结报告',
+    TaskClassID: 'TC008',
+    Category: '总结报告',
+    ProjectID: 'P006',
     AssigneeID: 'USER001',
-    Status: TaskStatus.NOT_STARTED,
-    Workload: 1,
-    Difficulty: 0.3,
-    CreatedDate: '2024-06-04',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 5,
+    Difficulty: 1.0,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-03-15',
+    CreatedDate: '2025-03-15',
+    CreatedBy: 'LEADER001'
+  },
+
+  // 差旅任务 (TC009) - 无特定项目
+  {
+    TaskID: 'T-20250120-070',
+    TaskName: '市场配合出差-市场配合出差',
+    TaskClassID: 'TC009',
+    Category: '市场配合出差',
+    ProjectID: 'P001',
+    AssigneeID: 'USER003',
+    Status: TaskStatus.COMPLETED,
+    Workload: 5,
+    Difficulty: 1.0,
+    CapacityLevel: '1200MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-01-20',
+    CreatedDate: '2025-01-20',
     CreatedBy: 'LEADER001'
   },
   {
-    TaskID: 'T-20240605-001',
-    TaskName: '备件库存盘点',
+    TaskID: 'T-20250225-071',
+    TaskName: '常规项目出差-常规项目出差',
     TaskClassID: 'TC009',
-    Category: '通用任务',
-    ProjectID: undefined,
+    Category: '常规项目出差',
+    ProjectID: 'P007',
     AssigneeID: 'USER004',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 7,
+    Difficulty: 1.2,
+    CapacityLevel: '770MW',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-02-25',
+    CreatedDate: '2025-02-25',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250310-072',
+    TaskName: '核电项目出差-核电项目出差',
+    TaskClassID: 'TC009',
+    Category: '核电项目出差',
+    ProjectID: 'P011',
+    AssigneeID: 'USER005',
     Status: TaskStatus.NOT_STARTED,
-    Workload: 3,
-    Difficulty: 0.8,
-    CreatedDate: '2024-06-05',
+    Workload: 6,
+    Difficulty: 1.5,
+    CapacityLevel: '1400MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-03-10',
+    CreatedDate: '2025-03-10',
     CreatedBy: 'LEADER001'
+  },
+
+  // 其他任务 (TC010) - 对应P026-P030
+  {
+    TaskID: 'T-20250115-080',
+    TaskName: '水电站员工技能培训项目-其他',
+    TaskClassID: 'TC010',
+    Category: '通用任务',
+    ProjectID: 'P026',
+    AssigneeID: 'USER001',
+    Status: TaskStatus.COMPLETED,
+    Workload: 8,
+    Difficulty: 1.0,
+    CapacityLevel: '1000MW',
+    ReviewerID: 'USER002',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-01-15',
+    CreatedDate: '2025-01-15',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250201-081',
+    TaskName: '水电行业标准制定项目-其他',
+    TaskClassID: 'TC010',
+    Category: '通用任务',
+    ProjectID: 'P027',
+    AssigneeID: 'USER002',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 10,
+    Difficulty: 1.3,
+    CapacityLevel: '500MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-02-01',
+    CreatedDate: '2025-02-01',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250310-082',
+    TaskName: '水电站安全评估项目-其他',
+    TaskClassID: 'TC010',
+    Category: '通用任务',
+    ProjectID: 'P028',
+    AssigneeID: 'USER003',
+    Status: TaskStatus.COMPLETED,
+    Workload: 7,
+    Difficulty: 1.2,
+    CapacityLevel: '800MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER002',
+    StartDate: '2025-03-10',
+    CreatedDate: '2025-03-10',
+    CreatedBy: 'admin'
+  },
+  {
+    TaskID: 'T-20250401-083',
+    TaskName: '水电技术国际交流项目-其他',
+    TaskClassID: 'TC010',
+    Category: '通用任务',
+    ProjectID: 'P029',
+    AssigneeID: 'USER004',
+    Status: TaskStatus.IN_PROGRESS,
+    Workload: 9,
+    Difficulty: 1.4,
+    CapacityLevel: '600MW',
+    ReviewerID: 'USER006',
+    ReviewerID2: 'LEADER001',
+    StartDate: '2025-04-01',
+    CreatedDate: '2025-04-01',
+    CreatedBy: 'LEADER001'
+  },
+  {
+    TaskID: 'T-20250408-084',
+    TaskName: '水电站环境影响评价项目-其他',
+    TaskClassID: 'TC010',
+    Category: '通用任务',
+    ProjectID: 'P030',
+    AssigneeID: 'USER005',
+    Status: TaskStatus.NOT_STARTED,
+    Workload: 6,
+    Difficulty: 1.1,
+    CapacityLevel: '400MW',
+    ReviewerID: 'USER001',
+    ReviewerID2: 'USER007',
+    StartDate: '2025-04-08',
+    CreatedDate: '2025-04-08',
+    CreatedBy: 'admin'
   }
 ];
 
@@ -1068,6 +1391,56 @@ class DataService {
     }
     // Initialize settings from existing data
     this.initializeSettings();
+  }
+
+  // 重新初始化所有数据（保留当前用户）
+  reinitializeData(): void {
+    // 保留当前用户会话
+    const currentUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+
+    // 清除所有数据
+    localStorage.removeItem(STORAGE_KEYS.USERS);
+    localStorage.removeItem(STORAGE_KEYS.PROJECTS);
+    localStorage.removeItem(STORAGE_KEYS.TASKS);
+    localStorage.removeItem(STORAGE_KEYS.TASK_CLASSES);
+    localStorage.removeItem(STORAGE_KEYS.TASK_CATEGORIES);
+    localStorage.removeItem(STORAGE_KEYS.EQUIPMENT_MODELS);
+    localStorage.removeItem(STORAGE_KEYS.CAPACITY_LEVELS);
+    localStorage.removeItem(STORAGE_KEYS.TRAVEL_LABELS);
+    localStorage.removeItem(STORAGE_KEYS.USER_AVATARS);
+
+    // 重新初始化所有数据
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(seedUsers));
+    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(seedProjects));
+    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
+    localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
+    localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
+
+    // 恢复当前用户会话
+    if (currentUser) {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser);
+    }
+
+    // 重新初始化设置
+    this.initializeSettings();
+  }
+
+  // 强制刷新任务数据（从seed数据重新加载）
+  refreshTasksData(): void {
+    // 清除任务数据
+    localStorage.removeItem(STORAGE_KEYS.TASKS);
+
+    // 重新加载seed任务数据
+    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
+
+    // 重新初始化任务类别设置
+    localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
+
+    // 重新初始化Travel Labels设置
+    const tasks = this.getTasks();
+    const travelTasks = tasks.filter(t => t.TaskClassID === 'TC009'); // Travel tasks
+    const labels = [...new Set(travelTasks.map(t => t.Category))];
+    localStorage.setItem(STORAGE_KEYS.TRAVEL_LABELS, JSON.stringify(labels));
   }
 
   // Users
@@ -1141,12 +1514,43 @@ class DataService {
   saveTask(task: Task): void {
     const tasks = this.getAllTasksRaw();
     const index = tasks.findIndex(t => t.TaskID === task.TaskID);
+    const isNewTask = index < 0;
+
+    // 如果是市场配合任务且有关联项目，从项目中获取容量等级
+    let taskToSave = {...task};
+    if (task.TaskClassID === 'TC001' && task.ProjectID) {
+      const projects = this.getAllProjectsRaw();
+      const project = projects.find(p => p.id === task.ProjectID);
+      if (project) {
+        taskToSave.CapacityLevel = project.capacity;
+      }
+    }
+
     if (index >= 0) {
-      tasks[index] = task;
+      tasks[index] = taskToSave;
     } else {
-      tasks.push(task);
+      tasks.push(taskToSave);
     }
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+
+    // Auto-save new task category to settings if it's a new task
+    if (isNewTask && task.Category) {
+      this.addTaskCategoryToSettings(task.TaskClassID, task.Category);
+    }
+  }
+
+  private addTaskCategoryToSettings(taskClassID: string, categoryName: string): void {
+    const categoryCode = TASKCLASS_TO_CATEGORY[taskClassID];
+    if (!categoryCode) return;
+
+    const allCategories = this.getTaskCategories();
+    if (!allCategories[categoryCode]) {
+      allCategories[categoryCode] = [];
+    }
+    if (!allCategories[categoryCode].includes(categoryName)) {
+      allCategories[categoryCode].push(categoryName);
+      localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(allCategories));
+    }
   }
 
   private getAllTasksRaw(): Task[] {
@@ -1407,18 +1811,44 @@ class DataService {
 
   // Initialize default settings from existing data
   initializeSettings(): void {
-    // Initialize Equipment Models from existing projects
+    // Initialize Equipment Models with default values if not exist
     if (!localStorage.getItem(STORAGE_KEYS.EQUIPMENT_MODELS)) {
-      const projects = this.getProjects();
-      const models = [...new Set(projects.filter(p => p.model).map(p => p.model!))];
-      localStorage.setItem(STORAGE_KEYS.EQUIPMENT_MODELS, JSON.stringify(models));
+      const defaultModels = [
+        'Francis',
+        'Pelton',
+        'Kaplan',
+        'Nuclear Steam Turbine',
+        'CAP1400',
+        'HTR Steam Turbine',
+        'AP1000',
+        'Pump-Turbine',
+        'Rotary'
+      ];
+      localStorage.setItem(STORAGE_KEYS.EQUIPMENT_MODELS, JSON.stringify(defaultModels));
     }
 
-    // Initialize Capacity Levels from existing tasks
+    // Initialize Capacity Levels with default values if not exist
     if (!localStorage.getItem(STORAGE_KEYS.CAPACITY_LEVELS)) {
-      const tasks = this.getTasks();
-      const levels = [...new Set(tasks.filter(t => t.CapacityLevel).map(t => t.CapacityLevel!))];
-      localStorage.setItem(STORAGE_KEYS.CAPACITY_LEVELS, JSON.stringify(levels));
+      const defaultLevels = [
+        '50MW',
+        '100MW',
+        '170MW',
+        '200MW',
+        '300MW',
+        '400MW',
+        '500MW',
+        '550MW',
+        '600MW',
+        '700MW',
+        '770MW',
+        '800MW',
+        '850MW',
+        '1000MW',
+        '1100MW',
+        '1200MW',
+        '1400MW'
+      ];
+      localStorage.setItem(STORAGE_KEYS.CAPACITY_LEVELS, JSON.stringify(defaultLevels));
     }
 
     // Initialize Travel Labels from existing task categories

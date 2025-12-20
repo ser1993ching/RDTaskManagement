@@ -111,4 +111,7 @@ export interface Task {
   Reviewer2Workload?: number; // 审查人2工时
   isForceAssessment?: boolean; // 是否强制考核
   is_deleted?: boolean;
+  // For Meeting & Training tasks
+  Participants?: string[]; // 参会人员ID列表
+  ParticipantNames?: string[]; // 参会人员姓名列表
 }

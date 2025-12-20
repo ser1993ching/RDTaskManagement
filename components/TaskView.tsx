@@ -73,8 +73,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [filterThisMonth, setFilterThisMonth] = useState(false);
   const [filterTaskName, setFilterTaskName] = useState('');
   const [filterForceAssessment, setFilterForceAssessment] = useState<boolean | ''>('');
+  const [participantSearchTerm, setParticipantSearchTerm] = useState('');
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
+
+  // Helper variables for task type detection
+  const isMeeting = activeTaskClass?.code === 'MEETING_TRAINING';
+  const isTravel = activeTaskClass?.code === 'TRAVEL';
 
   // Map task class codes to project categories
   const getProjectCategoryForTaskClass = (taskClassCode: string): ProjectCategory | null => {
@@ -108,8 +113,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       );
     }
 
-    // 行政与党建任务可以从所有项目中获取
-    if (taskClassCode === 'ADMIN_PARTY') {
+    // 行政与党建任务和会议培训任务可以从所有项目中获取
+    if (taskClassCode === 'ADMIN_PARTY' || taskClassCode === 'MEETING_TRAINING') {
       return projects;
     }
 
@@ -150,9 +155,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   };
 
   const filteredTasks = tasks.filter(t => {
+    // 会议培训任务不受状态和强制考核筛选器影响
+    const isMeetingTask = t.TaskClassID === 'TC007';
     return t.TaskClassID === activeTaskClassId &&
       (filterProject ? t.ProjectID === filterProject : true) &&
-      (filterStatus ? t.Status === filterStatus : true) &&
+      (isMeetingTask ? true : (filterStatus ? t.Status === filterStatus : true)) &&
       (filterCategory ? t.Category === filterCategory : true) &&
       (filterAssignee ? t.AssigneeID === filterAssignee : true) &&
       (filterCapacityLevel ? (t.CapacityLevel || '').toLowerCase().includes(filterCapacityLevel.toLowerCase()) : true) &&
@@ -161,17 +168,23 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       (filterStartDateTo ? (t.StartDate ? new Date(t.StartDate) <= new Date(filterStartDateTo) : true) : true) &&
       (filterThisWeek ? isInCurrentWeek(t.StartDate || '') : true) &&
       (filterThisMonth ? isInCurrentMonth(t.StartDate || '') : true) &&
-      (filterForceAssessment === '' ? true : t.isForceAssessment === filterForceAssessment);
+      (isMeetingTask ? true : (filterForceAssessment === '' ? true : t.isForceAssessment === filterForceAssessment));
   });
 
   const handleExport = () => {
-    // 检查是否包含差旅任务
-    const hasTravelTask = filteredTasks.some(t => t.TaskClassID === 'TC008');
+    // 检查是否包含差旅任务或会议培训任务
+    const hasTravelTask = filteredTasks.some(t => t.TaskClassID === 'TC009');
+    const hasMeetingTask = filteredTasks.some(t => t.TaskClassID === 'TC007');
 
     // 根据任务类型决定列头
-    const headers = hasTravelTask
-      ? ['ID', '任务名称', '状态', '负责人', '容量等级', '截止日期']
-      : ['ID', '任务名称', '状态', '负责人', '校核人', '审查人', '容量等级', '截止日期'];
+    let headers;
+    if (hasMeetingTask) {
+      headers = ['ID', '任务名称', '负责人', '容量等级', '会议日期', '会议时长', '参会人数'];
+    } else if (hasTravelTask) {
+      headers = ['ID', '任务名称', '状态', '负责人', '容量等级', '截止日期'];
+    } else {
+      headers = ['ID', '任务名称', '状态', '负责人', '校核人', '审查人', '容量等级', '截止日期'];
+    }
 
     // 根据任务类型决定行数据
     const rows = filteredTasks.map(t => {
@@ -180,19 +193,34 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       const reviewerName = t.ReviewerName || users.find(u => u.UserID === t.ReviewerID)?.Name || '-';
       const reviewer2Name = t.Reviewer2Name || users.find(u => u.UserID === t.ReviewerID2)?.Name || '-';
 
-      const baseRow = [
-        t.TaskID,
-        t.TaskName,
-        t.Status,
-        assigneeName,
-        t.CapacityLevel || '-',
-        t.DueDate || ''
-      ];
+      let baseRow;
 
-      // 如果不是差旅任务，添加校核人和审查人
-      if (t.TaskClassID !== 'TC009') {
-        baseRow.splice(4, 0, reviewerName);
-        baseRow.splice(5, 0, reviewer2Name);
+      // 会议培训任务使用特殊的行数据格式
+      if (t.TaskClassID === 'TC007') {
+        baseRow = [
+          t.TaskID,
+          t.TaskName,
+          assigneeName,
+          t.CapacityLevel || '-',
+          t.StartDate || '-',
+          t.MeetingDuration ? `${t.MeetingDuration}h` : '-',
+          `${t.Participants?.length || 0}人`
+        ];
+      } else {
+        baseRow = [
+          t.TaskID,
+          t.TaskName,
+          t.Status,
+          assigneeName,
+          t.CapacityLevel || '-',
+          t.DueDate || ''
+        ];
+
+        // 如果不是差旅任务，添加校核人和审查人
+        if (t.TaskClassID !== 'TC009') {
+          baseRow.splice(4, 0, reviewerName);
+          baseRow.splice(5, 0, reviewer2Name);
+        }
       }
 
       return baseRow;
@@ -336,7 +364,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     };
 
     // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级（始终覆盖）
-    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '') && formData.ProjectID) {
+    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '') && formData.ProjectID) {
       const project = projects.find(p => p.id === formData.ProjectID);
       if (project) {
         taskToSave.CapacityLevel = project.capacity;
@@ -389,7 +417,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
 
     // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级
-    if (task && task.ProjectID && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '')) {
+    if (task && task.ProjectID && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '')) {
       const project = projects.find(p => p.id === task.ProjectID);
       if (project) {
         taskData.CapacityLevel = project.capacity;
@@ -412,9 +440,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const renderDynamicFields = () => {
     if (!activeTaskClass) return null;
 
-    const isMeeting = activeTaskClass.code === 'MEETING_TRAINING';
-    const isTravel = activeTaskClass.code === 'TRAVEL';
-    const isProjectRelated = ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass.code);
+    const isProjectRelated = ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass.code);
 
     return (
       <>
@@ -440,9 +466,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   const newFormData = {...formData, ProjectID: project?.id || ''};
 
                   // 如果是支持容量等级的任务且选择了项目，自动获取容量等级（始终覆盖）
-                  if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '') && project) {
+                  if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '') && project) {
                     newFormData.CapacityLevel = project.capacity;
-                  } else if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '') && !project && value.trim()) {
+                  } else if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '') && !project && value.trim()) {
                     // 如果清除项目选择，清空容量等级
                     newFormData.CapacityLevel = '';
                   }
@@ -458,7 +484,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   if (project) {
                     const newFormData = {...formData, ProjectID: project.id};
                     // 如果是支持容量等级的任务，自动获取容量等级（始终覆盖）
-                    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass?.code || '')) {
+                    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '')) {
                       newFormData.CapacityLevel = project.capacity;
                     }
                     setFormData(newFormData);
@@ -480,7 +506,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </div>
           )}
 
-          {['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY'].includes(activeTaskClass.code) && (
+          {['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass.code) && (
             <div>
               <label className="block text-sm font-medium mb-1">容量等级</label>
               <AutocompleteInput
@@ -495,7 +521,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           )}
         </div>
 
-        {/* 第二行：负责人（差旅任务只显示负责人，其他任务显示负责人、校核人、审查人） */}
+        {/* 第二行：负责人（差旅任务只显示负责人，会议培训显示负责人+会议日期+会议时长，其他任务显示负责人、校核人、审查人） */}
         {isTravel ? (
           // 差旅任务只显示负责人
           <div className="col-span-2">
@@ -522,6 +548,46 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 placeholder="搜索或输入负责人姓名..."
                 className="w-full border rounded p-2"
               />
+            </div>
+          </div>
+        ) : isMeeting ? (
+          // 会议培训显示负责人+会议日期+会议时长
+          <div className="col-span-2">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">负责人</label>
+                <AutocompleteInput
+                  id="assignee-autocomplete"
+                  value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
+                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  onChange={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                    } else {
+                      setFormData({...formData, AssigneeID: '', AssigneeName: value});
+                    }
+                  }}
+                  onSelect={(value) => {
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    if (user) {
+                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                    }
+                  }}
+                  placeholder="搜索或输入负责人姓名..."
+                  className="w-full border rounded p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">会议日期</label>
+                <input type="date" className="w-full border rounded p-2"
+                  value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">会议时长(小时)</label>
+                <input type="number" step="0.5" className="w-full border rounded p-2"
+                  value={formData.MeetingDuration || ''} onChange={e => setFormData({...formData, MeetingDuration: parseFloat(e.target.value)})} />
+              </div>
             </div>
           </div>
         ) : (
@@ -604,29 +670,35 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           </div>
         )}
 
-        {/* 第四行：任务状态 + 任务开始日期 + 截止日期 */}
+        {/* 第四行：任务状态 + 截止日期（会议培训任务不显示） */}
         <div className="grid grid-cols-3 gap-3 col-span-2">
-          <div>
-            <label className="block text-sm font-medium mb-1">任务状态</label>
-            <select className="w-full border rounded p-2"
-               value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value as TaskStatus})}>
-               {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">任务开始日期</label>
-            <input type="date" className="w-full border rounded p-2"
-              value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">截止日期</label>
-            <input type="date" className="w-full border rounded p-2"
-              value={formData.DueDate || ''} onChange={e => setFormData({...formData, DueDate: e.target.value})} />
-          </div>
+          {!isMeeting && (
+            <div>
+              <label className="block text-sm font-medium mb-1">任务状态</label>
+              <select className="w-full border rounded p-2"
+                 value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value as TaskStatus})}>
+                 {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+          {!isMeeting && (
+            <div>
+              <label className="block text-sm font-medium mb-1">任务开始日期</label>
+              <input type="date" className="w-full border rounded p-2"
+                value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+            </div>
+          )}
+          {!isMeeting && (
+            <div>
+              <label className="block text-sm font-medium mb-1">截止日期</label>
+              <input type="date" className="w-full border rounded p-2"
+                value={formData.DueDate || ''} onChange={e => setFormData({...formData, DueDate: e.target.value})} />
+            </div>
+          )}
         </div>
 
-        {/* 第五行：负责人工时 + 校核人工时 + 审查人工时（仅班组长/管理员可见） */}
-        {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
+        {/* 第五行：负责人工时 + 校核人工时 + 审查人工时（仅班组长/管理员可见，会议培训任务不显示） */}
+        {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && !isMeeting && (
           <div className="col-span-2">
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -666,6 +738,311 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               </div>
             </div>
           </>
+        )}
+
+        {/* 会议与培训任务的特殊字段 */}
+        {isMeeting && (
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">参会人员 <span className="text-xs font-normal text-slate-500">({formData.Participants?.length || 0}人已选择)</span></label>
+            <div className="border rounded p-3 bg-slate-50">
+              {/* 搜索和操作区域 */}
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    placeholder="搜索人员姓名..."
+                    value={participantSearchTerm}
+                    className="w-full px-3 py-1.5 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setParticipantSearchTerm(e.target.value)}
+                  />
+                  {participantSearchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setParticipantSearchTerm('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // 排除系统管理员，只选择班组长和组员
+                    const filteredUsers = users.filter(u =>
+                      u.Status !== '离岗' &&
+                      u.SystemRole !== '管理员' &&
+                      u.Name.toLowerCase().includes(participantSearchTerm.toLowerCase())
+                    );
+                    const allUserIds = filteredUsers.map(u => u.UserID);
+                    const allUserNames = filteredUsers.map(u => u.Name);
+
+                    if (participantSearchTerm) {
+                      // 如果有搜索词，只对搜索结果进行全选/反选
+                      const currentParticipants = formData.Participants || [];
+                      const currentNames = formData.ParticipantNames || [];
+                      const allSelected = allUserIds.every(id => currentParticipants.includes(id));
+
+                      if (allSelected) {
+                        // 反选搜索结果
+                        setFormData({
+                          ...formData,
+                          Participants: currentParticipants.filter(id => !allUserIds.includes(id)),
+                          ParticipantNames: currentNames.filter(name => !allUserNames.includes(name))
+                        });
+                      } else {
+                        // 全选搜索结果
+                        const newIds = [...currentParticipants];
+                        const newNames = [...currentNames];
+                        allUserIds.forEach((id, index) => {
+                          if (!newIds.includes(id)) {
+                            newIds.push(id);
+                            newNames.push(allUserNames[index]);
+                          }
+                        });
+                        setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
+                      }
+                    } else {
+                      // 如果没有搜索词，对所有班组长和组员进行全选/反选（排除管理员）
+                      const allUserIdsFull = users.filter(u =>
+                        u.Status !== '离岗' &&
+                        u.SystemRole !== '管理员'
+                      ).map(u => u.UserID);
+                      const allUserNamesFull = users.filter(u =>
+                        u.Status !== '离岗' &&
+                        u.SystemRole !== '管理员'
+                      ).map(u => u.Name);
+                      if (formData.Participants?.length === allUserIdsFull.length) {
+                        setFormData({...formData, Participants: [], ParticipantNames: []});
+                      } else {
+                        setFormData({...formData, Participants: allUserIdsFull, ParticipantNames: allUserNamesFull});
+                      }
+                    }
+                  }}
+                  className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+                >
+                  {participantSearchTerm ?
+                    `选择搜索结果 (${users.filter(u =>
+                      u.Status !== '离岗' &&
+                      u.SystemRole !== '管理员' &&
+                      u.Name.toLowerCase().includes(participantSearchTerm.toLowerCase())
+                    ).length}人)` :
+                    (formData.Participants?.length === users.filter(u => u.Status !== '离岗' && u.SystemRole !== '管理员').length ? '取消全选' : '全选')
+                  }
+                </button>
+              </div>
+
+              {/* 人员选择区域 */}
+              <div className="max-h-48 overflow-y-auto">
+                {/* 根据搜索词过滤用户（排除系统管理员） */}
+                {(() => {
+                  const searchLower = participantSearchTerm.toLowerCase();
+                  const filteredGroupLeaders = users.filter(u =>
+                    u.SystemRole === '班组长' &&
+                    u.Status !== '离岗' &&
+                    u.SystemRole !== '管理员' &&
+                    u.Name.toLowerCase().includes(searchLower)
+                  );
+                  const filteredMembers = users.filter(u =>
+                    u.SystemRole === '组员' &&
+                    u.Status !== '离岗' &&
+                    u.SystemRole !== '管理员' &&
+                    u.Name.toLowerCase().includes(searchLower)
+                  );
+
+                  const hasSearchResults = filteredGroupLeaders.length > 0 || filteredMembers.length > 0;
+
+                  return (
+                    <div className="space-y-2">
+                      {/* 搜索结果提示 */}
+                      {participantSearchTerm && !hasSearchResults && (
+                        <div className="text-center py-4 text-sm text-slate-500">
+                          未找到匹配的人员
+                        </div>
+                      )}
+
+                      {/* 班组长 */}
+                      {filteredGroupLeaders.length > 0 && (
+                        <div>
+                          <div className="sticky top-0 bg-slate-100 px-2 py-1 border-b">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={filteredGroupLeaders.every(u => formData.Participants?.includes(u.UserID))}
+                                onChange={(e) => {
+                                  const currentParticipants = formData.Participants || [];
+                                  const currentNames = formData.ParticipantNames || [];
+
+                                  if (e.target.checked) {
+                                    // 添加所有过滤后的班组长
+                                    const newIds = [...currentParticipants];
+                                    const newNames = [...currentNames];
+                                    filteredGroupLeaders.forEach(user => {
+                                      if (!newIds.includes(user.UserID)) {
+                                        newIds.push(user.UserID);
+                                        newNames.push(user.Name);
+                                      }
+                                    });
+                                    setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
+                                  } else {
+                                    // 移除所有过滤后的班组长
+                                    setFormData({
+                                      ...formData,
+                                      Participants: currentParticipants.filter(id => !filteredGroupLeaders.some(g => g.UserID === id)),
+                                      ParticipantNames: currentNames.filter(name => !filteredGroupLeaders.some(g => g.Name === name))
+                                    });
+                                  }
+                                }}
+                              />
+                              <span className="text-xs font-semibold text-slate-700">
+                                班组长 ({filteredGroupLeaders.length}人)
+                                {participantSearchTerm && ' - 搜索结果'}
+                              </span>
+                            </label>
+                          </div>
+                          <div className="px-2 py-1.5">
+                            <div className="grid grid-cols-6 gap-1.5">
+                              {filteredGroupLeaders.map(user => (
+                                <label key={user.UserID} className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1.5 py-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.Participants?.includes(user.UserID) || false}
+                                    onChange={(e) => {
+                                      const currentParticipants = formData.Participants || [];
+                                      const currentNames = formData.ParticipantNames || [];
+                                      if (e.target.checked) {
+                                        setFormData({
+                                          ...formData,
+                                          Participants: [...currentParticipants, user.UserID],
+                                          ParticipantNames: [...currentNames, user.Name]
+                                        });
+                                      } else {
+                                        setFormData({
+                                          ...formData,
+                                          Participants: currentParticipants.filter(id => id !== user.UserID),
+                                          ParticipantNames: currentNames.filter(name => name !== user.Name)
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <span className="text-sm truncate">{user.Name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 组员 */}
+                      {filteredMembers.length > 0 && (
+                        <div>
+                          <div className="sticky top-0 bg-slate-100 px-2 py-1 border-b">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={filteredMembers.every(u => formData.Participants?.includes(u.UserID))}
+                                onChange={(e) => {
+                                  const currentParticipants = formData.Participants || [];
+                                  const currentNames = formData.ParticipantNames || [];
+
+                                  if (e.target.checked) {
+                                    // 添加所有过滤后的组员
+                                    const newIds = [...currentParticipants];
+                                    const newNames = [...currentNames];
+                                    filteredMembers.forEach(user => {
+                                      if (!newIds.includes(user.UserID)) {
+                                        newIds.push(user.UserID);
+                                        newNames.push(user.Name);
+                                      }
+                                    });
+                                    setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
+                                  } else {
+                                    // 移除所有过滤后的组员
+                                    setFormData({
+                                      ...formData,
+                                      Participants: currentParticipants.filter(id => !filteredMembers.some(m => m.UserID === id)),
+                                      ParticipantNames: currentNames.filter(name => !filteredMembers.some(m => m.Name === name))
+                                    });
+                                  }
+                                }}
+                              />
+                              <span className="text-xs font-semibold text-slate-700">
+                                组员 ({filteredMembers.length}人)
+                                {participantSearchTerm && ' - 搜索结果'}
+                              </span>
+                            </label>
+                          </div>
+                          <div className="px-2 py-1.5">
+                            <div className="grid grid-cols-6 gap-1.5">
+                              {filteredMembers.map(user => (
+                                <label key={user.UserID} className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1.5 py-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.Participants?.includes(user.UserID) || false}
+                                    onChange={(e) => {
+                                      const currentParticipants = formData.Participants || [];
+                                      const currentNames = formData.ParticipantNames || [];
+                                      if (e.target.checked) {
+                                        setFormData({
+                                          ...formData,
+                                          Participants: [...currentParticipants, user.UserID],
+                                          ParticipantNames: [...currentNames, user.Name]
+                                        });
+                                      } else {
+                                        setFormData({
+                                          ...formData,
+                                          Participants: currentParticipants.filter(id => id !== user.UserID),
+                                          ParticipantNames: currentNames.filter(name => name !== user.Name)
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <span className="text-sm truncate">{user.Name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* 已选择的人员显示（排除系统管理员） */}
+              {formData.Participants && formData.Participants.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-200">
+                  <div className="text-xs text-slate-600 mb-2">已选择人员 ({formData.Participants.length}人):</div>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                    {formData.ParticipantNames?.filter(name => {
+                      const user = users.find(u => u.Name === name);
+                      return user && user.SystemRole !== '管理员';
+                    }).map(name => (
+                      <span key={name} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                        {name}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const user = users.find(u => u.Name === name);
+                            if (user) {
+                              setFormData({
+                                ...formData,
+                                Participants: formData.Participants?.filter(id => id !== user.UserID) || [],
+                                ParticipantNames: formData.ParticipantNames?.filter(n => n !== name) || []
+                              });
+                            }
+                          }}
+                          className="text-blue-500 hover:text-blue-700 ml-0.5"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </>
     );
@@ -740,7 +1117,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <button
                 onClick={() => {
                   setFilterProject('');
-                  setFilterStatus('');
                   setFilterCategory('');
                   setFilterAssignee('');
                   setFilterCapacityLevel('');
@@ -749,7 +1125,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   setFilterTaskName('');
                   setFilterThisWeek(false);
                   setFilterThisMonth(false);
-                  setFilterForceAssessment('');
+                  // 会议培训任务不显示状态和强制考核筛选器，所以不清空它们的筛选器
+                  if (!isMeeting) {
+                    setFilterStatus('');
+                    setFilterForceAssessment('');
+                  }
                   // No default time filter
                 }}
                 className="w-full text-sm text-slate-700 hover:text-slate-900 px-2 py-2 border border-slate-300 rounded hover:bg-slate-50 transition-colors focus:outline-none focus:ring-0"
@@ -775,13 +1155,16 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 id="filter-capacity-autocomplete"
               />
             </div>
-            <div className="min-w-[130px]">
-              <label className="block text-xs text-slate-600 mb-1">状态</label>
-              <select className="w-full border rounded px-2 py-2 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="">所有状态</option>
-                {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+            {/* 会议培训任务不显示状态筛选器 */}
+            {!isMeeting && (
+              <div className="min-w-[130px]">
+                <label className="block text-xs text-slate-600 mb-1">状态</label>
+                <select className="w-full border rounded px-2 py-2 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                  <option value="">所有状态</option>
+                  {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            )}
             <div className="min-w-[130px]">
               <label className="block text-xs text-slate-600 mb-1">负责人</label>
               <select className="w-full border rounded px-2 py-2 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
@@ -821,17 +1204,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <span className="text-sm text-slate-700 whitespace-nowrap">本月</span>
               </label>
             </div>
-            <div className="flex items-end pb-2 flex-shrink-0">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input type="checkbox" className="hidden" checked={filterForceAssessment === true} onChange={e => {
-                  setFilterForceAssessment(e.target.checked ? true : '');
-                }} />
-                <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterForceAssessment === true ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterForceAssessment === true ? 'translate-x-5' : 'translate-x-0'}`}></span>
-                </span>
-                <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
-              </label>
-            </div>
+            {/* 会议培训任务不显示强制考核筛选器 */}
+            {!isMeeting && (
+              <div className="flex items-end pb-2 flex-shrink-0">
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input type="checkbox" className="hidden" checked={filterForceAssessment === true} onChange={e => {
+                    setFilterForceAssessment(e.target.checked ? true : '');
+                  }} />
+                  <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterForceAssessment === true ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterForceAssessment === true ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                  </span>
+                  <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
+                </label>
+              </div>
+            )}
           </div>
         </div>
 
@@ -842,54 +1228,81 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <th className="px-6 py-4">任务名称</th>
                 <th className="px-6 py-4">分类</th>
                 <th className="px-6 py-4">容量等级</th>
-                <th className="px-6 py-4">状态</th>
+                {/* 会议培训任务不显示状态列 */}
+                {!isMeeting && <th className="px-6 py-4">状态</th>}
                 <th className="px-6 py-4">负责人</th>
-                {/* 差旅任务不显示校核人列 */}
-                {filteredTasks.length > 0 && !filteredTasks.every(t => t.TaskClassID === 'TC009') && (
+                {/* 差旅任务和会议培训任务不显示校核人列 */}
+                {filteredTasks.length > 0 && !filteredTasks.every(t => t.TaskClassID === 'TC009' || t.TaskClassID === 'TC007') && (
                   <th className="px-6 py-4">校核人</th>
                 )}
-                <th className="px-6 py-4">开始日</th>
-                <th className="px-6 py-4">截止日</th>
+                {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
+                <th className="px-6 py-4">{isMeeting ? '会议日期' : '开始日'}</th>
+                {/* 会议培训任务不显示截止日 */}
+                {!isMeeting && <th className="px-6 py-4">截止日</th>}
+                {/* 会议培训任务显示会议时长和参会人数 */}
+                {isMeeting && (
+                  <>
+                    <th className="px-6 py-4">会议时长</th>
+                    <th className="px-6 py-4">参会人数</th>
+                  </>
+                )}
                 <th className="px-6 py-4 text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredTasks.map(t => (
-                <tr key={t.TaskID} className="hover:bg-blue-50 transition-colors cursor-pointer" onDoubleClick={() => handleDoubleClick(t)}>
-                  <td className="px-6 py-4 relative">
-                    {t.isForceAssessment && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
-                    <div className={`font-medium ${t.isForceAssessment ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.TaskName}</div>
-                    <div className="text-xs text-slate-400">{t.TaskID}</div>
-                  </td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.Category}</span></td>
-                  <td className="px-6 py-4">{t.CapacityLevel || '-'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      t.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                      t.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {t.Status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {users.find(u => u.UserID === t.AssigneeID)?.Name || t.AssigneeName || '-'}
-                  </td>
-                  {/* 差旅任务不显示校核人列 */}
-                  {t.TaskClassID !== 'TC009' && (
-                    <td className="px-6 py-4">
-                      {users.find(u => u.UserID === t.ReviewerID)?.Name || t.ReviewerName || '-'}
+              {filteredTasks.map(t => {
+                const isMeetingTask = t.TaskClassID === 'TC007';
+                return (
+                  <tr key={t.TaskID} className="hover:bg-blue-50 transition-colors cursor-pointer" onDoubleClick={() => handleDoubleClick(t)}>
+                    <td className="px-6 py-4 relative">
+                      {t.isForceAssessment && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
+                      <div className={`font-medium ${t.isForceAssessment ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.TaskName}</div>
+                      <div className="text-xs text-slate-400">{t.TaskID}</div>
                     </td>
-                  )}
-                  <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
-                  <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
-                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
-                    <button onClick={() => { if(confirm('删除任务?')) { dataService.deleteTask(t.TaskID); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.Category}</span></td>
+                    <td className="px-6 py-4">{t.CapacityLevel || '-'}</td>
+                    {/* 会议培训任务不显示状态列 */}
+                    {!isMeetingTask && (
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          t.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
+                          t.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {t.Status}
+                        </span>
+                      </td>
+                    )}
+                    <td className="px-6 py-4">
+                      {users.find(u => u.UserID === t.AssigneeID)?.Name || t.AssigneeName || '-'}
+                    </td>
+                    {/* 差旅任务和会议培训任务不显示校核人列 */}
+                    {t.TaskClassID !== 'TC009' && t.TaskClassID !== 'TC007' && (
+                      <td className="px-6 py-4">
+                        {users.find(u => u.UserID === t.ReviewerID)?.Name || t.ReviewerName || '-'}
+                      </td>
+                    )}
+                    {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
+                    <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
+                    {/* 会议培训任务不显示截止日 */}
+                    {!isMeetingTask && (
+                      <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
+                    )}
+                    {/* 会议培训任务显示会议时长和参会人数 */}
+                    {isMeetingTask && (
+                      <>
+                        <td className="px-6 py-4 text-slate-500">{t.MeetingDuration ? `${t.MeetingDuration}h` : '-'}</td>
+                        <td className="px-6 py-4 text-slate-500">{t.Participants?.length || 0}人</td>
+                      </>
+                    )}
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
+                      <button onClick={() => { if(confirm('删除任务?')) { dataService.deleteTask(t.TaskID); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredTasks.length === 0 && (
-                <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
+                <tr><td colSpan={isMeeting ? 8 : 9} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
               )}
             </tbody>
           </table>
@@ -906,19 +1319,19 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <div className="flex items-center gap-3">
                   <input required type="text" className="flex-1 border rounded p-2 bg-slate-50"
                     value={formData.TaskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="hidden" checked={formData.isForceAssessment || false} onChange={e => setFormData({...formData, isForceAssessment: e.target.checked})} />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
-                    </span>
-                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">强制考核</span>
-                  </label>
+                  {!isMeeting && (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" className="hidden" checked={formData.isForceAssessment || false} onChange={e => setFormData({...formData, isForceAssessment: e.target.checked})} />
+                      <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                      </span>
+                      <span className="text-sm font-medium text-slate-700 whitespace-nowrap">强制考核</span>
+                    </label>
+                  )}
                 </div>
               </div>
 
               {renderDynamicFields()}
-
-              <div className="col-span-2 h-3"></div>
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">备注</label>
@@ -1074,15 +1487,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     </label>
                     <div className="flex items-center gap-3">
                       <div className="text-slate-900 font-medium text-sm">{selectedTask.TaskName}</div>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${selectedTask.isForceAssessment ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
-                        {selectedTask.isForceAssessment ? '✓ 强制考核' : ''}
-                      </span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        selectedTask.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                        selectedTask.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {selectedTask.Status}
-                      </span>
+                      {/* 会议培训任务不显示强制考核和状态 */}
+                      {selectedTask.TaskClassID !== 'TC007' && (
+                        <>
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${selectedTask.isForceAssessment ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {selectedTask.isForceAssessment ? '✓ 强制考核' : ''}
+                          </span>
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                            selectedTask.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
+                            selectedTask.Status === TaskStatus.IN_PROGRESS ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {selectedTask.Status}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1139,7 +1557,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       </label>
                       <div className="text-slate-900 font-medium text-sm">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
                     </div>
-                    {selectedTask.TaskClassID !== 'TC009' && (
+                    {selectedTask.TaskClassID !== 'TC009' && selectedTask.TaskClassID !== 'TC007' && (
                       <>
                         <div className="bg-white rounded-md p-2">
                           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -1157,6 +1575,24 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         </div>
                       </>
                     )}
+                    {/* 会议培训任务显示参会人员信息 */}
+                    {selectedTask.TaskClassID === 'TC007' && (
+                      <div className="bg-white rounded-md p-2 col-span-3">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <UserIcon size={12} className="text-purple-500" />
+                          参会人员
+                        </label>
+                        <div className="text-slate-900 text-sm">
+                          {selectedTask.ParticipantNames && selectedTask.ParticipantNames.length > 0
+                            ? selectedTask.ParticipantNames.join('、')
+                            : '-'
+                          }
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          共 {selectedTask.Participants?.length || 0} 人
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1170,17 +1606,28 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <Calendar size={12} className="text-amber-500" />
-                        开始日期
+                        {selectedTask.TaskClassID === 'TC007' ? '会议日期' : '开始日期'}
                       </label>
                       <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
                     </div>
-                    <div className="bg-white rounded-md p-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <Calendar size={12} className="text-amber-500" />
-                        截止日期
-                      </label>
-                      <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
-                    </div>
+                    {/* 会议培训任务显示会议时长，其他任务显示截止日期 */}
+                    {selectedTask.TaskClassID === 'TC007' ? (
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Clock size={12} className="text-amber-500" />
+                          会议时长(小时)
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.MeetingDuration || '-'}</div>
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Calendar size={12} className="text-amber-500" />
+                          截止日期
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1210,8 +1657,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   </div>
                 )}
 
-                {/* 管理员/班组长可见的额外信息 */}
-                {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && (
+                {/* 管理员/班组长可见的额外信息（会议培训任务不显示） */}
+                {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && selectedTask.TaskClassID !== 'TC007' && (
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-rose-500 rounded-full"></div>

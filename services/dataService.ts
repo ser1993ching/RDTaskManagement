@@ -1384,9 +1384,6 @@ class DataService {
     }
     if (!localStorage.getItem(STORAGE_KEYS.TASK_CLASSES)) {
       localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
-    } else {
-      // 临时：强制重新加载任务分类顺序（导航顺序调整）
-      localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
     }
     // Initialize task categories if not exist
     if (!localStorage.getItem(STORAGE_KEYS.TASK_CATEGORIES)) {

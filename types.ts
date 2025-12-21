@@ -49,10 +49,8 @@ export interface User {
   Name: string;
   SystemRole: SystemRole;
   OfficeLocation: OfficeLocation;
-  BirthDate?: string;
   Title?: string;
   JoinDate?: string; // 参加工作时间
-  TeamJoinDate?: string;
   Status: PersonnelStatus;
   Education?: string;
   School?: string;
@@ -69,11 +67,6 @@ export interface Project {
   model?: string; // 机型
   isWon?: boolean; // 是否中标 (Market)
   isForeign?: boolean; // 是否外贸 (Market)
-  group?: string; // 所属集团 (Execution)
-  institute?: string; // 设计院 (Execution)
-  executorId?: string; // 执行人ID
-  chiefDesignerId?: string; // 主任设计ID
-  managerId?: string; // 负责人ID (Research)
   startDate?: string;
   endDate?: string; // 截止/首台投运
   remark?: string;
@@ -94,7 +87,6 @@ export interface Task {
   CompletedDate?: string; // 完成时间
   Status: TaskStatus;
   Workload?: number; // 预估工作量
-  ActualWorkload?: number; // 实际投入 (For stats)
   Difficulty?: number; // 0.5 - 3.0
   Remark?: string;
   CreatedDate: string;

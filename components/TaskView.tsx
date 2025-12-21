@@ -1810,7 +1810,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Calendar size={12} className="text-amber-500" />
@@ -1819,22 +1819,18 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
-                        <div className="space-y-2">
-                          <div>
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                              <Clock size={12} className="text-amber-500" />
-                              出差天数
-                            </label>
-                            <div className="text-slate-900 text-sm">{selectedTask.TravelDuration ? `${selectedTask.TravelDuration}天` : '-'}</div>
-                          </div>
-                          <div>
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                              <Calendar size={12} className="text-amber-500" />
-                              截止日期
-                            </label>
-                            <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
-                          </div>
-                        </div>
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Clock size={12} className="text-amber-500" />
+                          出差天数
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.TravelDuration ? `${selectedTask.TravelDuration}天` : '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Calendar size={12} className="text-amber-500" />
+                          截止日期
+                        </label>
+                        <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1933,7 +1929,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
                     <h4 className="text-sm font-semibold text-slate-800">创建信息</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <UserIcon size={12} className="text-emerald-600" />
@@ -1947,6 +1943,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         创建时间
                       </label>
                       <div className="text-slate-900 font-semibold text-sm">{selectedTask.CreatedDate}</div>
+                    </div>
+                    <div className="bg-white rounded-md p-2">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                        <Clock size={12} className="text-emerald-600" />
+                        任务ID
+                      </label>
+                      <div className="text-slate-900 font-semibold text-sm font-mono text-xs">{selectedTask.TaskID}</div>
                     </div>
                   </div>
                 </div>

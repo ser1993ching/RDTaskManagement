@@ -1673,7 +1673,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                          分类
+                          二级分类
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
                       </div>

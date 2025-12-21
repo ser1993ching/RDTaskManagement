@@ -143,6 +143,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
   };
 
+  // Calculate due date based on start date and travel duration
+  const calculateDueDate = (startDate: string, travelDuration: number): string => {
+    if (!startDate || !travelDuration || travelDuration <= 0) {
+      return '';
+    }
+    
+    const start = new Date(startDate);
+    const dueDate = new Date(start.getTime() + (travelDuration - 1) * 24 * 60 * 60 * 1000);
+    return dueDate.toISOString().split('T')[0];
+  };
+
   // Initialize default filter - no time filter by default
   useEffect(() => {
     // Don't set any default time filter
@@ -501,6 +512,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         taskData.CapacityLevel = project.capacity;
       }
     }
+
+    // 如果是差旅任务，自动计算截止日期
+    if (task && task.TaskClassID === 'TC009' && task.StartDate && task.TravelDuration) {
+      const calculatedDueDate = calculateDueDate(task.StartDate, task.TravelDuration);
+      taskData.DueDate = calculatedDueDate;
+    }
+
     setFormData(taskData);
     setIsModalOpen(true);
   };
@@ -700,7 +718,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div>
                 <label className="block text-sm font-medium mb-1">出差天数(天)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.TravelDuration || ''} onChange={e => setFormData({...formData, TravelDuration: parseFloat(e.target.value)})} />
+                  value={formData.TravelDuration || ''} onChange={e => {
+                    const newTravelDuration = parseFloat(e.target.value) || 0;
+                    const startDate = formData.StartDate || '';
+                    const newDueDate = calculateDueDate(startDate, newTravelDuration);
+                    setFormData({...formData, TravelDuration: newTravelDuration, DueDate: newDueDate});
+                  }} />
               </div>
             </div>
           </div>

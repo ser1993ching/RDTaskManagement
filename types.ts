@@ -91,6 +91,7 @@ export interface Task {
   AssigneeID?: string; // 负责人
   StartDate?: string;
   DueDate?: string;
+  CompletedDate?: string; // 完成时间
   Status: TaskStatus;
   Workload?: number; // 预估工作量
   ActualWorkload?: number; // 实际投入 (For stats)
@@ -109,7 +110,7 @@ export interface Task {
   ReviewerName?: string; // 校核人姓名（非系统用户时使用）
   Reviewer2Name?: string; // 审查人姓名（非系统用户时使用）
   ReviewerWorkload?: number; // 校核人工时
-  Reviewer2Workload?: number; // 审查人2工时
+  Reviewer2Workload?: number; // 审查人工时
   isForceAssessment?: boolean; // 是否强制考核
   is_deleted?: boolean;
   // For Meeting & Training tasks

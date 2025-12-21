@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Task, TaskClass, User, Project, TaskStatus, ProjectCategory } from '../types';
-import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info, CheckCircle } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import AutocompleteInput from './AutocompleteInput';
 
@@ -452,8 +452,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       CreatedBy: editingTask?.CreatedBy || currentUser.UserID
     };
 
+    // 如果状态变为已完成，自动设置完成日期
+    if (taskToSave.Status === TaskStatus.COMPLETED && editingTask?.Status !== TaskStatus.COMPLETED) {
+      taskToSave.CompletedDate = new Date().toISOString().split('T')[0];
+    }
+    // 如果状态从已完成变为非已完成，清除完成日期
+    if (taskToSave.Status !== TaskStatus.COMPLETED && editingTask?.Status === TaskStatus.COMPLETED) {
+      taskToSave.CompletedDate = undefined;
+    }
+
     // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级（始终覆盖）
-    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '') && formData.ProjectID) {
+    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && formData.ProjectID) {
       const project = projects.find(p => p.id === formData.ProjectID);
       if (project) {
         taskToSave.CapacityLevel = project.capacity;
@@ -506,7 +515,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
 
     // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级
-    if (task && task.ProjectID && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '')) {
+    if (task && task.ProjectID && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '')) {
       const project = projects.find(p => p.id === task.ProjectID);
       if (project) {
         taskData.CapacityLevel = project.capacity;
@@ -536,7 +545,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const renderDynamicFields = () => {
     if (!activeTaskClass) return null;
 
-    const isProjectRelated = ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass.code);
+    const isProjectRelated = ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass.code);
 
     return (
       <>
@@ -563,9 +572,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   const newFormData = {...formData, ProjectID: project?.id || ''};
 
                   // 如果是支持容量等级的任务且选择了项目，自动获取容量等级（始终覆盖）
-                  if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '') && project) {
+                  if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && project) {
                     newFormData.CapacityLevel = project.capacity;
-                  } else if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '') && !project && value.trim()) {
+                  } else if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && !project && value.trim()) {
                     // 如果清除项目选择，清空容量等级
                     newFormData.CapacityLevel = '';
                   }
@@ -581,7 +590,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   if (project) {
                     const newFormData = {...formData, ProjectID: project.id};
                     // 如果是支持容量等级的任务，自动获取容量等级（始终覆盖）
-                    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass?.code || '')) {
+                    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '')) {
                       newFormData.CapacityLevel = project.capacity;
                     }
                     setFormData(newFormData);
@@ -603,7 +612,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </div>
           )}
 
-          {['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING'].includes(activeTaskClass.code) && (
+          {['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass.code) && (
             <div>
               <label className="block text-sm font-medium mb-1">容量等级</label>
               <AutocompleteInput
@@ -1663,7 +1672,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       任务名称
                     </label>
                     <div className="flex items-center gap-3">
-                      <div className="text-slate-900 font-medium text-sm">{selectedTask.TaskName}</div>
+                      <div className="text-slate-900 font-medium text-sm pl-[18px]">{selectedTask.TaskName}</div>
                       {/* 非差旅任务和会议培训任务显示任务状态 */}
                       {selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && (
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
@@ -1698,21 +1707,21 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           二级分类
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.Category || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           标签
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.TravelLabel || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.TravelLabel || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           关联项目
                         </label>
-                        <div className="text-slate-900 text-sm">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1729,21 +1738,21 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           二级分类
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.Category || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.Category || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           关联项目
                         </label>
-                        <div className="text-slate-900 text-sm">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           容量等级
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.CapacityLevel || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.CapacityLevel || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1761,7 +1770,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         <UserIcon size={12} className="text-purple-500" />
                         负责人
                       </label>
-                      <div className="text-slate-900 font-medium text-sm">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
+                      <div className="text-slate-900 font-medium text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
                     </div>
                     {selectedTask.TaskClassID !== 'TC009' && selectedTask.TaskClassID !== 'TC007' && (
                       <>
@@ -1770,14 +1779,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                             <UserIcon size={12} className="text-purple-500" />
                             校核人
                           </label>
-                          <div className="text-slate-900 text-sm">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
+                          <div className="text-slate-900 text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
                         </div>
                         <div className="bg-white rounded-md p-2">
                           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                             <UserIcon size={12} className="text-purple-500" />
                             审查人
                           </label>
-                          <div className="text-slate-900 text-sm">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
+                          <div className="text-slate-900 text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
                         </div>
                       </>
                     )}
@@ -1788,7 +1797,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <UserIcon size={12} className="text-purple-500" />
                           参会人员
                         </label>
-                        <div className="text-slate-900 text-sm">
+                        <div className="text-slate-900 text-sm pl-[18px]">
                           {selectedTask.ParticipantNames && selectedTask.ParticipantNames.length > 0
                             ? selectedTask.ParticipantNames.join('、')
                             : '-'
@@ -1816,57 +1825,78 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           开始日期
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-amber-500" />
                           出差天数
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.TravelDuration ? `${selectedTask.TravelDuration}天` : '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.TravelDuration ? `${selectedTask.TravelDuration}天` : '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Calendar size={12} className="text-amber-500" />
                           截止日期
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.DueDate || '-'}</div>
                       </div>
                     </div>
                   </div>
-                ) : (
-                  // 其他任务显示原有时间信息
+                ) : selectedTask.TaskClassID === 'TC007' ? (
+                  // 会议培训任务显示会议日期、会议时长、完成日期
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Calendar size={12} className="text-amber-500" />
-                          {selectedTask.TaskClassID === 'TC007' ? '会议日期' : '开始日期'}
+                          会议日期
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.StartDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
                       </div>
-                      {/* 会议培训任务显示会议时长，其他任务显示截止日期 */}
-                      {selectedTask.TaskClassID === 'TC007' ? (
-                        <div className="bg-white rounded-md p-2">
-                          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                            <Clock size={12} className="text-amber-500" />
-                            会议时长(小时)
-                          </label>
-                          <div className="text-slate-900 text-sm">{selectedTask.MeetingDuration || '-'}</div>
-                        </div>
-                      ) : (
-                        <div className="bg-white rounded-md p-2">
-                          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                            <Calendar size={12} className="text-amber-500" />
-                            截止日期
-                          </label>
-                          <div className="text-slate-900 text-sm">{selectedTask.DueDate || '-'}</div>
-                        </div>
-                      )}
+                      <div></div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Clock size={12} className="text-amber-500" />
+                          会议时长(小时)
+                        </label>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.MeetingDuration || '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // 其他任务显示开始日期、截止日期、完成日期
+                  <div className="bg-white rounded-lg p-2 border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-amber-500 rounded-full"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">时间信息</h4>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Calendar size={12} className="text-amber-500" />
+                          开始日期
+                        </label>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <Calendar size={12} className="text-amber-500" />
+                          截止日期
+                        </label>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.DueDate || '-'}</div>
+                      </div>
+                      <div className="bg-white rounded-md p-2">
+                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+                          <CheckCircle size={12} className="text-amber-500" />
+                          完成日期
+                        </label>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.CompletedDate || '-'}</div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1884,7 +1914,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <MapPin size={12} className="text-teal-500" />
                           出差地点
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.TravelLocation || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.TravelLocation || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1903,21 +1933,21 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Clock size={12} className="text-rose-500" />
                           负责人工时(h)
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.Workload || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.Workload || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-rose-500" />
                           校核人工时(h)
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.ReviewerWorkload || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.ReviewerWorkload || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-rose-500" />
-                          审查人2工时(h)
+                          审查人工时(h)
                         </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.Reviewer2Workload || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.Reviewer2Workload || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1935,21 +1965,21 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         <UserIcon size={12} className="text-emerald-600" />
                         创建人
                       </label>
-                      <div className="text-slate-900 font-semibold text-sm">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
+                      <div className="text-slate-900 font-semibold text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
                     </div>
                     <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <Calendar size={12} className="text-emerald-600" />
                         创建时间
                       </label>
-                      <div className="text-slate-900 font-semibold text-sm">{selectedTask.CreatedDate}</div>
+                      <div className="text-slate-900 font-semibold text-sm pl-[18px]">{selectedTask.CreatedDate}</div>
                     </div>
                     <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                         <Clock size={12} className="text-emerald-600" />
                         任务ID
                       </label>
-                      <div className="text-slate-900 font-semibold text-sm font-mono text-xs">{selectedTask.TaskID}</div>
+                      <div className="text-slate-900 font-semibold text-sm font-mono text-xs pl-[18px]">{selectedTask.TaskID}</div>
                     </div>
                   </div>
                 </div>
@@ -1961,7 +1991,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <h4 className="text-sm font-semibold text-slate-800">备注信息</h4>
                   </div>
                   <div className="bg-white rounded-md p-3 shadow-sm border border-slate-200">
-                    <div className="text-slate-900 text-sm leading-relaxed">
+                    <div className="text-slate-900 text-sm leading-relaxed pl-[18px]">
                       {selectedTask.Remark || <span className="text-slate-400 italic">暂无备注信息</span>}
                     </div>
                   </div>

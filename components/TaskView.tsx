@@ -1641,13 +1641,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     </label>
                     <div className="flex items-center gap-3">
                       <div className="text-slate-900 font-medium text-sm">{selectedTask.TaskName}</div>
-                      {/* 非差旅任务和会议培训任务显示强制考核 */}
-                      {selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && (
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${selectedTask.isForceAssessment ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {selectedTask.isForceAssessment ? '✓ 强制考核' : ''}
-                        </span>
-                      )}
-                      {/* 任务状态 */}
+                      {/* 任务状态 - 始终显示在任务名称右侧 */}
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                         selectedTask.Status === '已完成' ? 'bg-green-100 text-green-700' :
                         selectedTask.Status === '进行中' ? 'bg-blue-100 text-blue-700' :
@@ -1655,6 +1649,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       }`}>
                         {selectedTask.Status}
                       </span>
+                      {/* 非差旅任务和会议培训任务显示强制考核 */}
+                      {selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && selectedTask.isForceAssessment && (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                          ✓ 强制考核
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

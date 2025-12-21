@@ -1647,22 +1647,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           {selectedTask.isForceAssessment ? '✓ 强制考核' : ''}
                         </span>
                       )}
-                    </div>
-                    {/* 任务状态 */}
-                    <div className="mt-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                        任务状态
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                          selectedTask.Status === '已完成' ? 'bg-green-100 text-green-700' :
-                          selectedTask.Status === '进行中' ? 'bg-blue-100 text-blue-700' :
-                          'bg-slate-100 text-slate-600'
-                        }`}>
-                          {selectedTask.Status}
-                        </span>
-                      </div>
+                      {/* 任务状态 */}
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                        selectedTask.Status === '已完成' ? 'bg-green-100 text-green-700' :
+                        selectedTask.Status === '进行中' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {selectedTask.Status}
+                      </span>
                     </div>
                   </div>
                 </div>

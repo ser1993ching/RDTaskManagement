@@ -1700,14 +1700,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">分类信息</h4>
                     </div>
-                    <div className="grid grid-cols-4 gap-3">
-                      <div className="bg-white rounded-md p-2">
-                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                          任务分类
-                        </label>
-                        <div className="text-slate-900 font-medium text-sm">{taskClasses.find(tc => tc.id === selectedTask.TaskClassID)?.name || '-'}</div>
-                      </div>
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>

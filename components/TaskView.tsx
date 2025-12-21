@@ -1874,7 +1874,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       <div className="w-1 h-4 bg-rose-500 rounded-full"></div>
                       <h4 className="text-sm font-semibold text-slate-800">工作量统计</h4>
                     </div>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Clock size={12} className="text-rose-500" />
@@ -1895,13 +1895,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           审查人2工时(h)
                         </label>
                         <div className="text-slate-900 text-sm">{selectedTask.Reviewer2Workload || '-'}</div>
-                      </div>
-                      <div className="bg-white rounded-md p-2">
-                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
-                          <div className="w-1.5 h-1.5 bg-rose-400 rounded-full"></div>
-                          难度系数
-                        </label>
-                        <div className="text-slate-900 text-sm">{selectedTask.Difficulty || '-'}</div>
                       </div>
                     </div>
                   </div>

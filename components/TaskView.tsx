@@ -1648,7 +1648,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         </span>
                       )}
                     </div>
-                  </div>
                     {/* 任务状态 */}
                     <div className="mt-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -1665,6 +1664,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         </span>
                       </div>
                     </div>
+                  </div>
                 </div>
 
                 {/* 分类信息卡片 */}

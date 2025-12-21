@@ -1605,7 +1605,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       {/* 任务详细信息弹窗 */}
       {isDetailModalOpen && selectedTask && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
             {/* 头部 */}
             <div className="bg-blue-600 text-white px-4 py-2.5 flex justify-between items-center">
               <div className="flex items-center gap-3">

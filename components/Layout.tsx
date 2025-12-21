@@ -24,7 +24,6 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
     { id: 'tasks', label: '任务管理', icon: CheckSquare },
     { id: 'projects', label: '项目管理', icon: Briefcase },
     { id: 'personnel', label: '人员管理', icon: Users },
-    { id: 'settings', label: '设置', icon: Settings },
   ];
 
   return (
@@ -50,6 +49,17 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
               {item.label}
             </button>
           ))}
+          <button
+            onClick={() => onChangeView('settings')}
+            className={`nav-button w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-0 ${
+              currentView === 'settings'
+                ? 'bg-blue-600 text-white shadow-lg transform scale-[1.02]'
+                : 'text-slate-300 hover:bg-slate-600/50 hover:text-white hover:translate-x-1'
+            }`}
+          >
+            <Settings size={18} />
+            设置
+          </button>
         </nav>
 
         <div className="p-4 border-t border-slate-500/50 bg-slate-700/50">

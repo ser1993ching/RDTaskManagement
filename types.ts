@@ -55,6 +55,7 @@ export interface User {
   Education?: string;
   School?: string;
   Password?: string; // Hashed in real app
+  Remark?: string;
   is_deleted?: boolean;
 }
 

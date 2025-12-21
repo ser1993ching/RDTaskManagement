@@ -700,9 +700,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <AutocompleteInput
                   id="travel-assignee-autocomplete"
                   value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
-                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
                     } else {
@@ -710,7 +710,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
                     }
@@ -745,9 +745,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <AutocompleteInput
                   id="assignee-autocomplete"
                   value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
-                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
                     } else {
@@ -755,7 +755,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
                     }
@@ -785,9 +785,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <AutocompleteInput
                   id="assignee-autocomplete"
                   value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
-                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
                     } else {
@@ -795,7 +795,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
                     }
@@ -809,9 +809,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <AutocompleteInput
                   id="reviewer-autocomplete"
                   value={users.find(u => u.UserID === formData.ReviewerID)?.Name || formData.ReviewerName || ''}
-                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, ReviewerID: user.UserID, ReviewerName: user.Name});
                     } else {
@@ -819,7 +819,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, ReviewerID: user.UserID, ReviewerName: user.Name});
                     }
@@ -833,9 +833,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <AutocompleteInput
                   id="reviewer2-autocomplete"
                   value={users.find(u => u.UserID === formData.ReviewerID2)?.Name || formData.Reviewer2Name || ''}
-                  options={users.filter(u => u.Status !== '离岗').map(u => u.Name)}
+                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, ReviewerID2: user.UserID, Reviewer2Name: user.Name});
                     } else {
@@ -843,7 +843,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗');
+                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
                     if (user) {
                       setFormData({...formData, ReviewerID2: user.UserID, Reviewer2Name: user.Name});
                     }
@@ -949,6 +949,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     const filteredUsers = users.filter(u =>
                       u.Status !== '离岗' &&
                       u.SystemRole !== '管理员' &&
+                      u.UserID !== 'admin' &&
                       u.Name.toLowerCase().includes(participantSearchTerm.toLowerCase())
                     );
                     const allUserIds = filteredUsers.map(u => u.UserID);
@@ -983,11 +984,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       // 如果没有搜索词，对所有班组长和组员进行全选/反选（排除管理员）
                       const allUserIdsFull = users.filter(u =>
                         u.Status !== '离岗' &&
-                        u.SystemRole !== '管理员'
+                        u.SystemRole !== '管理员' &&
+                        u.UserID !== 'admin'
                       ).map(u => u.UserID);
                       const allUserNamesFull = users.filter(u =>
                         u.Status !== '离岗' &&
-                        u.SystemRole !== '管理员'
+                        u.SystemRole !== '管理员' &&
+                        u.UserID !== 'admin'
                       ).map(u => u.Name);
                       if (formData.Participants?.length === allUserIdsFull.length) {
                         setFormData({...formData, Participants: [], ParticipantNames: []});
@@ -1002,9 +1005,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     `选择搜索结果 (${users.filter(u =>
                       u.Status !== '离岗' &&
                       u.SystemRole !== '管理员' &&
+                      u.UserID !== 'admin' &&
                       u.Name.toLowerCase().includes(participantSearchTerm.toLowerCase())
                     ).length}人)` :
-                    (formData.Participants?.length === users.filter(u => u.Status !== '离岗' && u.SystemRole !== '管理员').length ? '取消全选' : '全选')
+                    (formData.Participants?.length === users.filter(u => u.Status !== '离岗' && u.SystemRole !== '管理员' && u.UserID !== 'admin').length ? '取消全选' : '全选')
                   }
                 </button>
                 </div>
@@ -1013,7 +1017,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
                     {formData.ParticipantNames?.filter(name => {
                       const user = users.find(u => u.Name === name);
-                      return user && user.SystemRole !== '管理员';
+                      return user && user.SystemRole !== '管理员' && user.UserID !== 'admin';
                     }).map(name => (
                       <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
                         {name}
@@ -1048,12 +1052,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     u.SystemRole === '班组长' &&
                     u.Status !== '离岗' &&
                     u.SystemRole !== '管理员' &&
+                    u.UserID !== 'admin' &&
                     u.Name.toLowerCase().includes(searchLower)
                   );
                   const filteredMembers = users.filter(u =>
                     u.SystemRole === '组员' &&
                     u.Status !== '离岗' &&
                     u.SystemRole !== '管理员' &&
+                    u.UserID !== 'admin' &&
                     u.Name.toLowerCase().includes(searchLower)
                   );
 
@@ -1343,7 +1349,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <label className="block text-xs text-slate-600 mb-1">负责人</label>
               <select className="w-full border rounded px-2 py-2 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
                 <option value="">所有负责人</option>
-                {users.filter(u => u.Status !== '离岗').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
+                {users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
               </select>
             </div>
             <div className="min-w-[130px]">

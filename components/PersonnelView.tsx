@@ -21,13 +21,24 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
   const [formData, setFormData] = useState<Partial<User>>({});
 
   const filteredUsers = users.filter(u => {
+    // 排除系统管理员
+    if (u.UserID === 'admin') return false;
+
     const matchesTab = u.Status === activeTab;
     const matchesSearch = u.Name.includes(filterText) || u.OfficeLocation.includes(filterText) || (u.Title || '').includes(filterText);
     return matchesTab && matchesSearch;
   });
 
+  // 计算各状态人员数量（排除系统管理员）
+  const statusCounts = users
+    .filter(u => u.UserID !== 'admin')
+    .reduce((acc, user) => {
+      acc[user.Status] = (acc[user.Status] || 0) + 1;
+      return acc;
+    }, {} as Record<PersonnelStatus, number>);
+
   const handleExport = () => {
-    const headers = ['工号', '姓名', '角色', '地点', '状态', '职称', '学历', '入职时间'];
+    const headers = ['工号', '姓名', '角色', '地点', '状态', '职称', '学历', '毕业学校', '备注', '入职时间'];
     const rows = filteredUsers.map(u => [
       u.UserID,
       u.Name,
@@ -36,6 +47,8 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
       u.Status,
       u.Title || '',
       u.Education || '',
+      u.School || '',
+      u.Remark || '',
       u.JoinDate || ''
     ]);
 
@@ -121,21 +134,23 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200">
-        {Object.values(PersonnelStatus).map(status => (
-          <button
-            key={status}
-            onClick={() => setActiveTab(status)}
-            className={`px-6 py-3 font-medium text-sm transition-colors relative ${
-              activeTab === status 
-                ? 'text-blue-600 border-b-2 border-blue-600' 
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            {status}
-          </button>
-        ))}
+      {/* Tabs with Statistics */}
+      <div className="border-b border-slate-200">
+        <div className="flex">
+          {Object.values(PersonnelStatus).map(status => (
+            <button
+              key={status}
+              onClick={() => setActiveTab(status)}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === status
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {status} ({statusCounts[status] || 0})
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Filter */}
@@ -150,6 +165,31 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
         />
       </div>
 
+      {/* Statistics */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">当前状态：</span>
+              <span className="font-semibold text-blue-700">{activeTab}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">显示人员：</span>
+              <span className="font-semibold text-blue-700">{filteredUsers.length} 人</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">总人数：</span>
+              <span className="font-semibold text-slate-700">{Object.values(statusCounts).reduce((a, b) => a + b, 0)} 人</span>
+            </div>
+          </div>
+          {filterText && (
+            <div className="text-sm text-slate-600">
+              筛选条件："{filterText}"
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-sm text-left">
@@ -162,6 +202,8 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
               <th className="px-6 py-4">地点</th>
               <th className="px-6 py-4">工龄(年)</th>
               <th className="px-6 py-4">学历</th>
+              <th className="px-6 py-4">毕业学校</th>
+              <th className="px-6 py-4">备注</th>
               {canEdit && <th className="px-6 py-4 text-right">操作</th>}
             </tr>
           </thead>
@@ -183,6 +225,12 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                 <td className="px-6 py-4">{user.OfficeLocation}</td>
                 <td className="px-6 py-4">{getWorkYears(user.JoinDate)}</td>
                 <td className="px-6 py-4">{user.Education || '-'}</td>
+                <td className="px-6 py-4">{user.School || '-'}</td>
+                <td className="px-6 py-4">
+                  <div className="max-w-xs truncate" title={user.Remark || ''}>
+                    {user.Remark || '-'}
+                  </div>
+                </td>
                 {canEdit && (
                   <td className="px-6 py-4 text-right">
                     <button onClick={() => openModal(user)} className="text-blue-600 hover:text-blue-800 mr-3">
@@ -220,7 +268,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
             ))}
             {filteredUsers.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-6 py-8 text-center text-slate-400">
+                <td colSpan={canEdit ? 10 : 9} className="px-6 py-8 text-center text-slate-400">
                   未找到相关人员
                 </td>
               </tr>
@@ -236,26 +284,26 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
             <h3 className="text-xl font-bold mb-4">{editingUser ? '编辑人员' : '新增人员'}</h3>
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
               <div className="col-span-1">
-                <label className="block text-sm font-medium mb-1">姓名 *</label>
-                <input required type="text" className="w-full border rounded p-2" 
+                <label className="block text-sm font-medium mb-1">姓名 <span className="text-red-500">*</span></label>
+                <input required type="text" className="w-full border rounded p-2"
                   value={formData.Name} onChange={e => setFormData({...formData, Name: e.target.value})} />
               </div>
               <div className="col-span-1">
-                <label className="block text-sm font-medium mb-1">系统角色 *</label>
+                <label className="block text-sm font-medium mb-1">系统角色 <span className="text-red-500">*</span></label>
                 <select className="w-full border rounded p-2"
                   value={formData.SystemRole} onChange={e => setFormData({...formData, SystemRole: e.target.value as SystemRole})}>
                   {Object.values(SystemRole).map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="col-span-1">
-                <label className="block text-sm font-medium mb-1">办公地点 *</label>
+                <label className="block text-sm font-medium mb-1">办公地点 <span className="text-red-500">*</span></label>
                 <select className="w-full border rounded p-2"
                   value={formData.OfficeLocation} onChange={e => setFormData({...formData, OfficeLocation: e.target.value as OfficeLocation})}>
                   {Object.values(OfficeLocation).map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="col-span-1">
-                <label className="block text-sm font-medium mb-1">状态 *</label>
+                <label className="block text-sm font-medium mb-1">状态 <span className="text-red-500">*</span></label>
                 <select className="w-full border rounded p-2"
                   value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value as PersonnelStatus})}>
                   {Object.values(PersonnelStatus).map(v => <option key={v} value={v}>{v}</option>)}
@@ -266,7 +314,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                 <select className="w-full border rounded p-2"
                   value={formData.Title || ''} onChange={e => setFormData({...formData, Title: e.target.value})}>
                   <option value="">请选择</option>
-                  {['见习生', '助工', '工程师', '高级工程师', '副主工程师', '主任工程师', '高级主任工程师'].map(v => <option key={v} value={v}>{v}</option>)}
+                  {['见习生', '助理工程师', '工程师', '高级工程师', '副主工程师', '主任工程师', '高级主任工程师'].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="col-span-1">
@@ -282,13 +330,22 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                   {['大学本科', '研究生', '博士'].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
-              {editingUser && (
-                <div className="col-span-2 pt-2 border-t mt-2">
-                   <button type="button" onClick={() => setFormData({...formData, Password: '123'})} className="text-sm text-red-600 hover:underline">
-                    重置密码为 123
-                   </button>
-                </div>
-              )}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">毕业学校</label>
+                <input type="text" className="w-full border rounded p-2"
+                  value={formData.School || ''} onChange={e => setFormData({...formData, School: e.target.value})}
+                  placeholder="请输入毕业学校" />
+              </div>
+              <div className="col-span-1">
+                {/* 占位，保持双列布局 */}
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">备注</label>
+                <textarea className="w-full border rounded p-2"
+                  value={formData.Remark || ''} onChange={e => setFormData({...formData, Remark: e.target.value})}
+                  placeholder="请输入备注信息"
+                  rows={3}></textarea>
+              </div>
 
               <div className="col-span-2 flex justify-end gap-3 mt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>

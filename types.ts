@@ -73,6 +73,7 @@ export interface Project {
   remark?: string;
   isCommissioned?: boolean; // 是否已投运 (Execution)
   isCompleted?: boolean; // 是否已完成 (Research/Renovation/Other)
+  isKeyProject?: boolean; // 是否重点项目
   is_deleted?: boolean;
 }
 

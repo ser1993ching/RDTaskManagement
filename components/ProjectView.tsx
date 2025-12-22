@@ -404,7 +404,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
 
         <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0 pr-4">
           <table className="w-full text-sm text-left whitespace-nowrap table-fixed">
-            <thead className="bg-slate-50 text-slate-600 font-medium border-b sticky top-0">
+            <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-20 shadow-sm">
               <tr>
                 <th className="px-6 py-4 w-[22%]">项目名称</th>
                 <th className="px-6 py-4 w-[11%]">工作号/ID</th>
@@ -419,8 +419,11 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
             <tbody className="divide-y divide-slate-100">
               {filteredProjects.map(p => (
                 <tr key={p.id} className="hover:bg-blue-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-slate-900">
-                    <div className="truncate" title={p.name}>{p.name}</div>
+                  <td className="px-6 py-4 relative">
+                    {p.isKeyProject && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 z-0"></div>}
+                    <div className={`font-medium ${p.isKeyProject ? 'font-bold text-slate-900' : 'text-slate-900'}`}>
+                      <div className="truncate" title={p.name}>{p.name}</div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-slate-500">
                     <div className="truncate" title={p.workNo || p.id}>{p.workNo || p.id}</div>
@@ -537,20 +540,58 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
 
               {activeTab === ProjectCategory.MARKET && (
                 <div className="col-span-2 flex gap-4">
-                  <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isWon || false} onChange={e => setFormData({...formData, isWon: e.target.checked})} /> 已中标</label>
-                  <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isForeign || false} onChange={e => setFormData({...formData, isForeign: e.target.checked})} /> 外贸项目</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="hidden" checked={formData.isWon || false} onChange={e => setFormData({...formData, isWon: e.target.checked})} />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isWon ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isWon ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">已中标</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="hidden" checked={formData.isForeign || false} onChange={e => setFormData({...formData, isForeign: e.target.checked})} />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForeign ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForeign ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">外贸项目</span>
+                  </label>
                 </div>
               )}
 
               {(activeTab === ProjectCategory.EXECUTION || activeTab === ProjectCategory.NUCLEAR) && (
                 <div className="col-span-2 flex gap-4">
-                  <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isCommissioned || false} onChange={e => setFormData({...formData, isCommissioned: e.target.checked})} /> 已投运</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="hidden" checked={formData.isKeyProject || false} onChange={e => setFormData({...formData, isKeyProject: e.target.checked})} />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isKeyProject ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isKeyProject ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">重点项目</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="hidden" checked={formData.isCommissioned || false} onChange={e => setFormData({...formData, isCommissioned: e.target.checked})} />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isCommissioned ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isCommissioned ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">已投运</span>
+                  </label>
                 </div>
               )}
 
               {(activeTab === ProjectCategory.RESEARCH || activeTab === ProjectCategory.RENOVATION || activeTab === ProjectCategory.OTHER) && (
                 <div className="col-span-2 flex gap-4">
-                  <label className="flex items-center gap-2"><input type="checkbox" checked={formData.isCompleted || false} onChange={e => setFormData({...formData, isCompleted: e.target.checked})} /> 已完成</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="hidden" checked={formData.isKeyProject || false} onChange={e => setFormData({...formData, isKeyProject: e.target.checked})} />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isKeyProject ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isKeyProject ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">重点项目</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="hidden" checked={formData.isCompleted || false} onChange={e => setFormData({...formData, isCompleted: e.target.checked})} />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isCompleted ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isCompleted ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm font-medium text-slate-700 whitespace-nowrap">已完成</span>
+                  </label>
                 </div>
               )}
 

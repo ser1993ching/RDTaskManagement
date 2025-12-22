@@ -165,31 +165,6 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
         />
       </div>
 
-      {/* Statistics */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">当前状态：</span>
-              <span className="font-semibold text-blue-700">{activeTab}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">显示人员：</span>
-              <span className="font-semibold text-blue-700">{filteredUsers.length} 人</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">总人数：</span>
-              <span className="font-semibold text-slate-700">{Object.values(statusCounts).reduce((a, b) => a + b, 0)} 人</span>
-            </div>
-          </div>
-          {filterText && (
-            <div className="text-sm text-slate-600">
-              筛选条件："{filterText}"
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-sm text-left">

@@ -102,14 +102,38 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
   };
 
+  // Get allowed project categories for task class (some task types can relate to multiple project types)
+  const getAllowedProjectCategoriesForTaskClass = (taskClassCode: string): ProjectCategory[] => {
+    switch (taskClassCode) {
+      case 'MARKET':
+        return [ProjectCategory.MARKET];
+      case 'EXECUTION':
+        return [ProjectCategory.EXECUTION];
+      case 'NUCLEAR':
+        return [ProjectCategory.NUCLEAR];
+      case 'PRODUCT_DEV':
+        // 产品研发可以关联常规项目、核电项目、科研项目、改造项目
+        return [ProjectCategory.EXECUTION, ProjectCategory.NUCLEAR, ProjectCategory.RESEARCH, ProjectCategory.RENOVATION];
+      case 'RESEARCH':
+        return [ProjectCategory.RESEARCH];
+      case 'RENOVATION':
+        return [ProjectCategory.RENOVATION];
+      case 'OTHER':
+        return [ProjectCategory.OTHER];
+      default:
+        return [];
+    }
+  };
+
   // Get projects filtered by task class
   const getProjectsForTaskClass = (taskClassCode: string): Project[] => {
-    // 产品研发任务可以从常规项目、核电项目和科研项目中获取
+    // 产品研发任务可以从常规项目、核电项目、科研项目、改造项目中获取
     if (taskClassCode === 'PRODUCT_DEV') {
       return projects.filter(p =>
         p.category === ProjectCategory.EXECUTION ||
         p.category === ProjectCategory.NUCLEAR ||
-        p.category === ProjectCategory.RESEARCH
+        p.category === ProjectCategory.RESEARCH ||
+        p.category === ProjectCategory.RENOVATION
       );
     }
 
@@ -148,15 +172,22 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     if (!startDate || !travelDuration || travelDuration <= 0) {
       return '';
     }
-    
+
     const start = new Date(startDate);
     const dueDate = new Date(start.getTime() + (travelDuration - 1) * 24 * 60 * 60 * 1000);
     return dueDate.toISOString().split('T')[0];
   };
 
-  // Initialize default filter - no time filter by default
+  // Get default start date (3 months ago)
+  const getDefaultStartDate = (): string => {
+    const now = new Date();
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    return threeMonthsAgo.toISOString().split('T')[0];
+  };
+
+  // Initialize default filter - show tasks from last 3 months
   useEffect(() => {
-    // Don't set any default time filter
+    setFilterStartDateFrom(getDefaultStartDate());
   }, []);
 
   // Clear project and label when travel task category changes
@@ -437,9 +468,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     // 验证项目与任务类型的匹配性
     if (formData.ProjectID && activeTaskClass) {
       const project = projects.find(p => p.id === formData.ProjectID);
-      const expectedCategory = getProjectCategoryForTaskClass(activeTaskClass.code);
-      if (project && expectedCategory && project.category !== expectedCategory) {
-        alert(`保存失败：选择的项目"${project.name}"属于${project.category}，与当前任务类型${activeTaskClass.name}不匹配。\n\n请选择正确的项目类别或联系管理员调整项目分类。`);
+      const allowedCategories = getAllowedProjectCategoriesForTaskClass(activeTaskClass.code);
+      if (project && allowedCategories.length > 0 && !allowedCategories.includes(project.category)) {
+        const allowedCategoryNames = allowedCategories.map(c => c).join('、');
+        alert(`保存失败：选择的项目"${project.name}"属于${project.category}，与当前任务类型${activeTaskClass.name}不匹配。\n\n该任务类型允许关联的项目类别：${allowedCategoryNames}\n\n请选择正确的项目类别或联系管理员调整项目分类。`);
         return;
       }
     }
@@ -488,9 +520,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     // 如果是编辑模式，验证项目与任务类型的匹配性
     if (task && task.ProjectID && activeTaskClass) {
       const project = projects.find(p => p.id === task.ProjectID);
-      const expectedCategory = getProjectCategoryForTaskClass(activeTaskClass.code);
-      if (project && expectedCategory && project.category !== expectedCategory) {
-        alert(`警告：该任务当前关联的项目"${project.name}"属于${project.category}，与当前任务类型${activeTaskClass.name}不匹配。\n\n建议：\n1. 修改任务类型为匹配的项目类别，或\n2. 更换为正确的项目，或\n3. 联系管理员调整项目分类`);
+      const allowedCategories = getAllowedProjectCategoriesForTaskClass(activeTaskClass.code);
+      if (project && allowedCategories.length > 0 && !allowedCategories.includes(project.category)) {
+        const allowedCategoryNames = allowedCategories.map(c => c).join('、');
+        alert(`警告：该任务当前关联的项目"${project.name}"属于${project.category}，与当前任务类型${activeTaskClass.name}不匹配。\n\n该任务类型允许关联的项目类别：${allowedCategoryNames}\n\n建议：\n1. 修改任务类型为匹配的项目类别，或\n2. 更换为正确的项目，或\n3. 联系管理员调整项目分类`);
         // 不阻断编辑，但保留原关联
       }
     }
@@ -1252,18 +1285,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         </nav>
       </aside>
 
-      <div className="flex-1 flex flex-col space-y-6">
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-sm text-yellow-800">
-          <p><strong>注意：</strong> 任务名称请尽量遵循 "[项目名]-[任务类别]" 的格式。差旅和会议任务请务必填写时长以便统计。</p>
-        </div>
-
+      <div className="flex-1 flex flex-col space-y-3">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">任务管理</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              当前分类: <span className="font-medium text-blue-600">{activeTaskClass?.name || '请选择任务类'}</span>
-              <span className="ml-3">共 {filteredTasks.length} 个任务</span>
-            </p>
+            <h2 className="text-2xl font-bold text-slate-800">{activeTaskClass?.name || '任务管理'}</h2>
           </div>
           <div className="flex gap-2">
             <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none">
@@ -1273,6 +1298,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <Download size={16} /> 导出
             </button>
           </div>
+        </div>
+
+        <div className="text-sm">
+          <p className="flex items-center gap-2">
+            <span className="w-1 h-4 bg-amber-500 rounded-full"></span>
+            <span className="text-amber-600"><strong>注意：</strong> 任务名称请尽量遵循 "[项目名]-[任务类别]" 的格式。差旅和会议任务请务必填写时长以便统计。</span>
+          </p>
         </div>
 
         <div className="p-4 bg-white rounded-lg border border-slate-200">
@@ -1293,14 +1325,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           {/* 第二行：清空筛选 + 其他筛选条件 */}
           <div className="flex flex-wrap gap-3 items-end">
             <div className="min-w-[130px]">
-              <label className="invisible block text-xs text-slate-600 mb-1">操作</label>
               <button
                 onClick={() => {
                   setFilterProject('');
                   setFilterCategory('');
                   setFilterAssignee('');
                   setFilterCapacityLevel('');
-                  setFilterStartDateFrom('');
+                  setFilterStartDateFrom(getDefaultStartDate());
                   setFilterStartDateTo('');
                   setFilterTaskName('');
                   setFilterThisWeek(false);
@@ -1310,7 +1341,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     setFilterStatus('');
                     setFilterForceAssessment('');
                   }
-                  // No default time filter
+                  // Reset to 3 months default time filter
                 }}
                 className="w-full text-sm text-slate-700 hover:text-slate-900 px-2 py-2 border border-slate-300 rounded hover:bg-slate-50 transition-colors focus:outline-none focus:ring-0"
               >

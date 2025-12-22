@@ -1308,14 +1308,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         </div>
 
         <div className="p-4 bg-white rounded-lg border border-slate-200">
-          <div className="flex items-center gap-2 text-slate-500 text-sm mb-3"><Filter size={16}/> 筛选条件:</div>
+
 
           {/* 第一行：任务名称搜索 */}
           <div className="mb-3">
             <label className="block text-xs text-slate-600 mb-1">任务名称</label>
             <input
               type="text"
-              placeholder="输入任务名称关键词..."
+              placeholder="筛选：输入任务名称关键词..."
               className="w-full border rounded px-3 py-2 text-sm"
               value={filterTaskName}
               onChange={e => setFilterTaskName(e.target.value)}

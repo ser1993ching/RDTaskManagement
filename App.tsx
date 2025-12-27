@@ -19,9 +19,6 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  // For task pool navigation after assignment
-  const [pendingNavigateTask, setPendingNavigateTask] = useState<string | null>(null);
-
   // Login Form State
   const [loginId, setLoginId] = useState('');
   const [loginPwd, setLoginPwd] = useState('');
@@ -41,22 +38,6 @@ const App: React.FC = () => {
     setProjects(dataService.getProjects());
     setTasks(dataService.getTasks());
   };
-
-  // Navigate to a specific task after assignment
-  const handleNavigateToTask = (taskId: string) => {
-    setPendingNavigateTask(taskId);
-    setCurrentView('tasks');
-  };
-
-  // Check for pending navigation after tasks are loaded
-  useEffect(() => {
-    if (pendingNavigateTask && tasks.length > 0) {
-      // The TaskView component will handle the selected task display
-      // based on the query parameter or we can use localStorage to pass the task ID
-      localStorage.setItem('rd_pending_task_id', pendingNavigateTask);
-      setPendingNavigateTask(null);
-    }
-  }, [pendingNavigateTask, tasks]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,7 +127,6 @@ const App: React.FC = () => {
           projects={projects}
           users={users}
           onRefresh={refreshData}
-          onNavigateToTask={handleNavigateToTask}
         />
       )}
       {currentView === 'settings' && <SettingsComponent currentUser={currentUser} />}

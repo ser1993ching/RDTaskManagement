@@ -2,19 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { TaskPoolItem, TaskClass, User, Project, Task, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Edit2, Trash2, User as UserIcon, Calendar, X, CheckCircle, FolderOpen, Copy } from 'lucide-react';
 import { dataService } from '../services/dataService';
+import AutocompleteInput from './AutocompleteInput';
 
 interface TaskPoolViewProps {
   currentUser: User;
   projects: Project[];
   users: User[];
   onRefresh: () => void;
-  onNavigateToTask: (taskId: string) => void;
 }
 
 // Task class IDs allowed for pool creation (excluding MEETING_TRAINING and TRAVEL)
 const ALLOWED_TASK_CLASS_IDS = ['TC001', 'TC002', 'TC003', 'TC004', 'TC005', 'TC006', 'TC008', 'TC010'];
 
-export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, projects, users, onRefresh, onNavigateToTask }) => {
+export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, projects, users, onRefresh }) => {
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
   const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [poolItems, setPoolItems] = useState<TaskPoolItem[]>([]);
@@ -25,6 +25,15 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
   const [formData, setFormData] = useState<Partial<TaskPoolItem>>({});
   const [assignFormData, setAssignFormData] = useState<Partial<Task>>({});
   const [originalPoolTaskName, setOriginalPoolTaskName] = useState<string>('');
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+
+  // Show toast notification
+  const showToast = (message: string) => {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast({ message: '', visible: false });
+    }, 2000);
+  };
 
   // Load task classes on mount
   useEffect(() => {
@@ -34,9 +43,13 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     loadPoolItems();
   }, []);
 
-  // Load pool items
+  // Load pool items (sorted by CreatedDate descending - newest first)
   const loadPoolItems = () => {
-    setPoolItems(dataService.getTaskPoolItems());
+    const items = [...dataService.getTaskPoolItems()];
+    items.sort((a, b) =>
+      new Date(b.CreatedDate).getTime() - new Date(a.CreatedDate).getTime()
+    );
+    setPoolItems(items);
   };
 
   const activeTaskClass = taskClasses.find(tc => tc.id === formData.TaskClassID);
@@ -113,11 +126,9 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     return project?.name || '';
   };
 
-  // Get capacity level for project
-  const getProjectCapacity = (projectId?: string): string | undefined => {
-    if (!projectId) return undefined;
-    const project = projects.find(p => p.id === projectId);
-    return project?.capacity;
+  // Filter users (exclude admin and 离岗 users)
+  const getAvailableUsers = () => {
+    return users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin');
   };
 
   // Open create modal
@@ -128,11 +139,16 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       TaskClassID: taskClasses[0]?.id || '',
       Category: '',
       ProjectID: '',
+      ProjectName: '',
       PersonInChargeID: '',
+      PersonInChargeName: '',
       ReviewerID: '',
+      ReviewerName: '',
       ReviewerID2: '',
+      Reviewer2Name: '',
       StartDate: '',
       DueDate: '',
+      isForceAssessment: false,
       Remark: ''
     });
     setIsModalOpen(true);
@@ -167,6 +183,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       TaskClassID: item.TaskClassID,
       Category: item.Category,
       ProjectID: item.ProjectID || '',
+      ProjectName: item.ProjectName || '',
       AssigneeID: item.PersonInChargeID || '',
       AssigneeName: item.PersonInChargeName || '',
       ReviewerID: item.ReviewerID || '',
@@ -178,7 +195,6 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       StartDate: item.StartDate || '',
       DueDate: item.DueDate || '',
       Workload: undefined,
-      Difficulty: 1.0,
       isForceAssessment: false,
       Remark: item.Remark || ''
     });
@@ -203,6 +219,22 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     }
   }, [assignFormData.ProjectID, assignFormData.Category, isAssignModalOpen]);
 
+  // Auto-generate task name based on project and category
+  useEffect(() => {
+    if (isModalOpen && formData.ProjectID && formData.Category) {
+      const proj = projects.find(p => p.id === formData.ProjectID);
+      const projName = proj ? proj.name : '';
+      const category = formData.Category || '';
+
+      if (projName && category) {
+        setFormData(prev => ({
+          ...prev,
+          TaskName: `${projName}-${category}`
+        }));
+      }
+    }
+  }, [formData.ProjectID, formData.Category, isModalOpen, projects]);
+
   // Handle form submit (create/update)
   const handleSubmit = () => {
     if (!formData.TaskName || !formData.TaskClassID) {
@@ -218,16 +250,17 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       ProjectID: formData.ProjectID,
       ProjectName: formData.ProjectID ? getProjectName(formData.ProjectID) : undefined,
       PersonInChargeID: formData.PersonInChargeID,
-      PersonInChargeName: formData.PersonInChargeID ? getUserName(formData.PersonInChargeID) : undefined,
+      PersonInChargeName: formData.PersonInChargeName,
       ReviewerID: formData.ReviewerID,
       ReviewerID2: formData.ReviewerID2,
-      ReviewerName: formData.ReviewerID ? getUserName(formData.ReviewerID) : undefined,
-      Reviewer2Name: formData.ReviewerID2 ? getUserName(formData.ReviewerID2) : undefined,
+      ReviewerName: formData.ReviewerName,
+      Reviewer2Name: formData.Reviewer2Name,
       StartDate: formData.StartDate,
       DueDate: formData.DueDate,
       CreatedBy: editingItem?.CreatedBy || currentUser.UserID,
       CreatedByName: editingItem?.CreatedByName || currentUser.Name,
       CreatedDate: editingItem?.CreatedDate || new Date().toISOString().split('T')[0],
+      isForceAssessment: formData.isForceAssessment || false,
       Remark: formData.Remark,
       is_deleted: false
     };
@@ -252,7 +285,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     if (!assigningItem) return;
 
     if (!assignFormData.AssigneeID && !assignFormData.AssigneeName) {
-      alert('请选择执行人或输入执行人姓名');
+      alert('请选择负责人或输入负责人姓名');
       return;
     }
 
@@ -262,14 +295,14 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     }
 
     try {
-      const newTask = dataService.assignPoolItemToTask(assigningItem.id, assignFormData);
+      dataService.assignPoolItemToTask(assigningItem.id, assignFormData);
       setIsAssignModalOpen(false);
       loadPoolItems();
       onRefresh();
-      // Navigate to the new task
-      onNavigateToTask(newTask.TaskID);
+      // Show toast notification
+      showToast('任务分配成功！');
     } catch (error) {
-      alert('分配任务失败：' + (error as Error).message);
+      showToast('分配任务失败：' + (error as Error).message);
     }
   };
 
@@ -279,25 +312,92 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     return tc?.name || '';
   };
 
-  // Get project category for task class
-  const getProjectCategoryForTaskClass = (taskClassCode: string): ProjectCategory | null => {
-    switch (taskClassCode) {
-      case 'TC001': return ProjectCategory.MARKET;
-      case 'TC002': return ProjectCategory.EXECUTION;
-      case 'TC003': return ProjectCategory.NUCLEAR;
-      case 'TC004':
-      case 'TC005': return ProjectCategory.RESEARCH;
-      case 'TC006': return ProjectCategory.RENOVATION;
-      case 'TC008':
-      case 'TC010': return ProjectCategory.OTHER;
-      default: return null;
+  // Filter state
+  const [filters, setFilters] = useState({
+    taskName: '',
+    projectName: '',
+    personInChargeName: '',
+    createdByName: '',
+    startDateFrom: '',
+    startDateTo: '',
+    isForceAssessment: '' as '' | boolean
+  });
+
+  // Filtered pool items
+  const filteredPoolItems = poolItems.filter(item => {
+    // Task name filter
+    if (filters.taskName && !item.TaskName.toLowerCase().includes(filters.taskName.toLowerCase())) {
+      return false;
     }
+    // Project name filter
+    if (filters.projectName && !item.ProjectName?.toLowerCase().includes(filters.projectName.toLowerCase())) {
+      return false;
+    }
+    // Person in charge filter
+    if (filters.personInChargeName && !item.PersonInChargeName?.toLowerCase().includes(filters.personInChargeName.toLowerCase())) {
+      return false;
+    }
+    // Created by filter
+    if (filters.createdByName && !item.CreatedByName?.toLowerCase().includes(filters.createdByName.toLowerCase())) {
+      return false;
+    }
+    // Start date from filter
+    if (filters.startDateFrom && item.StartDate && item.StartDate < filters.startDateFrom) {
+      return false;
+    }
+    // Start date to filter
+    if (filters.startDateTo && item.StartDate && item.StartDate > filters.startDateTo) {
+      return false;
+    }
+    // Force assessment filter
+    if (filters.isForceAssessment !== '' && item.isForceAssessment !== filters.isForceAssessment) {
+      return false;
+    }
+    return true;
+  });
+
+  // Clear filters
+  const clearFilters = () => {
+    setFilters({
+      taskName: '',
+      projectName: '',
+      personInChargeName: '',
+      createdByName: '',
+      startDateFrom: '',
+      startDateTo: '',
+      isForceAssessment: ''
+    });
   };
+
+  // Force assessment toggle for filter (matching TaskView style)
+  const FilterForceAssessmentToggle = ({
+    checked,
+    onChange
+  }: {
+    checked: boolean | '';
+    onChange: (checked: boolean | '') => void;
+  }) => (
+    <div className="flex items-end pb-2 flex-shrink-0">
+      <label className="flex items-center gap-1 cursor-pointer">
+        <input type="checkbox" className="hidden" checked={checked === true} onChange={e => {
+          onChange(e.target.checked ? true : '');
+        }} />
+        <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${checked === true ? 'bg-blue-600' : 'bg-slate-300'}`}>
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked === true ? 'translate-x-6' : 'translate-x-0'}`}></span>
+        </span>
+        <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
+      </label>
+    </div>
+  );
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold">任务库</h2>
+        <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+          共 {filteredPoolItems.length} 个任务计划
+        </span>
+        <div className="flex-1"></div>
         <button
           onClick={handleOpenCreateModal}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -307,8 +407,82 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
         </button>
       </div>
 
+      {/* Filter Bar */}
+      <div className="bg-white rounded-lg shadow mb-4 p-4">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="w-80">
+            <label className="block text-xs text-gray-500 mb-1">任务名称</label>
+            <input
+              type="text"
+              value={filters.taskName}
+              onChange={e => setFilters({ ...filters, taskName: e.target.value })}
+              placeholder="搜索任务名称"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="w-48">
+            <label className="block text-xs text-gray-500 mb-1">关联项目</label>
+            <input
+              type="text"
+              value={filters.projectName}
+              onChange={e => setFilters({ ...filters, projectName: e.target.value })}
+              placeholder="搜索项目"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="w-32">
+            <label className="block text-xs text-gray-500 mb-1">负责人</label>
+            <input
+              type="text"
+              value={filters.personInChargeName}
+              onChange={e => setFilters({ ...filters, personInChargeName: e.target.value })}
+              placeholder="搜索负责人"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="w-32">
+            <label className="block text-xs text-gray-500 mb-1">创建人</label>
+            <input
+              type="text"
+              value={filters.createdByName}
+              onChange={e => setFilters({ ...filters, createdByName: e.target.value })}
+              placeholder="搜索创建人"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="w-36">
+            <label className="block text-xs text-gray-500 mb-1">开始日期（从）</label>
+            <input
+              type="date"
+              value={filters.startDateFrom}
+              onChange={e => setFilters({ ...filters, startDateFrom: e.target.value })}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="w-36">
+            <label className="block text-xs text-gray-500 mb-1">开始日期（到）</label>
+            <input
+              type="date"
+              value={filters.startDateTo}
+              onChange={e => setFilters({ ...filters, startDateTo: e.target.value })}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <FilterForceAssessmentToggle
+            checked={filters.isForceAssessment}
+            onChange={(checked) => setFilters({ ...filters, isForceAssessment: checked })}
+          />
+          <button
+            onClick={clearFilters}
+            className="px-4 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            重置
+          </button>
+        </div>
+      </div>
+
       {/* Pool Items List */}
-      {poolItems.length === 0 ? (
+      {filteredPoolItems.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <FolderOpen size={48} className="mx-auto mb-4 opacity-50" />
           <p>暂无任务计划</p>
@@ -327,13 +501,20 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">开始时间</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">截止时间</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">创建人</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {poolItems.map(item => (
+              {filteredPoolItems
+                .sort((a, b) => new Date(b.CreatedDate).getTime() - new Date(a.CreatedDate).getTime())
+                .map(item => (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{item.TaskName}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {item.isForceAssessment && (
+                      <span className="inline-block w-1 h-4 bg-red-500 mr-2 rounded"></span>
+                    )}
+                    {item.TaskName}
+                  </td>
                   <td className="px-4 py-3 text-sm">
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
                       {getTaskClassName(item.TaskClassID)} - {item.Category}
@@ -387,7 +568,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       {/* Create/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">{editingItem ? '编辑任务计划' : '新建任务计划'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
@@ -396,22 +577,38 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
             </div>
 
             <div className="space-y-4">
-              {/* Task Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  任务名称 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.TaskName || ''}
-                  onChange={e => setFormData({ ...formData, TaskName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="请输入任务名称"
-                />
+              {/* Task Name and Force Assessment */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    任务名称 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.TaskName || ''}
+                    onChange={e => setFormData({ ...formData, TaskName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="请输入任务名称"
+                  />
+                </div>
+                <div className="pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={formData.isForceAssessment || false}
+                      onChange={e => setFormData({ ...formData, isForceAssessment: e.target.checked })}
+                    />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
+                  </label>
+                </div>
               </div>
 
-              {/* Task Class and Category */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Task Class, Category and Project */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     任务类别 <span className="text-red-500">*</span>
@@ -424,7 +621,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                         ...formData,
                         TaskClassID: tcId,
                         Category: '',
-                        ProjectID: ''
+                        ProjectID: '',
+                        ProjectName: ''
                       });
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -447,63 +645,145 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                     ))}
                   </select>
                 </div>
-              </div>
-
-              {/* Project */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">关联项目</label>
-                <select
-                  value={formData.ProjectID || ''}
-                  onChange={e => setFormData({ ...formData, ProjectID: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">无关联项目</option>
-                  {getFilteredProjects(formData.TaskClassID || '').map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">关联项目</label>
+                  <AutocompleteInput
+                    id="pool-project-autocomplete"
+                    value={formData.ProjectName || ''}
+                    options={getFilteredProjects(formData.TaskClassID || '').map(p => p.name)}
+                    onChange={(value) => {
+                      const project = getFilteredProjects(formData.TaskClassID || '').find(p => p.name === value);
+                      setFormData({
+                        ...formData,
+                        ProjectID: project?.id || '',
+                        ProjectName: value
+                      });
+                    }}
+                    onSelect={(value) => {
+                      const project = getFilteredProjects(formData.TaskClassID || '').find(p => p.name === value);
+                      if (project) {
+                        setFormData({
+                          ...formData,
+                          ProjectID: project.id,
+                          ProjectName: project.name
+                        });
+                      }
+                    }}
+                    placeholder="搜索或输入项目名称..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
 
               {/* Person in Charge and Reviewers */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">负责人</label>
-                  <select
-                    value={formData.PersonInChargeID || ''}
-                    onChange={e => setFormData({ ...formData, PersonInChargeID: e.target.value })}
+                  <AutocompleteInput
+                    id="pool-person-in-charge-autocomplete"
+                    value={formData.PersonInChargeName || ''}
+                    options={getAvailableUsers().map(u => u.Name)}
+                    onChange={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setFormData({
+                          ...formData,
+                          PersonInChargeID: user.UserID,
+                          PersonInChargeName: user.Name
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          PersonInChargeID: '',
+                          PersonInChargeName: value
+                        });
+                      }
+                    }}
+                    onSelect={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setFormData({
+                          ...formData,
+                          PersonInChargeID: user.UserID,
+                          PersonInChargeName: user.Name
+                        });
+                      }
+                    }}
+                    placeholder="搜索或输入负责人姓名..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">请选择</option>
-                    {users.filter(u => u.Status === '在岗').map(u => (
-                      <option key={u.UserID} value={u.UserID}>{u.Name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">校核人</label>
-                  <select
-                    value={formData.ReviewerID || ''}
-                    onChange={e => setFormData({ ...formData, ReviewerID: e.target.value })}
+                  <AutocompleteInput
+                    id="pool-reviewer-autocomplete"
+                    value={formData.ReviewerName || ''}
+                    options={getAvailableUsers().map(u => u.Name)}
+                    onChange={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setFormData({
+                          ...formData,
+                          ReviewerID: user.UserID,
+                          ReviewerName: user.Name
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          ReviewerID: '',
+                          ReviewerName: value
+                        });
+                      }
+                    }}
+                    onSelect={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setFormData({
+                          ...formData,
+                          ReviewerID: user.UserID,
+                          ReviewerName: user.Name
+                        });
+                      }
+                    }}
+                    placeholder="搜索或输入校核人姓名..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">请选择</option>
-                    {users.filter(u => u.Status === '在岗').map(u => (
-                      <option key={u.UserID} value={u.UserID}>{u.Name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">审查人</label>
-                  <select
-                    value={formData.ReviewerID2 || ''}
-                    onChange={e => setFormData({ ...formData, ReviewerID2: e.target.value })}
+                  <AutocompleteInput
+                    id="pool-reviewer2-autocomplete"
+                    value={formData.Reviewer2Name || ''}
+                    options={getAvailableUsers().map(u => u.Name)}
+                    onChange={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setFormData({
+                          ...formData,
+                          ReviewerID2: user.UserID,
+                          Reviewer2Name: user.Name
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          ReviewerID2: '',
+                          Reviewer2Name: value
+                        });
+                      }
+                    }}
+                    onSelect={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setFormData({
+                          ...formData,
+                          ReviewerID2: user.UserID,
+                          Reviewer2Name: user.Name
+                        });
+                      }
+                    }}
+                    placeholder="搜索或输入审查人姓名..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">请选择</option>
-                    {users.filter(u => u.Status === '在岗').map(u => (
-                      <option key={u.UserID} value={u.UserID}>{u.Name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -560,10 +840,10 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
         </div>
       )}
 
-      {/* Assign Modal - Similar to TaskView create form */}
+      {/* Assign Modal */}
       {isAssignModalOpen && assigningItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">分配任务</h3>
               <button onClick={() => setIsAssignModalOpen(false)} className="text-gray-500 hover:text-gray-700">
@@ -571,43 +851,39 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
               </button>
             </div>
 
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>任务计划：</strong>{assigningItem.TaskName}
-                <span className="mx-2">|</span>
-                <strong>任务类别：</strong>{getTaskClassName(assigningItem.TaskClassID)} - {assigningItem.Category}
-                {assigningItem.ProjectName && (
-                  <>
-                    <span className="mx-2">|</span>
-                    <strong>关联项目：</strong>{assigningItem.ProjectName}
-                  </>
-                )}
-                {(assigningItem.StartDate || assigningItem.DueDate) && (
-                  <>
-                    <span className="mx-2">|</span>
-                    <strong>计划时间：</strong>{assigningItem.StartDate || ''} 至 {assigningItem.DueDate || '待定'}
-                  </>
-                )}
-              </p>
-            </div>
-
             <form onSubmit={(e) => { e.preventDefault(); handleAssign(); }} className="space-y-4">
-              {/* Task Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  任务名称 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={assignFormData.TaskName || ''}
-                  onChange={e => setAssignFormData({ ...assignFormData, TaskName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="请输入任务名称"
-                />
+              {/* Task Name and Force Assessment */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    任务名称 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={assignFormData.TaskName || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, TaskName: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="请输入任务名称"
+                  />
+                </div>
+                <div className="pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={assignFormData.isForceAssessment || false}
+                      onChange={e => setAssignFormData({ ...assignFormData, isForceAssessment: e.target.checked })}
+                    />
+                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${assignFormData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${assignFormData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    </span>
+                    <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
+                  </label>
+                </div>
               </div>
 
-              {/* Task Class and Category */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Task Class, Category and Project */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     任务类别 <span className="text-red-500">*</span>
@@ -620,7 +896,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                         ...assignFormData,
                         TaskClassID: tcId,
                         Category: '',
-                        ProjectID: ''
+                        ProjectID: '',
+                        ProjectName: ''
                       });
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -646,67 +923,149 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                     ))}
                   </select>
                 </div>
-              </div>
-
-              {/* Project */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  关联项目 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={assignFormData.ProjectID || ''}
-                  onChange={e => setAssignFormData({ ...assignFormData, ProjectID: e.target.value })}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    关联项目 <span className="text-red-500">*</span>
+                  </label>
+                  <AutocompleteInput
+                    id="assign-project-autocomplete"
+                    value={assignFormData.ProjectName || ''}
+                  options={getFilteredProjects(assignFormData.TaskClassID || '').map(p => p.name)}
+                  onChange={(value) => {
+                    const project = getFilteredProjects(assignFormData.TaskClassID || '').find(p => p.name === value);
+                    setAssignFormData({
+                      ...assignFormData,
+                      ProjectID: project?.id || '',
+                      ProjectName: value
+                    });
+                  }}
+                  onSelect={(value) => {
+                    const project = getFilteredProjects(assignFormData.TaskClassID || '').find(p => p.name === value);
+                    if (project) {
+                      setAssignFormData({
+                        ...assignFormData,
+                        ProjectID: project.id,
+                        ProjectName: project.name
+                      });
+                    }
+                  }}
+                  placeholder="搜索或输入项目名称..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">请选择</option>
-                  {getFilteredProjects(assignFormData.TaskClassID || '').map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                />
+                </div>
               </div>
 
               {/* Assignee and Reviewers */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    执行人 <span className="text-red-500">*</span>
+                    负责人 <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={assignFormData.AssigneeID || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, AssigneeID: e.target.value, AssigneeName: '' })}
+                  <AutocompleteInput
+                    id="assign-assignee-autocomplete"
+                    value={assignFormData.AssigneeName || ''}
+                    options={getAvailableUsers().map(u => u.Name)}
+                    onChange={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setAssignFormData({
+                          ...assignFormData,
+                          AssigneeID: user.UserID,
+                          AssigneeName: user.Name
+                        });
+                      } else {
+                        setAssignFormData({
+                          ...assignFormData,
+                          AssigneeID: '',
+                          AssigneeName: value
+                        });
+                      }
+                    }}
+                    onSelect={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setAssignFormData({
+                          ...assignFormData,
+                          AssigneeID: user.UserID,
+                          AssigneeName: user.Name
+                        });
+                      }
+                    }}
+                    placeholder="搜索或输入负责人姓名..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">请选择</option>
-                    {users.filter(u => u.Status === '在岗').map(u => (
-                      <option key={u.UserID} value={u.UserID}>{u.Name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">校核人</label>
-                  <select
-                    value={assignFormData.ReviewerID || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, ReviewerID: e.target.value, ReviewerName: '' })}
+                  <AutocompleteInput
+                    id="assign-reviewer-autocomplete"
+                    value={assignFormData.ReviewerName || ''}
+                    options={getAvailableUsers().map(u => u.Name)}
+                    onChange={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setAssignFormData({
+                          ...assignFormData,
+                          ReviewerID: user.UserID,
+                          ReviewerName: user.Name
+                        });
+                      } else {
+                        setAssignFormData({
+                          ...assignFormData,
+                          ReviewerID: '',
+                          ReviewerName: value
+                        });
+                      }
+                    }}
+                    onSelect={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setAssignFormData({
+                          ...assignFormData,
+                          ReviewerID: user.UserID,
+                          ReviewerName: user.Name
+                        });
+                      }
+                    }}
+                    placeholder="搜索或输入校核人姓名..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">请选择</option>
-                    {users.filter(u => u.Status === '在岗').map(u => (
-                      <option key={u.UserID} value={u.UserID}>{u.Name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">审查人</label>
-                  <select
-                    value={assignFormData.ReviewerID2 || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, ReviewerID2: e.target.value, Reviewer2Name: '' })}
+                  <AutocompleteInput
+                    id="assign-reviewer2-autocomplete"
+                    value={assignFormData.Reviewer2Name || ''}
+                    options={getAvailableUsers().map(u => u.Name)}
+                    onChange={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setAssignFormData({
+                          ...assignFormData,
+                          ReviewerID2: user.UserID,
+                          Reviewer2Name: user.Name
+                        });
+                      } else {
+                        setAssignFormData({
+                          ...assignFormData,
+                          ReviewerID2: '',
+                          Reviewer2Name: value
+                        });
+                      }
+                    }}
+                    onSelect={(value) => {
+                      const user = getAvailableUsers().find(u => u.Name === value);
+                      if (user) {
+                        setAssignFormData({
+                          ...assignFormData,
+                          ReviewerID2: user.UserID,
+                          Reviewer2Name: user.Name
+                        });
+                      }
+                    }}
+                    placeholder="搜索或输入审查人姓名..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">请选择</option>
-                    {users.filter(u => u.Status === '在岗').map(u => (
-                      <option key={u.UserID} value={u.UserID}>{u.Name}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -732,8 +1091,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                 </div>
               </div>
 
-              {/* Workload and Difficulty */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Workload */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">预估工作量（人天）</label>
                   <input
@@ -746,31 +1105,27 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">难度系数</label>
-                  <select
-                    value={assignFormData.Difficulty || 1.0}
-                    onChange={e => setAssignFormData({ ...assignFormData, Difficulty: parseFloat(e.target.value) })}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">校核人工时</label>
+                  <input
+                    type="number"
+                    value={assignFormData.ReviewerWorkload || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, ReviewerWorkload: parseFloat(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="0.5">0.5 - 非常简单</option>
-                    <option value="1.0">1.0 - 简单</option>
-                    <option value="1.5">1.5 - 一般</option>
-                    <option value="2.0">2.0 - 困难</option>
-                    <option value="3.0">3.0 - 非常困难</option>
-                  </select>
+                    min="0"
+                    step="0.5"
+                  />
                 </div>
-              </div>
-
-              {/* Force Assessment */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="assignIsForceAssessment"
-                  checked={assignFormData.isForceAssessment || false}
-                  onChange={e => setAssignFormData({ ...assignFormData, isForceAssessment: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="assignIsForceAssessment" className="text-sm text-gray-700">强制考核</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">审查人工时</label>
+                  <input
+                    type="number"
+                    value={assignFormData.Reviewer2Workload || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, Reviewer2Workload: parseFloat(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="0"
+                    step="0.5"
+                  />
+                </div>
               </div>
 
               {/* Remark */}
@@ -801,6 +1156,13 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast.visible && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+          {toast.message}
         </div>
       )}
     </div>

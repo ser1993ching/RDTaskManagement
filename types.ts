@@ -133,6 +133,7 @@ export interface TaskPoolItem {
   CreatedBy: string; // 创建人
   CreatedByName?: string; // 创建人姓名
   CreatedDate: string; // 创建日期
+  isForceAssessment?: boolean; // 强制考核
   Remark?: string; // 备注
   is_deleted?: boolean; // 软删除
 }

@@ -517,6 +517,409 @@ const seedProjects: Project[] = [
   }
 ];
 
+// Task Pool Seed Data (20 items)
+const seedTaskPoolItems: TaskPoolItem[] = [
+  // TC001 - 市场配合项目
+  {
+    id: 'TP001',
+    TaskName: '某国外抽水蓄能电站投标-技术方案编制',
+    TaskClassID: 'TC001',
+    Category: '技术方案',
+    ProjectID: 'P001',
+    ProjectName: '某国外抽水蓄能电站投标项目',
+    PersonInChargeID: 'USER001',
+    PersonInChargeName: '李研发',
+    ReviewerID: 'LEADER001',
+    ReviewerName: '张组长',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-15',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-28',
+    isForceAssessment: true,
+    Remark: '重点投标项目，需优先完成'
+  },
+  {
+    id: 'TP002',
+    TaskName: '国内大型水电站投标-报价分析',
+    TaskClassID: 'TC001',
+    Category: '报价分析',
+    ProjectID: 'P002',
+    ProjectName: '国内大型水电站投标项目',
+    PersonInChargeID: 'USER002',
+    PersonInChargeName: '王设计',
+    ReviewerID: 'LEADER001',
+    ReviewerName: '张组长',
+    StartDate: '2025-12-05',
+    DueDate: '2025-12-20',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-25',
+    isForceAssessment: false,
+    Remark: ''
+  },
+  {
+    id: 'TP003',
+    TaskName: '抽水蓄能技术方案-设计优化',
+    TaskClassID: 'TC001',
+    Category: '设计优化',
+    ProjectID: 'P005',
+    ProjectName: '抽水蓄能电站技术方案项目',
+    PersonInChargeID: 'USER003',
+    PersonInChargeName: '陈工程师',
+    ReviewerID: 'USER001',
+    ReviewerName: '李研发',
+    StartDate: '2025-12-10',
+    DueDate: '2025-12-25',
+    CreatedBy: 'admin',
+    CreatedByName: '系统管理员',
+    CreatedDate: '2025-11-20',
+    isForceAssessment: false,
+    Remark: '配合中标项目的技术优化'
+  },
+
+  // TC002 - 常规项目
+  {
+    id: 'TP004',
+    TaskName: '白鹤滩水电站-施工图设计',
+    TaskClassID: 'TC002',
+    Category: '施工图设计',
+    ProjectID: 'P006',
+    ProjectName: '白鹤滩水电站左岸机组制造',
+    PersonInChargeID: 'USER001',
+    PersonInChargeName: '李研发',
+    ReviewerID: 'USER002',
+    ReviewerName: '王设计',
+    ReviewerID2: 'LEADER001',
+    Reviewer2Name: '张组长',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-31',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-15',
+    isForceAssessment: true,
+    Remark: '关键节点，按期完成'
+  },
+  {
+    id: 'TP005',
+    TaskName: '溪洛渡改造-技术方案',
+    TaskClassID: 'TC002',
+    Category: '技术方案',
+    ProjectID: 'P007',
+    ProjectName: '溪洛渡水电站机组改造项目',
+    PersonInChargeID: 'USER003',
+    PersonInChargeName: '陈工程师',
+    ReviewerID: 'USER006',
+    ReviewerName: '孙质量',
+    StartDate: '2025-12-08',
+    DueDate: '2025-12-22',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-18',
+    isForceAssessment: false,
+    Remark: ''
+  },
+  {
+    id: 'TP006',
+    TaskName: '向家坝优化-现场配合',
+    TaskClassID: 'TC002',
+    Category: '现场配合',
+    ProjectID: 'P008',
+    ProjectName: '向家坝水电站优化项目',
+    PersonInChargeID: 'USER004',
+    PersonInChargeName: '刘技术',
+    ReviewerID: 'USER005',
+    ReviewerName: '赵项目',
+    StartDate: '2025-12-15',
+    DueDate: '2025-12-29',
+    CreatedBy: 'USER005',
+    CreatedByName: '赵项目',
+    CreatedDate: '2025-11-22',
+    isForceAssessment: false,
+    Remark: '需要现场出差'
+  },
+  {
+    id: 'TP007',
+    TaskName: '龙滩扩建-图纸会签',
+    TaskClassID: 'TC002',
+    Category: '图纸会签',
+    ProjectID: 'P010',
+    ProjectName: '龙滩水电站扩建项目',
+    PersonInChargeID: 'USER006',
+    PersonInChargeName: '孙质量',
+    ReviewerID: 'USER002',
+    ReviewerName: '王设计',
+    StartDate: '2025-12-03',
+    DueDate: '2025-12-17',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-10',
+    isForceAssessment: true,
+    Remark: '会签流程需加快'
+  },
+
+  // TC003 - 核电项目
+  {
+    id: 'TP008',
+    TaskName: '华龙一号-设计计算',
+    TaskClassID: 'TC003',
+    Category: '设计计算',
+    ProjectID: 'P011',
+    ProjectName: '华龙一号常规岛设计项目',
+    PersonInChargeID: 'USER001',
+    PersonInChargeName: '李研发',
+    ReviewerID: 'LEADER001',
+    ReviewerName: '张组长',
+    ReviewerID2: 'USER007',
+    Reviewer2Name: '周工艺',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-20',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-12',
+    isForceAssessment: true,
+    Remark: '核电项目，安全第一'
+  },
+  {
+    id: 'TP009',
+    TaskName: 'CAP1400-技术评审',
+    TaskClassID: 'TC003',
+    Category: '技术评审',
+    ProjectID: 'P012',
+    ProjectName: 'CAP1400核电项目配合',
+    PersonInChargeID: 'USER002',
+    PersonInChargeName: '王设计',
+    ReviewerID: 'USER001',
+    ReviewerName: '李研发',
+    StartDate: '2025-12-05',
+    DueDate: '2025-12-19',
+    CreatedBy: 'admin',
+    CreatedByName: '系统管理员',
+    CreatedDate: '2025-11-08',
+    isForceAssessment: false,
+    Remark: ''
+  },
+  {
+    id: 'TP010',
+    TaskName: '高温气冷堆-方案设计',
+    TaskClassID: 'TC003',
+    Category: '方案设计',
+    ProjectID: 'P014',
+    ProjectName: '高温气冷堆常规岛项目',
+    PersonInChargeID: 'USER003',
+    PersonInChargeName: '陈工程师',
+    ReviewerID: 'LEADER001',
+    ReviewerName: '张组长',
+    StartDate: '2025-12-10',
+    DueDate: '2025-12-24',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-05',
+    isForceAssessment: false,
+    Remark: '新技术路线，需谨慎'
+  },
+
+  // TC004 - 产品研发
+  {
+    id: 'TP011',
+    TaskName: '新型叶片-材料测试',
+    TaskClassID: 'TC004',
+    Category: '材料测试',
+    ProjectID: 'P016',
+    ProjectName: '新型水轮机叶片材料研发',
+    PersonInChargeID: 'USER006',
+    PersonInChargeName: '孙质量',
+    ReviewerID: 'USER003',
+    ReviewerName: '陈工程师',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-15',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-01',
+    isForceAssessment: true,
+    Remark: '研发关键阶段'
+  },
+  {
+    id: 'TP012',
+    TaskName: '智能监测-算法开发',
+    TaskClassID: 'TC004',
+    Category: '软件开发',
+    ProjectID: 'P017',
+    ProjectName: '水电站智能监测系统研发',
+    PersonInChargeID: 'USER004',
+    PersonInChargeName: '刘技术',
+    ReviewerID: 'USER001',
+    ReviewerName: '李研发',
+    StartDate: '2025-12-08',
+    DueDate: '2025-12-22',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-03',
+    isForceAssessment: false,
+    Remark: ''
+  },
+
+  // TC005 - 科研项目
+  {
+    id: 'TP013',
+    TaskName: ' CFD分析-模型建立',
+    TaskClassID: 'TC005',
+    Category: '数值模拟',
+    ProjectID: 'P018',
+    ProjectName: '水轮机 CFD 性能优化研究',
+    PersonInChargeID: 'USER001',
+    PersonInChargeName: '李研发',
+    ReviewerID: 'USER002',
+    ReviewerName: '王设计',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-20',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-10-28',
+    isForceAssessment: false,
+    Remark: '科研课题结题准备'
+  },
+  {
+    id: 'TP014',
+    TaskName: '振动研究-实验测试',
+    TaskClassID: 'TC005',
+    Category: '实验测试',
+    ProjectID: 'P019',
+    ProjectName: '水轮机振动特性研究',
+    PersonInChargeID: 'USER003',
+    PersonInChargeName: '陈工程师',
+    ReviewerID: 'USER006',
+    ReviewerName: '孙质量',
+    StartDate: '2025-12-05',
+    DueDate: '2025-12-19',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-10-25',
+    isForceAssessment: false,
+    Remark: ''
+  },
+
+  // TC006 - 改造项目
+  {
+    id: 'TP015',
+    TaskName: '三峡改造-设计评审',
+    TaskClassID: 'TC006',
+    Category: '设计评审',
+    ProjectID: 'P021',
+    ProjectName: '三峡左岸机组改造项目',
+    PersonInChargeID: 'USER002',
+    PersonInChargeName: '王设计',
+    ReviewerID: 'LEADER001',
+    ReviewerName: '张组长',
+    ReviewerID2: 'USER005',
+    Reviewer2Name: '赵项目',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-15',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-02',
+    isForceAssessment: true,
+    Remark: '重点项目，优先处理'
+  },
+  {
+    id: 'TP016',
+    TaskName: '葛洲坝改造-施工方案',
+    TaskClassID: 'TC006',
+    Category: '施工方案',
+    ProjectID: 'P022',
+    ProjectName: '葛洲坝水电站机电改造',
+    PersonInChargeID: 'USER004',
+    PersonInChargeName: '刘技术',
+    ReviewerID: 'USER003',
+    ReviewerName: '陈工程师',
+    StartDate: '2025-12-10',
+    DueDate: '2025-12-24',
+    CreatedBy: 'USER005',
+    CreatedByName: '赵项目',
+    CreatedDate: '2025-11-10',
+    isForceAssessment: false,
+    Remark: ''
+  },
+  {
+    id: 'TP017',
+    TaskName: '小浪底更新-设备选型',
+    TaskClassID: 'TC006',
+    Category: '设备选型',
+    ProjectID: 'P023',
+    ProjectName: '小浪底水电站设备更新',
+    PersonInChargeID: 'USER006',
+    PersonInChargeName: '孙质量',
+    ReviewerID: 'USER002',
+    ReviewerName: '王设计',
+    StartDate: '2025-12-08',
+    DueDate: '2025-12-22',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-15',
+    isForceAssessment: false,
+    Remark: ''
+  },
+
+  // TC008 - 行政与党建
+  {
+    id: 'TP018',
+    TaskName: '年度总结报告',
+    TaskClassID: 'TC008',
+    Category: '行政事务',
+    ProjectID: undefined,
+    PersonInChargeID: 'LEADER001',
+    PersonInChargeName: '张组长',
+    ReviewerID: 'admin',
+    ReviewerName: '系统管理员',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-15',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-20',
+    isForceAssessment: false,
+    Remark: '年度工作汇报'
+  },
+  {
+    id: 'TP019',
+    TaskName: '党支部活动组织',
+    TaskClassID: 'TC008',
+    Category: '党建活动',
+    ProjectID: undefined,
+    PersonInChargeID: 'USER005',
+    PersonInChargeName: '赵项目',
+    ReviewerID: 'LEADER001',
+    ReviewerName: '张组长',
+    StartDate: '2025-12-15',
+    DueDate: '2025-12-25',
+    CreatedBy: 'LEADER001',
+    CreatedByName: '张组长',
+    CreatedDate: '2025-11-18',
+    isForceAssessment: false,
+    Remark: '12月主题党日活动'
+  },
+
+  // TC010 - 其他
+  {
+    id: 'TP020',
+    TaskName: '技术标准编制',
+    TaskClassID: 'TC010',
+    Category: '标准规范',
+    ProjectID: 'P027',
+    ProjectName: '水电行业标准制定项目',
+    PersonInChargeID: 'USER001',
+    PersonInChargeName: '李研发',
+    ReviewerID: 'LEADER001',
+    ReviewerName: '张组长',
+    StartDate: '2025-12-01',
+    DueDate: '2025-12-30',
+    CreatedBy: 'admin',
+    CreatedByName: '系统管理员',
+    CreatedDate: '2025-11-01',
+    isForceAssessment: false,
+    Remark: '行业标准参编工作'
+  }
+];
+
 const seedTaskClasses: TaskClass[] = [
   {
     id: 'TC001',
@@ -1390,6 +1793,10 @@ class DataService {
     if (!localStorage.getItem(STORAGE_KEYS.TASK_CATEGORIES)) {
       localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
     }
+    // Initialize task pool if not exist
+    if (!localStorage.getItem(STORAGE_KEYS.TASK_POOL)) {
+      localStorage.setItem(STORAGE_KEYS.TASK_POOL, JSON.stringify(seedTaskPoolItems));
+    }
     // Initialize settings from existing data
     this.initializeSettings();
   }
@@ -1405,6 +1812,7 @@ class DataService {
     localStorage.removeItem(STORAGE_KEYS.TASKS);
     localStorage.removeItem(STORAGE_KEYS.TASK_CLASSES);
     localStorage.removeItem(STORAGE_KEYS.TASK_CATEGORIES);
+    localStorage.removeItem(STORAGE_KEYS.TASK_POOL);
     localStorage.removeItem(STORAGE_KEYS.EQUIPMENT_MODELS);
     localStorage.removeItem(STORAGE_KEYS.CAPACITY_LEVELS);
     localStorage.removeItem(STORAGE_KEYS.TRAVEL_LABELS);
@@ -1416,6 +1824,7 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
     localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
     localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
+    localStorage.setItem(STORAGE_KEYS.TASK_POOL, JSON.stringify(seedTaskPoolItems));
 
     // 恢复当前用户会话
     if (currentUser) {

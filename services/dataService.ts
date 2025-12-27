@@ -1,4 +1,4 @@
-import { User, Project, Task, TaskClass, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus } from '../types';
+import { User, Project, Task, TaskClass, TaskPoolItem, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus } from '../types';
 
 const STORAGE_KEYS = {
   USERS: 'rd_users',
@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
   CAPACITY_LEVELS: 'rd_capacity_levels',
   TRAVEL_LABELS: 'rd_travel_labels',
   USER_AVATARS: 'rd_user_avatars',
-  TASK_CATEGORIES: 'rd_task_categories'
+  TASK_CATEGORIES: 'rd_task_categories',
+  TASK_POOL: 'rd_task_pool'
 };
 
 // Default task categories configuration
@@ -1608,6 +1609,103 @@ class DataService {
       taskCount,
       taskClassCode: taskClass?.code || ''
     };
+  }
+
+  // --- Task Pool (任务库) Management ---
+
+  getTaskPoolItems(): TaskPoolItem[] {
+    const data = localStorage.getItem(STORAGE_KEYS.TASK_POOL);
+    return data ? JSON.parse(data).filter((item: TaskPoolItem) => !item.is_deleted).sort((a: TaskPoolItem, b: TaskPoolItem) => new Date(b.CreatedDate).getTime() - new Date(a.CreatedDate).getTime()) : [];
+  }
+
+  getTaskPoolItem(id: string): TaskPoolItem | undefined {
+    const items = this.getAllTaskPoolItemsRaw();
+    return items.find(item => item.id === id && !item.is_deleted);
+  }
+
+  saveTaskPoolItem(item: TaskPoolItem): void {
+    const items = this.getAllTaskPoolItemsRaw();
+    const index = items.findIndex(i => i.id === item.id);
+    if (index >= 0) {
+      items[index] = item;
+    } else {
+      items.push(item);
+    }
+    localStorage.setItem(STORAGE_KEYS.TASK_POOL, JSON.stringify(items));
+  }
+
+  deleteTaskPoolItem(id: string): void {
+    const items = this.getAllTaskPoolItemsRaw();
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item.is_deleted = true;
+      localStorage.setItem(STORAGE_KEYS.TASK_POOL, JSON.stringify(items));
+    }
+  }
+
+  private getAllTaskPoolItemsRaw(): TaskPoolItem[] {
+    const data = localStorage.getItem(STORAGE_KEYS.TASK_POOL);
+    return data ? JSON.parse(data) : [];
+  }
+
+  // Assign a pool item to become a full task
+  assignPoolItemToTask(poolItemId: string, taskData: Partial<Task>): Task {
+    const poolItems = this.getAllTaskPoolItemsRaw();
+    const poolItem = poolItems.find(i => i.id === poolItemId);
+
+    if (!poolItem) {
+      throw new Error('任务计划不存在');
+    }
+
+    // Get project info for capacity level
+    let capacityLevel: string | undefined;
+    if (poolItem.ProjectID) {
+      const projects = this.getAllProjectsRaw();
+      const project = projects.find(p => p.id === poolItem.ProjectID);
+      if (project) {
+        capacityLevel = project.capacity;
+      }
+    }
+
+    // Create new task from pool item
+    const newTask: Task = {
+      TaskID: this.generateId('T'),
+      TaskName: poolItem.TaskName,
+      TaskClassID: poolItem.TaskClassID,
+      Category: poolItem.Category,
+      ProjectID: poolItem.ProjectID,
+      AssigneeID: taskData.AssigneeID,
+      AssigneeName: taskData.AssigneeName,
+      StartDate: poolItem.StartDate,
+      DueDate: poolItem.DueDate,
+      Status: TaskStatus.NOT_STARTED,
+      Workload: taskData.Workload,
+      Difficulty: taskData.Difficulty,
+      Remark: poolItem.Remark || taskData.Remark,
+      CreatedDate: new Date().toISOString().split('T')[0],
+      CreatedBy: poolItem.CreatedBy,
+      ReviewerID: taskData.ReviewerID,
+      ReviewerID2: taskData.ReviewerID2,
+      ReviewerName: taskData.ReviewerName,
+      Reviewer2Name: taskData.Reviewer2Name,
+      ReviewerWorkload: taskData.ReviewerWorkload,
+      Reviewer2Workload: taskData.Reviewer2Workload,
+      isForceAssessment: taskData.isForceAssessment,
+      CapacityLevel: capacityLevel,
+      is_in_pool: false
+    };
+
+    // Save the new task
+    this.saveTask(newTask);
+
+    // Soft delete the pool item
+    const itemIndex = poolItems.findIndex(i => i.id === poolItemId);
+    if (itemIndex >= 0) {
+      poolItems[itemIndex].is_deleted = true;
+      localStorage.setItem(STORAGE_KEYS.TASK_POOL, JSON.stringify(poolItems));
+    }
+
+    return newTask;
   }
 
   // Task Category Management

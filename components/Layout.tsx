@@ -7,7 +7,8 @@ import {
   LayoutDashboard,
   LogOut,
   UserCircle,
-  Settings
+  Settings,
+  FolderKanban
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -22,9 +23,16 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
   const menuItems = [
     { id: 'dashboard', label: '工作台', icon: LayoutDashboard },
     { id: 'tasks', label: '任务管理', icon: CheckSquare },
+    { id: 'task-pool', label: '任务库', icon: FolderKanban, roles: [SystemRole.ADMIN, SystemRole.LEADER] },
     { id: 'projects', label: '项目管理', icon: Briefcase },
     { id: 'personnel', label: '人员管理', icon: Users },
   ];
+
+  // Filter menu items based on user role
+  const visibleMenuItems = menuItems.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.includes(currentUser.SystemRole);
+  });
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -35,7 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
         </div>
 
         <nav className="flex-1 py-6 px-3 space-y-2">
-          {menuItems.map(item => (
+          {visibleMenuItems.map(item => (
             <button
               key={item.id}
               onClick={() => onChangeView(item.id)}

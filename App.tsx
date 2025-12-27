@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { PersonnelView } from './components/PersonnelView';
 import { ProjectView } from './components/ProjectView';
 import { TaskView } from './components/TaskView';
+import { TaskPoolView } from './components/TaskPoolView';
 import { Settings as SettingsComponent } from './components/Settings';
 import { dataService } from './services/dataService';
 import { User, Project, Task } from './types';
@@ -12,11 +13,14 @@ import { Lock, Settings } from 'lucide-react';
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState('dashboard');
-  
+
   // Application Data State
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+
+  // For task pool navigation after assignment
+  const [pendingNavigateTask, setPendingNavigateTask] = useState<string | null>(null);
 
   // Login Form State
   const [loginId, setLoginId] = useState('');
@@ -37,6 +41,22 @@ const App: React.FC = () => {
     setProjects(dataService.getProjects());
     setTasks(dataService.getTasks());
   };
+
+  // Navigate to a specific task after assignment
+  const handleNavigateToTask = (taskId: string) => {
+    setPendingNavigateTask(taskId);
+    setCurrentView('tasks');
+  };
+
+  // Check for pending navigation after tasks are loaded
+  useEffect(() => {
+    if (pendingNavigateTask && tasks.length > 0) {
+      // The TaskView component will handle the selected task display
+      // based on the query parameter or we can use localStorage to pass the task ID
+      localStorage.setItem('rd_pending_task_id', pendingNavigateTask);
+      setPendingNavigateTask(null);
+    }
+  }, [pendingNavigateTask, tasks]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +140,15 @@ const App: React.FC = () => {
       {currentView === 'personnel' && <PersonnelView currentUser={currentUser} users={users} onRefresh={refreshData} />}
       {currentView === 'projects' && <ProjectView currentUser={currentUser} projects={projects} users={users} onRefresh={refreshData} />}
       {currentView === 'tasks' && <TaskView currentUser={currentUser} tasks={tasks} projects={projects} users={users} onRefresh={refreshData} />}
+      {currentView === 'task-pool' && (
+        <TaskPoolView
+          currentUser={currentUser}
+          projects={projects}
+          users={users}
+          onRefresh={refreshData}
+          onNavigateToTask={handleNavigateToTask}
+        />
+      )}
       {currentView === 'settings' && <SettingsComponent currentUser={currentUser} />}
     </Layout>
   );

@@ -110,4 +110,29 @@ export interface Task {
   // For Meeting & Training tasks
   Participants?: string[]; // 参会人员ID列表
   ParticipantNames?: string[]; // 参会人员姓名列表
+  // For Task Pool
+  is_in_pool?: boolean; // 是否在任务库中（计划任务）
+}
+
+// 任务库/任务计划项
+export interface TaskPoolItem {
+  id: string;
+  TaskName: string; // 任务名称
+  TaskClassID: string; // 任务类别ID
+  Category: string; // 二级分类
+  ProjectID?: string; // 关联项目ID
+  ProjectName?: string; // 关联项目名称（冗余存储，便于显示）
+  PersonInChargeID?: string; // 负责人ID（计划中的负责人）
+  PersonInChargeName?: string; // 负责人姓名
+  ReviewerID?: string; // 校核人ID
+  ReviewerName?: string; // 校核人姓名
+  ReviewerID2?: string; // 审查人ID
+  Reviewer2Name?: string; // 审查人姓名
+  StartDate?: string; // 开始时间
+  DueDate?: string; // 截止时间
+  CreatedBy: string; // 创建人
+  CreatedByName?: string; // 创建人姓名
+  CreatedDate: string; // 创建日期
+  Remark?: string; // 备注
+  is_deleted?: boolean; // 软删除
 }

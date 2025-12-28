@@ -925,61 +925,71 @@ const seedTaskClasses: TaskClass[] = [
     id: 'TC001',
     name: '市场配合',
     code: 'MARKET',
-    description: '市场配合相关任务'
+    description: '市场配合相关任务',
+    notice: '注意：市场配合任务请确保关联正确的投标项目，并填写容量等级和机型信息。技术方案和报价分析需经过评审后方可提交。'
   },
   {
     id: 'TC002',
     name: '常规项目执行',
     code: 'EXECUTION',
-    description: '常规项目执行相关任务'
+    description: '常规项目执行相关任务',
+    notice: '注意：任务名称请遵循 "[项目名]-[任务类别]" 格式。请及时更新任务进度，项目特殊项处理需备注具体问题描述。'
   },
   {
     id: 'TC003',
     name: '核电项目执行',
     code: 'NUCLEAR',
-    description: '核电项目执行相关任务'
+    description: '核电项目执行相关任务',
+    notice: '注意：核电项目任务需严格遵循核安全相关规范。所有设计变更必须经过评审确认后方可实施，请确保校核和审查流程完整。'
   },
   {
     id: 'TC004',
     name: '产品研发',
     code: 'PRODUCT_DEV',
-    description: '产品研发相关任务'
+    description: '产品研发相关任务',
+    notice: '注意：产品研发任务需做好技术记录和方案评审。专利申请需在任务完成后及时提交，出图任务需经过完整的设计评审流程。'
   },
   {
     id: 'TC005',
     name: '科研任务',
     code: 'RESEARCH',
-    description: '科研任务相关工作'
+    description: '科研任务相关工作',
+    notice: '注意：科研任务的开题报告和结题报告需按规定格式编写。专利申请和论文发表请在任务备注中注明，便于成果统计。'
   },
   {
     id: 'TC006',
     name: '改造服务',
     code: 'RENOVATION',
-    description: '改造服务相关任务'
+    description: '改造服务相关任务',
+    notice: '注意：改造项目需充分考虑现场条件和既有设备情况。方案编制前请做好现场调研，确保改造方案切实可行。'
   },
   {
     id: 'TC008',
     name: '行政与党建',
     code: 'ADMIN_PARTY',
-    description: '行政与党建相关工作'
+    description: '行政与党建相关工作',
+    notice: '注意：行政与党建类任务请按时完成。报表类任务请确保数据准确，汇报类任务请提前准备材料。'
   },
   {
     id: 'TC007',
     name: '内部会议与培训',
     code: 'MEETING_TRAINING',
-    description: '内部会议与培训相关工作'
+    description: '内部会议与培训相关工作',
+    notice: '注意：会议培训任务请如实记录参会人员。培训任务需填写培训时长，培训结束后请及时提交培训总结和相关材料。'
   },
   {
     id: 'TC009',
     name: '差旅任务',
     code: 'TRAVEL',
-    description: '差旅相关任务'
+    description: '差旅相关任务',
+    notice: '注意：差旅任务请填写出差地点和出差天数。出差结束后请及时提交出差报告，市场出差需关联对应的市场配合项目。'
   },
   {
     id: 'TC010',
     name: '其他任务',
     code: 'OTHER',
-    description: '其他类型任务'
+    description: '其他类型任务',
+    notice: '注意：请根据任务性质选择合适的分类。通用任务也请尽量填写关联项目和相关说明，便于统计和查询。'
   }
 ];
 

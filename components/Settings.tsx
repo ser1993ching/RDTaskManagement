@@ -186,6 +186,32 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     showMessage('success', '任务类别更新成功');
   };
 
+  // Notice editing state
+  const [editingNotice, setEditingNotice] = useState<string | null>(null);
+  const [editingNoticeValue, setEditingNoticeValue] = useState('');
+
+  const startEditingNotice = (taskClassId: string, currentNotice: string | undefined) => {
+    setEditingNotice(taskClassId);
+    setEditingNoticeValue(currentNotice || '');
+  };
+
+  const cancelEditingNotice = () => {
+    setEditingNotice(null);
+    setEditingNoticeValue('');
+  };
+
+  const saveTaskClassNotice = (taskClassId: string) => {
+    const taskClass = taskClasses.find(tc => tc.id === taskClassId);
+    if (!taskClass) return;
+
+    taskClass.notice = editingNoticeValue.trim();
+    dataService.saveTaskClass(taskClass);
+    loadData();
+    setEditingNotice(null);
+    setEditingNoticeValue('');
+    showMessage('success', '任务类别提示文字保存成功');
+  };
+
   // Task Category Management
   const handleAddTaskCategory = (taskClassCode: string) => {
     if (!taskClassCode || !editingValue.trim()) {
@@ -573,7 +599,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                                   setEditingValue(taskClass.name);
                                 }}
                                 className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                                title="编辑任务类别"
+                                title="编辑任务类别名称"
                               >
                                 <Edit2 size={16} />
                               </button>
@@ -591,8 +617,64 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                             </div>
                           )}
                         </div>
+
+                        {/* Notice/提示文字编辑区域 */}
+                        <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                              <span className="w-1 h-3 bg-amber-500 rounded-full"></span>
+                              任务管理界面提示文字
+                            </label>
+                            {canManageSettings && editingNotice !== taskClass.id && (
+                              <button
+                                onClick={() => startEditingNotice(taskClass.id, taskClass.notice)}
+                                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                              >
+                                <Edit2 size={12} />
+                                {taskClass.notice ? '编辑' : '添加'}
+                              </button>
+                            )}
+                          </div>
+
+                          {editingNotice === taskClass.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editingNoticeValue}
+                                onChange={(e) => setEditingNoticeValue(e.target.value)}
+                                placeholder="输入该任务类别在任务管理界面显示的提示说明..."
+                                className="w-full border border-slate-300 rounded px-3 py-2 text-sm resize-none"
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => saveTaskClassNotice(taskClass.id)}
+                                  className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+                                >
+                                  <Save size={14} />
+                                  保存
+                                </button>
+                                <button
+                                  onClick={cancelEditingNotice}
+                                  className="px-3 py-1.5 bg-slate-300 text-slate-700 rounded text-sm flex items-center gap-1"
+                                >
+                                  <X size={14} />
+                                  取消
+                                </button>
+                              </div>
+                            </div>
+                          ) : taskClass.notice ? (
+                            <p className="text-sm text-slate-600 bg-amber-50 p-2 rounded border border-amber-100">
+                              {taskClass.notice}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-slate-400 italic">
+                              未设置提示文字，将使用系统默认提示
+                            </p>
+                          )}
+                        </div>
+
                         {/* 显示统计信息 */}
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
                           <span className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                             分类: {taskCategories[taskClass.code]?.length || 0} 个

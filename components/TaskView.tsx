@@ -1303,7 +1303,15 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         <div className="text-sm">
           <p className="flex items-center gap-2">
             <span className="w-1 h-4 bg-amber-500 rounded-full"></span>
-            <span className="text-amber-600"><strong>注意：</strong> 任务名称请尽量遵循 "[项目名]-[任务类别]" 的格式。差旅和会议任务请务必填写时长以便统计。</span>
+            <span className="text-amber-600">
+              {activeTaskClass?.notice ? (
+                <span dangerouslySetInnerHTML={{ __html: activeTaskClass.notice.replace(/\n/g, '<br/>') }} />
+              ) : (
+                <span>
+                  <strong>注意：</strong> 任务名称请尽量遵循 "[项目名]-[任务类别]" 的格式。差旅和会议任务请务必填写时长以便统计。
+                </span>
+              )}
+            </span>
           </p>
         </div>
 

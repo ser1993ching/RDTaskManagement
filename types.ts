@@ -38,6 +38,7 @@ export interface TaskClass {
   name: string;
   code: string;
   description?: string;
+  notice?: string; // 自定义提示文字，显示在任务管理界面该分类标题下
   is_deleted?: boolean;
   created_at?: string;
   updated_at?: string;

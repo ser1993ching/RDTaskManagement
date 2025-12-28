@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, SystemRole } from '../types';
+import { User as UserType, SystemRole } from '../types';
 import {
   Users,
   Briefcase,
@@ -8,11 +8,12 @@ import {
   LogOut,
   UserCircle,
   Settings,
-  FolderKanban
+  FolderKanban,
+  User as UserIcon
 } from 'lucide-react';
 
 interface LayoutProps {
-  currentUser: User;
+  currentUser: UserType;
   onLogout: () => void;
   currentView: string;
   onChangeView: (view: string) => void;
@@ -22,6 +23,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentView, onChangeView, children }) => {
   const menuItems = [
     { id: 'dashboard', label: '工作台', icon: LayoutDashboard },
+    { id: 'workspace', label: '个人工作台', icon: UserIcon },
     { id: 'tasks', label: '任务管理', icon: CheckSquare },
     { id: 'task-pool', label: '任务库', icon: FolderKanban, roles: [SystemRole.ADMIN, SystemRole.LEADER] },
     { id: 'projects', label: '项目管理', icon: Briefcase },

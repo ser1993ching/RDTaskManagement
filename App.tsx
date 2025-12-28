@@ -5,6 +5,7 @@ import { PersonnelView } from './components/PersonnelView';
 import { ProjectView } from './components/ProjectView';
 import { TaskView } from './components/TaskView';
 import { TaskPoolView } from './components/TaskPoolView';
+import PersonalWorkspaceView from './components/PersonalWorkspaceView';
 import { Settings as SettingsComponent } from './components/Settings';
 import { dataService } from './services/dataService';
 import { User, Project, Task } from './types';
@@ -118,6 +119,7 @@ const App: React.FC = () => {
       onChangeView={setCurrentView}
     >
       {currentView === 'dashboard' && <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} />}
+      {currentView === 'workspace' && <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} />}
       {currentView === 'personnel' && <PersonnelView currentUser={currentUser} users={users} onRefresh={refreshData} />}
       {currentView === 'projects' && <ProjectView currentUser={currentUser} projects={projects} users={users} onRefresh={refreshData} />}
       {currentView === 'tasks' && <TaskView currentUser={currentUser} tasks={tasks} projects={projects} users={users} onRefresh={refreshData} />}

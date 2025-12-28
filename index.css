@@ -218,3 +218,54 @@ button {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* 打印样式 */
+@media print {
+  /* 隐藏侧边栏 */
+  aside {
+    display: none !important;
+  }
+
+  /* 隐藏导航和控制按钮 */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* 显示打印专用内容 */
+  .print\:block {
+    display: block !important;
+  }
+
+  /* 主内容区域全宽 */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* 任务面板展开 */
+  .bg-white.rounded-xl {
+    break-inside: avoid;
+  }
+
+  /* 表格样式 */
+  table {
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 8px 12px !important;
+  }
+
+  /* 页面设置 */
+  @page {
+    margin: 1cm;
+    size: A4;
+  }
+
+  /* 打印时背景色 */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

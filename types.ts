@@ -138,3 +138,46 @@ export interface TaskPoolItem {
   Remark?: string; // 备注
   is_deleted?: boolean; // 软删除
 }
+
+// Period type for statistics
+export type Period = 'week' | 'month' | 'year';
+
+// Personal workspace statistics interface
+export interface PersonalStats {
+  // Period-based counts
+  inProgressCount: number;
+  pendingCount: number;
+  completedCount: number;
+  totalCount: number;
+  completionRate: number;
+
+  // Category distribution (excluding TC009/TC007)
+  categoryDistribution: { name: string; count: number; percentage: number }[];
+
+  // Travel statistics (TC009)
+  travelStats: {
+    totalDays: number;
+    workHoursInPeriod: number;
+    percentage: number;
+  };
+
+  // Meeting statistics (TC007)
+  meetingStats: {
+    totalHours: number;
+    workHoursInPeriod: number;
+    percentage: number;
+  };
+}
+
+// Separated tasks by status
+export interface SeparatedTasks {
+  inProgress: Task[];
+  pending: Task[];
+  completed: Task[];
+}
+
+// Work day calculation result
+export interface WorkDayInfo {
+  workDays: number;
+  workHours: number;
+}

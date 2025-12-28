@@ -1,4 +1,4 @@
-import { User, Project, Task, TaskClass, TaskPoolItem, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus } from '../types';
+import { User, Project, Task, TaskClass, TaskPoolItem, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus, Period, PersonalStats, SeparatedTasks, WorkDayInfo } from '../types';
 
 const STORAGE_KEYS = {
   USERS: 'rd_users',
@@ -2375,6 +2375,260 @@ class DataService {
       const labels = [...new Set(travelTasks.map(t => t.Category))];
       localStorage.setItem(STORAGE_KEYS.TRAVEL_LABELS, JSON.stringify(labels));
     }
+  }
+
+  // --- Personal Workspace Methods ---
+
+  // Get tasks assigned to a specific user
+  getPersonalTasks(userId: string): Task[] {
+    const tasks = this.getTasks();
+    return tasks.filter(t => t.AssigneeID === userId);
+  }
+
+  // Separate tasks by status
+  separateTasksByStatus(tasks: Task[]): SeparatedTasks {
+    return {
+      inProgress: tasks.filter(t => t.Status === TaskStatus.IN_PROGRESS),
+      pending: tasks.filter(t => t.Status === TaskStatus.NOT_STARTED),
+      completed: tasks.filter(t => t.Status === TaskStatus.COMPLETED)
+    };
+  }
+
+  // Calculate work days in a period
+  getWorkDaysInPeriod(period: Period): WorkDayInfo {
+    const now = new Date();
+    let startDate: Date;
+    let workDays = 0;
+
+    switch (period) {
+      case 'week':
+        // Start from Monday of current week
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay() + 1);
+        break;
+      case 'month':
+        // Start from first day of current month
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'year':
+        // Start from first day of current year
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    // Count work days (Monday to Friday)
+    for (let d = new Date(startDate); d <= now; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Saturday or Sunday
+        workDays++;
+      }
+    }
+
+    return {
+      workDays,
+      workHours: workDays * 8
+    };
+  }
+
+  // Check if a task is long-running (over 2 months)
+  isTaskLongRunning(task: Task): boolean {
+    const now = new Date();
+    const createdDate = new Date(task.CreatedDate);
+    const twoMonthsAgo = new Date(now);
+    twoMonthsAgo.setMonth(now.getMonth() - 2);
+
+    // Check if created more than 2 months ago AND not completed
+    if (createdDate <= twoMonthsAgo && task.Status !== TaskStatus.COMPLETED) {
+      return true;
+    }
+
+    // Check if start date is more than 2 months ago AND status is pending
+    if (task.StartDate) {
+      const startDate = new Date(task.StartDate);
+      if (startDate <= twoMonthsAgo && task.Status === TaskStatus.NOT_STARTED) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Filter tasks by period based on CreatedDate
+  filterTasksByPeriod(tasks: Task[], period: Period): Task[] {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (period) {
+      case 'week':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case 'year':
+        startDate = new Date(now);
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 1);
+    }
+
+    return tasks.filter(t => new Date(t.CreatedDate) >= startDate);
+  }
+
+  // Calculate personal statistics
+  calculatePersonalStats(tasks: Task[], period: Period): PersonalStats {
+    // Filter tasks by period
+    const periodTasks = this.filterTasksByPeriod(tasks, period);
+
+    // Get work days info
+    const workDaysInfo = this.getWorkDaysInPeriod(period);
+
+    // Separate by status
+    const { inProgress, pending, completed } = this.separateTasksByStatus(periodTasks);
+
+    // Calculate category distribution (excluding TC009/TC007)
+    const categoryTasks = periodTasks.filter(t => t.TaskClassID !== 'TC009' && t.TaskClassID !== 'TC007');
+    const categoryMap = new Map<string, number>();
+
+    categoryTasks.forEach(t => {
+      const taskClass = this.getTaskClasses().find(tc => tc.id === t.TaskClassID);
+      const name = taskClass?.name || t.TaskClassID;
+      categoryMap.set(name, (categoryMap.get(name) || 0) + 1);
+    });
+
+    const totalCategoryTasks = categoryTasks.length;
+    const categoryDistribution = Array.from(categoryMap.entries()).map(([name, count]) => ({
+      name,
+      count,
+      percentage: totalCategoryTasks > 0 ? Math.round((count / totalCategoryTasks) * 100) : 0
+    }));
+
+    // Calculate travel stats (TC009)
+    const travelTasks = periodTasks.filter(t => t.TaskClassID === 'TC009');
+    const totalTravelDays = travelTasks.reduce((sum, t) => sum + (t.TravelDuration || 0), 0);
+
+    // Calculate meeting stats (TC007)
+    const meetingTasks = periodTasks.filter(t => t.TaskClassID === 'TC007');
+    const totalMeetingHours = meetingTasks.reduce((sum, t) => sum + (t.MeetingDuration || 0), 0);
+
+    const totalCount = inProgress.length + pending.length + completed.length;
+    const completionRate = totalCount > 0 ? Math.round((completed.length / totalCount) * 100) : 0;
+
+    return {
+      inProgressCount: inProgress.length,
+      pendingCount: pending.length,
+      completedCount: completed.length,
+      totalCount,
+      completionRate,
+      categoryDistribution,
+      travelStats: {
+        totalDays: totalTravelDays,
+        workHoursInPeriod: workDaysInfo.workHours,
+        percentage: workDaysInfo.workHours > 0 ? Math.round((totalTravelDays / workDaysInfo.workHours) * 100) : 0
+      },
+      meetingStats: {
+        totalHours: totalMeetingHours,
+        workHoursInPeriod: workDaysInfo.workHours,
+        percentage: workDaysInfo.workHours > 0 ? Math.round((totalMeetingHours / workDaysInfo.workHours) * 100) : 0
+      }
+    };
+  }
+
+  // Retrieve a task back to the pool (LEADER/ADMIN only)
+  retrieveTaskToPool(taskId: string): void {
+    const tasks = this.getAllTasksRaw();
+    const task = tasks.find(t => t.TaskID === taskId);
+
+    if (task) {
+      task.is_in_pool = true;
+      task.AssigneeID = undefined;
+      task.AssigneeName = undefined;
+      task.ProjectID = undefined;
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+    }
+  }
+
+  // Get team members for user switcher (excluding current user)
+  getTeamMembers(currentUserId: string): User[] {
+    const users = this.getUsers();
+    return users.filter(u => u.UserID !== currentUserId);
+  }
+
+  // Generate CSV export data
+  generateStatsCSV(stats: PersonalStats, separatedTasks: SeparatedTasks, userName: string): string {
+    const lines: string[] = [];
+
+    // Header
+    lines.push(`个人工作台统计报表 - ${userName}`);
+    lines.push(`导出时间: ${new Date().toLocaleString()}`);
+    lines.push('');
+
+    // Task summary
+    lines.push('任务概览');
+    lines.push(`进行中,${stats.inProgressCount}`);
+    lines.push(`未开始,${stats.pendingCount}`);
+    lines.push(`已完成,${stats.completedCount}`);
+    lines.push(`总计,${stats.totalCount}`);
+    lines.push(`完成率,${stats.completionRate}%`);
+    lines.push('');
+
+    // Travel stats
+    lines.push('差旅统计');
+    lines.push(`出差天数,${stats.travelStats.totalDays}天`);
+    lines.push(`占工作时长,${stats.travelStats.percentage}%`);
+    lines.push('');
+
+    // Meeting stats
+    lines.push('会议统计');
+    lines.push(`会议时长,${stats.meetingStats.totalHours}小时`);
+    lines.push(`占工作时长,${stats.meetingStats.percentage}%`);
+    lines.push('');
+
+    // Category distribution
+    lines.push('类别分布');
+    stats.categoryDistribution.forEach(cat => {
+      lines.push(`${cat.name},${cat.count}个,${cat.percentage}%`);
+    });
+    lines.push('');
+
+    // Task lists
+    lines.push('进行中任务');
+    lines.push('任务名称,类别,开始时间,截止时间');
+    separatedTasks.inProgress.forEach(t => {
+      lines.push(`"${t.TaskName}",${t.Category},${t.StartDate || ''},${t.DueDate || ''}`);
+    });
+    lines.push('');
+
+    lines.push('未开始任务');
+    lines.push('任务名称,类别,开始时间,截止时间');
+    separatedTasks.pending.forEach(t => {
+      lines.push(`"${t.TaskName}",${t.Category},${t.StartDate || ''},${t.DueDate || ''}`);
+    });
+    lines.push('');
+
+    lines.push('已完成任务');
+    lines.push('任务名称,类别,开始时间,截止时间');
+    separatedTasks.completed.forEach(t => {
+      lines.push(`"${t.TaskName}",${t.Category},${t.StartDate || ''},${t.DueDate || ''}`);
+    });
+
+    return lines.join('\n');
+  }
+
+  // Download CSV file
+  downloadStatsCSV(csvContent: string, fileName: string): void {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   // Helpers

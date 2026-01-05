@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskClass, User, Project, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info, CheckCircle } from 'lucide-react';
 import { dataService } from '../services/dataService';
@@ -10,6 +10,7 @@ interface TaskViewProps {
   projects: Project[];
   users: User[];
   onRefresh: () => void;
+  targetTaskName?: string;
 }
 
 // Config for Capacity Level (Market tasks only)
@@ -24,7 +25,7 @@ const CAPACITY_LEVEL_OPTIONS = [
   '调相机'
 ];
 
-export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh }) => {
+export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh, targetTaskName }) => {
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>(dataService.getTaskClasses());
   const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
@@ -55,6 +56,19 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   useEffect(() => {
     setEquipmentModels(dataService.getEquipmentModels());
   }, []);
+
+  // Handle targetTaskName - filter tasks by name and switch to the task's category
+  useEffect(() => {
+    if (targetTaskName && tasks.length > 0) {
+      // Find the task by name to get its TaskClassID
+      const targetTask = tasks.find(t => t.TaskName === targetTaskName);
+      if (targetTask) {
+        // Switch to the task's category
+        setActiveTaskClassId(targetTask.TaskClassID);
+      }
+      setFilterTaskName(targetTaskName);
+    }
+  }, [targetTaskName, tasks]);
 
   // Helper function to get categories for a task class
   const getCategoriesForTaskClass = (taskClassCode: string): string[] => {
@@ -184,11 +198,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
     return threeMonthsAgo.toISOString().split('T')[0];
   };
-
-  // Initialize default filter - show tasks from last 3 months
-  useEffect(() => {
-    setFilterStartDateFrom(getDefaultStartDate());
-  }, []);
 
   // Clear project and label when travel task category changes
   useEffect(() => {
@@ -1339,7 +1348,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   setFilterCategory('');
                   setFilterAssignee('');
                   setFilterCapacityLevel('');
-                  setFilterStartDateFrom(getDefaultStartDate());
+                  setFilterStartDateFrom('');
                   setFilterStartDateTo('');
                   setFilterTaskName('');
                   setFilterThisWeek(false);
@@ -1476,7 +1485,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               {filteredTasks.map(t => {
                 const isMeetingTask = t.TaskClassID === 'TC007';
                 return (
-                  <tr key={t.TaskID} className="hover:bg-blue-50 transition-colors cursor-pointer" onDoubleClick={() => handleDoubleClick(t)}>
+                  <tr
+                    key={t.TaskID}
+                    className="hover:bg-blue-50 transition-colors cursor-pointer"
+                    onDoubleClick={() => handleDoubleClick(t)}
+                  >
                     <td className="px-6 py-4 relative">
                       {t.isForceAssessment && t.TaskClassID !== 'TC009' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
                       <div className={`font-medium ${t.isForceAssessment && t.TaskClassID !== 'TC009' ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.TaskName}</div>

@@ -14,6 +14,7 @@ import { Lock, Settings } from 'lucide-react';
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState('dashboard');
+  const [targetTaskName, setTargetTaskName] = useState<string | undefined>();
 
   // Application Data State
   const [users, setUsers] = useState<User[]>([]);
@@ -41,6 +42,11 @@ const App: React.FC = () => {
     setUsers(dataService.getUsers());
     setProjects(dataService.getProjects());
     setTasks(dataService.getTasks());
+  };
+
+  const handleChangeView = (view: string, taskId?: string) => {
+    setCurrentView(view);
+    setTargetTaskName(taskId);
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -122,10 +128,10 @@ const App: React.FC = () => {
       onChangeView={setCurrentView}
     >
       {currentView === 'dashboard' && <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} />}
-      {currentView === 'workspace' && <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} />}
+      {currentView === 'workspace' && <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} onChangeView={handleChangeView} />}
       {currentView === 'personnel' && <PersonnelView currentUser={currentUser} users={users} onRefresh={refreshData} />}
       {currentView === 'projects' && <ProjectView currentUser={currentUser} projects={projects} users={users} onRefresh={refreshData} />}
-      {currentView === 'tasks' && <TaskView currentUser={currentUser} tasks={tasks} projects={projects} users={users} onRefresh={refreshData} />}
+      {currentView === 'tasks' && <TaskView currentUser={currentUser} tasks={tasks} projects={projects} users={users} onRefresh={refreshData} targetTaskName={targetTaskName} />}
       {currentView === 'task-pool' && (
         <TaskPoolView
           currentUser={currentUser}

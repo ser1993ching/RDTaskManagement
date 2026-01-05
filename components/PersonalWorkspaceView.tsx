@@ -464,6 +464,7 @@ const TaskPanel: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
   onStatusChange: (taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus) => void;
+  onTaskDoubleClick: (task: Task) => void;
   taskClasses: TaskClass[];
   viewingUserName: string;
   viewingUserId: string;
@@ -474,6 +475,7 @@ const TaskPanel: React.FC<{
   isExpanded,
   onToggle,
   onStatusChange,
+  onTaskDoubleClick,
   taskClasses,
   viewingUserName,
   viewingUserId,
@@ -531,7 +533,11 @@ const TaskPanel: React.FC<{
                   const roleStatus = getRoleStatusInTask(task, viewingUserId);
                   const roleWorkload = getRoleWorkloadInTask(task, viewingUserId);
                   return (
-                    <tr key={task.TaskID} className={isLongRunning ? 'bg-yellow-50' : ''}>
+                    <tr
+                      key={task.TaskID}
+                      className={`${isLongRunning ? 'bg-yellow-50' : ''} cursor-pointer hover:bg-gray-50 transition-colors`}
+                      onDoubleClick={() => onTaskDoubleClick(task)}
+                    >
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
                           {isLongRunning && (
@@ -606,7 +612,8 @@ const UserSwitcher: React.FC<{
 const PersonalWorkspaceView: React.FC<{
   currentUser: UserType;
   onRefresh: () => void;
-}> = ({ currentUser, onRefresh }) => {
+  onChangeView?: (view: string, taskId?: string) => void;
+}> = ({ currentUser, onRefresh, onChangeView }) => {
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
   const [period, setPeriod] = useState<Period>('week');
   const [monthRange, setMonthRange] = useState(6); // 默认最近6个月
@@ -663,6 +670,13 @@ const PersonalWorkspaceView: React.FC<{
     dataService.updateTaskRoleStatus(taskId, role, status);
     setRefreshKey(prev => prev + 1); // 强制刷新数据
     onRefresh();
+  };
+
+  // Handle task double click - navigate to task view
+  const handleTaskDoubleClick = (task: Task) => {
+    if (onChangeView) {
+      onChangeView('tasks', task.TaskName);
+    }
   };
 
   // Handle CSV export
@@ -723,6 +737,7 @@ const PersonalWorkspaceView: React.FC<{
             isExpanded={expandedPanels.inProgress}
             onToggle={() => togglePanel('inProgress')}
             onStatusChange={handleStatusChange}
+            onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
             viewingUserName={viewingUser.Name}
             viewingUserId={viewingUserId}
@@ -736,6 +751,7 @@ const PersonalWorkspaceView: React.FC<{
             isExpanded={expandedPanels.pending}
             onToggle={() => togglePanel('pending')}
             onStatusChange={handleStatusChange}
+            onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
             viewingUserName={viewingUser.Name}
             viewingUserId={viewingUserId}
@@ -749,6 +765,7 @@ const PersonalWorkspaceView: React.FC<{
             isExpanded={expandedPanels.completed}
             onToggle={() => togglePanel('completed')}
             onStatusChange={handleStatusChange}
+            onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
             viewingUserName={viewingUser.Name}
             viewingUserId={viewingUserId}

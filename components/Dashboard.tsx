@@ -28,7 +28,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, tasks 
     const filteredVisibleTasks = visibleTasks;
 
     const pending = filteredVisibleTasks.filter(t => t.Status === TaskStatus.NOT_STARTED).length;
-    const inProgress = filteredVisibleTasks.filter(t => t.Status === TaskStatus.IN_PROGRESS).length;
+    const inProgress = filteredVisibleTasks.filter(t =>
+      t.Status === TaskStatus.DRAFTING ||
+      t.Status === TaskStatus.REVISING ||
+      t.Status === TaskStatus.REVIEWING ||
+      t.Status === TaskStatus.REVIEWING2
+    ).length;
     const completed = filteredVisibleTasks.filter(t => t.Status === TaskStatus.COMPLETED).length;
     const total = filteredVisibleTasks.length;
 

@@ -27,6 +27,9 @@ const App: React.FC = () => {
 
   // Initial Load
   useEffect(() => {
+    // Migrate existing data (add role status fields if missing)
+    dataService.migrateTaskStatusFields();
+
     const user = dataService.getCurrentUser();
     if (user) {
       setCurrentUser(user);

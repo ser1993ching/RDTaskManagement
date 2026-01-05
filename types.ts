@@ -29,7 +29,19 @@ export enum ProjectCategory {
 
 export enum TaskStatus {
   NOT_STARTED = '未开始',
+  DRAFTING = '编制中',
+  REVISING = '修改中',
+  REVIEWING = '校核中',
+  REVIEWING2 = '审查中',
+  COMPLETED = '已完成'
+}
+
+// 角色状态枚举（负责人、校核人、主任设计、审查人共用）
+export enum RoleStatus {
+  NOT_STARTED = '未开始',
   IN_PROGRESS = '进行中',
+  REVISING = '修改中',
+  REJECTED = '驳回中',
   COMPLETED = '已完成'
 }
 
@@ -89,7 +101,7 @@ export interface Task {
   DueDate?: string;
   CompletedDate?: string; // 完成时间
   Status: TaskStatus;
-  Workload?: number; // 预估工作量
+  Workload?: number; // 预估工作量（小时）
   Difficulty?: number; // 0.5 - 3.0
   Remark?: string;
   CreatedDate: string;
@@ -99,13 +111,25 @@ export interface Task {
   MeetingDuration?: number; // For Meeting tasks
   CapacityLevel?: string; // 容量等级 (For Market tasks)
   TravelLabel?: string; // For Travel tasks (差旅标签)
-  ReviewerID?: string; // 校核人
-  ReviewerID2?: string; // 审查人
-  AssigneeName?: string; // 负责人姓名（非系统用户时使用）
-  ReviewerName?: string; // 校核人姓名（非系统用户时使用）
-  Reviewer2Name?: string; // 审查人姓名（非系统用户时使用）
-  ReviewerWorkload?: number; // 校核人工时
-  Reviewer2Workload?: number; // 审查人工时
+  // 校核人（Checker）
+  CheckerID?: string;
+  CheckerName?: string;
+  CheckerWorkload?: number;
+  checkerStatus?: RoleStatus;
+  // 主任设计（ChiefDesigner）
+  ChiefDesignerID?: string;
+  ChiefDesignerName?: string;
+  ChiefDesignerWorkload?: number;
+  chiefDesignerStatus?: RoleStatus;
+  // 审查人（Approver）
+  ApproverID?: string;
+  ApproverName?: string;
+  ApproverWorkload?: number;
+  approverStatus?: RoleStatus;
+  // 负责人（非系统用户时使用）
+  AssigneeName?: string;
+  // 角色状态
+  assigneeStatus?: RoleStatus;
   isForceAssessment?: boolean; // 是否强制考核
   is_deleted?: boolean;
   // For Meeting & Training tasks
@@ -113,6 +137,19 @@ export interface Task {
   ParticipantNames?: string[]; // 参会人员姓名列表
   // For Task Pool
   is_in_pool?: boolean; // 是否在任务库中（计划任务）
+  // 兼容旧字段名（已废弃，保留用于向后兼容）
+  /** @deprecated 已废弃，使用 CheckerID */
+  ReviewerID?: string;
+  /** @deprecated 已废弃，使用 ApproverID */
+  ReviewerID2?: string;
+  /** @deprecated 已废弃，使用 CheckerName */
+  ReviewerName?: string;
+  /** @deprecated 已废弃，使用 ApproverName */
+  Reviewer2Name?: string;
+  /** @deprecated 已废弃，使用 CheckerWorkload */
+  ReviewerWorkload?: number;
+  /** @deprecated 已废弃，使用 ApproverWorkload */
+  Reviewer2Workload?: number;
 }
 
 // 任务库/任务计划项
@@ -125,10 +162,12 @@ export interface TaskPoolItem {
   ProjectName?: string; // 关联项目名称（冗余存储，便于显示）
   PersonInChargeID?: string; // 负责人ID（计划中的负责人）
   PersonInChargeName?: string; // 负责人姓名
-  ReviewerID?: string; // 校核人ID
-  ReviewerName?: string; // 校核人姓名
-  ReviewerID2?: string; // 审查人ID
-  Reviewer2Name?: string; // 审查人姓名
+  CheckerID?: string; // 校核人ID
+  CheckerName?: string; // 校核人姓名
+  ChiefDesignerID?: string; // 主任设计ID
+  ChiefDesignerName?: string; // 主任设计姓名
+  ApproverID?: string; // 审查人ID
+  ApproverName?: string; // 审查人姓名
   StartDate?: string; // 开始时间
   DueDate?: string; // 截止时间
   CreatedBy: string; // 创建人
@@ -137,6 +176,15 @@ export interface TaskPoolItem {
   isForceAssessment?: boolean; // 强制考核
   Remark?: string; // 备注
   is_deleted?: boolean; // 软删除
+  // 兼容旧字段名（已废弃，保留用于向后兼容）
+  /** @deprecated 已废弃，使用 CheckerID */
+  ReviewerID?: string;
+  /** @deprecated 已废弃，使用 ApproverID */
+  ReviewerID2?: string;
+  /** @deprecated 已废弃，使用 CheckerName */
+  ReviewerName?: string;
+  /** @deprecated 已废弃，使用 ApproverName */
+  Reviewer2Name?: string;
 }
 
 // Period type for statistics

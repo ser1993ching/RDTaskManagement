@@ -1,4 +1,4 @@
-import { User, Project, Task, TaskClass, TaskPoolItem, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus, Period, PersonalStats, SeparatedTasks, WorkDayInfo } from '../types';
+import { User, Project, Task, TaskClass, TaskPoolItem, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus, RoleStatus, Period, PersonalStats, SeparatedTasks, WorkDayInfo } from '../types';
 
 const STORAGE_KEYS = {
   USERS: 'rd_users',
@@ -529,8 +529,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '某国外抽水蓄能电站投标项目',
     PersonInChargeID: 'USER001',
     PersonInChargeName: '李研发',
-    ReviewerID: 'LEADER001',
-    ReviewerName: '张组长',
+    CheckerID: 'LEADER001',
+    CheckerName: '张组长',
     StartDate: '2025-12-01',
     DueDate: '2025-12-15',
     CreatedBy: 'LEADER001',
@@ -548,8 +548,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '国内大型水电站投标项目',
     PersonInChargeID: 'USER002',
     PersonInChargeName: '王设计',
-    ReviewerID: 'LEADER001',
-    ReviewerName: '张组长',
+    CheckerID: 'LEADER001',
+    CheckerName: '张组长',
     StartDate: '2025-12-05',
     DueDate: '2025-12-20',
     CreatedBy: 'LEADER001',
@@ -567,8 +567,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '抽水蓄能电站技术方案项目',
     PersonInChargeID: 'USER003',
     PersonInChargeName: '陈工程师',
-    ReviewerID: 'USER001',
-    ReviewerName: '李研发',
+    CheckerID:'USER001',
+    CheckerName:'李研发',
     StartDate: '2025-12-10',
     DueDate: '2025-12-25',
     CreatedBy: 'admin',
@@ -588,10 +588,10 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '白鹤滩水电站左岸机组制造',
     PersonInChargeID: 'USER001',
     PersonInChargeName: '李研发',
-    ReviewerID: 'USER002',
-    ReviewerName: '王设计',
-    ReviewerID2: 'LEADER001',
-    Reviewer2Name: '张组长',
+    CheckerID:'USER002',
+    CheckerName:'王设计',
+    ApproverID: 'LEADER001',
+    ApproverName: '张组长',
     StartDate: '2025-12-01',
     DueDate: '2025-12-31',
     CreatedBy: 'LEADER001',
@@ -609,8 +609,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '溪洛渡水电站机组改造项目',
     PersonInChargeID: 'USER003',
     PersonInChargeName: '陈工程师',
-    ReviewerID: 'USER006',
-    ReviewerName: '孙质量',
+    CheckerID:'USER006',
+    CheckerName:'孙质量',
     StartDate: '2025-12-08',
     DueDate: '2025-12-22',
     CreatedBy: 'LEADER001',
@@ -628,8 +628,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '向家坝水电站优化项目',
     PersonInChargeID: 'USER004',
     PersonInChargeName: '刘技术',
-    ReviewerID: 'USER005',
-    ReviewerName: '赵项目',
+    CheckerID:'USER005',
+    CheckerName:'赵项目',
     StartDate: '2025-12-15',
     DueDate: '2025-12-29',
     CreatedBy: 'USER005',
@@ -647,8 +647,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '龙滩水电站扩建项目',
     PersonInChargeID: 'USER006',
     PersonInChargeName: '孙质量',
-    ReviewerID: 'USER002',
-    ReviewerName: '王设计',
+    CheckerID:'USER002',
+    CheckerName:'王设计',
     StartDate: '2025-12-03',
     DueDate: '2025-12-17',
     CreatedBy: 'LEADER001',
@@ -668,10 +668,10 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '华龙一号常规岛设计项目',
     PersonInChargeID: 'USER001',
     PersonInChargeName: '李研发',
-    ReviewerID: 'LEADER001',
-    ReviewerName: '张组长',
-    ReviewerID2: 'USER007',
-    Reviewer2Name: '周工艺',
+    CheckerID: 'LEADER001',
+    CheckerName: '张组长',
+    ApproverID: 'USER007',
+    ApproverName: '周工艺',
     StartDate: '2025-12-01',
     DueDate: '2025-12-20',
     CreatedBy: 'LEADER001',
@@ -689,8 +689,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: 'CAP1400核电项目配合',
     PersonInChargeID: 'USER002',
     PersonInChargeName: '王设计',
-    ReviewerID: 'USER001',
-    ReviewerName: '李研发',
+    CheckerID:'USER001',
+    CheckerName:'李研发',
     StartDate: '2025-12-05',
     DueDate: '2025-12-19',
     CreatedBy: 'admin',
@@ -708,8 +708,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '高温气冷堆常规岛项目',
     PersonInChargeID: 'USER003',
     PersonInChargeName: '陈工程师',
-    ReviewerID: 'LEADER001',
-    ReviewerName: '张组长',
+    CheckerID: 'LEADER001',
+    CheckerName: '张组长',
     StartDate: '2025-12-10',
     DueDate: '2025-12-24',
     CreatedBy: 'LEADER001',
@@ -729,8 +729,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '新型水轮机叶片材料研发',
     PersonInChargeID: 'USER006',
     PersonInChargeName: '孙质量',
-    ReviewerID: 'USER003',
-    ReviewerName: '陈工程师',
+    CheckerID:'USER003',
+    CheckerName:'陈工程师',
     StartDate: '2025-12-01',
     DueDate: '2025-12-15',
     CreatedBy: 'LEADER001',
@@ -748,8 +748,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '水电站智能监测系统研发',
     PersonInChargeID: 'USER004',
     PersonInChargeName: '刘技术',
-    ReviewerID: 'USER001',
-    ReviewerName: '李研发',
+    CheckerID:'USER001',
+    CheckerName:'李研发',
     StartDate: '2025-12-08',
     DueDate: '2025-12-22',
     CreatedBy: 'LEADER001',
@@ -769,8 +769,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '水轮机 CFD 性能优化研究',
     PersonInChargeID: 'USER001',
     PersonInChargeName: '李研发',
-    ReviewerID: 'USER002',
-    ReviewerName: '王设计',
+    CheckerID:'USER002',
+    CheckerName:'王设计',
     StartDate: '2025-12-01',
     DueDate: '2025-12-20',
     CreatedBy: 'LEADER001',
@@ -788,8 +788,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '水轮机振动特性研究',
     PersonInChargeID: 'USER003',
     PersonInChargeName: '陈工程师',
-    ReviewerID: 'USER006',
-    ReviewerName: '孙质量',
+    CheckerID:'USER006',
+    CheckerName:'孙质量',
     StartDate: '2025-12-05',
     DueDate: '2025-12-19',
     CreatedBy: 'LEADER001',
@@ -809,10 +809,10 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '三峡左岸机组改造项目',
     PersonInChargeID: 'USER002',
     PersonInChargeName: '王设计',
-    ReviewerID: 'LEADER001',
-    ReviewerName: '张组长',
-    ReviewerID2: 'USER005',
-    Reviewer2Name: '赵项目',
+    CheckerID: 'LEADER001',
+    CheckerName: '张组长',
+    ApproverID: 'USER005',
+    ApproverName: '赵项目',
     StartDate: '2025-12-01',
     DueDate: '2025-12-15',
     CreatedBy: 'LEADER001',
@@ -830,8 +830,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '葛洲坝水电站机电改造',
     PersonInChargeID: 'USER004',
     PersonInChargeName: '刘技术',
-    ReviewerID: 'USER003',
-    ReviewerName: '陈工程师',
+    CheckerID:'USER003',
+    CheckerName:'陈工程师',
     StartDate: '2025-12-10',
     DueDate: '2025-12-24',
     CreatedBy: 'USER005',
@@ -849,8 +849,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '小浪底水电站设备更新',
     PersonInChargeID: 'USER006',
     PersonInChargeName: '孙质量',
-    ReviewerID: 'USER002',
-    ReviewerName: '王设计',
+    CheckerID:'USER002',
+    CheckerName:'王设计',
     StartDate: '2025-12-08',
     DueDate: '2025-12-22',
     CreatedBy: 'LEADER001',
@@ -869,8 +869,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectID: undefined,
     PersonInChargeID: 'LEADER001',
     PersonInChargeName: '张组长',
-    ReviewerID: 'admin',
-    ReviewerName: '系统管理员',
+    CheckerID:'admin',
+    CheckerName:'系统管理员',
     StartDate: '2025-12-01',
     DueDate: '2025-12-15',
     CreatedBy: 'LEADER001',
@@ -887,8 +887,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectID: undefined,
     PersonInChargeID: 'USER005',
     PersonInChargeName: '赵项目',
-    ReviewerID: 'LEADER001',
-    ReviewerName: '张组长',
+    CheckerID: 'LEADER001',
+    CheckerName: '张组长',
     StartDate: '2025-12-15',
     DueDate: '2025-12-25',
     CreatedBy: 'LEADER001',
@@ -908,8 +908,8 @@ const seedTaskPoolItems: TaskPoolItem[] = [
     ProjectName: '水电行业标准制定项目',
     PersonInChargeID: 'USER001',
     PersonInChargeName: '李研发',
-    ReviewerID: 'LEADER001',
-    ReviewerName: '张组长',
+    CheckerID: 'LEADER001',
+    CheckerName: '张组长',
     StartDate: '2025-12-01',
     DueDate: '2025-12-30',
     CreatedBy: 'admin',
@@ -1002,12 +1002,12 @@ const seedTasks: Task[] = [
     Category: '技术方案',
     ProjectID: 'P001',
     AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 8,
     Difficulty: 1.5,
     CapacityLevel: '1200MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER002',
+    ApproverID: 'USER003',
     StartDate: '2025-01-15',
     CreatedDate: '2025-01-15',
     CreatedBy: 'LEADER001'
@@ -1023,8 +1023,8 @@ const seedTasks: Task[] = [
     Workload: 15,
     Difficulty: 1.8,
     CapacityLevel: '1200MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER002',
+    ApproverID: 'USER007',
     StartDate: '2025-01-20',
     CreatedDate: '2025-01-20',
     CreatedBy: 'admin'
@@ -1036,12 +1036,12 @@ const seedTasks: Task[] = [
     Category: '复询',
     ProjectID: 'P002',
     AssigneeID: 'USER003',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 5,
     Difficulty: 1.2,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-02-10',
     CreatedDate: '2025-02-10',
     CreatedBy: 'LEADER001'
@@ -1057,8 +1057,8 @@ const seedTasks: Task[] = [
     Workload: 6,
     Difficulty: 1.0,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER001',
+    ApproverID: 'LEADER001',
     StartDate: '2025-02-15',
     CreatedDate: '2025-02-15',
     CreatedBy: 'admin'
@@ -1074,8 +1074,8 @@ const seedTasks: Task[] = [
     Workload: 10,
     Difficulty: 1.3,
     CapacityLevel: '50MW',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER006',
+    ApproverID: 'USER007',
     StartDate: '2025-03-05',
     CreatedDate: '2025-03-05',
     CreatedBy: 'LEADER001'
@@ -1087,12 +1087,12 @@ const seedTasks: Task[] = [
     Category: '技术方案',
     ProjectID: 'P004',
     AssigneeID: 'USER005',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 12,
     Difficulty: 1.6,
     CapacityLevel: '800MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-03-10',
     CreatedDate: '2025-03-10',
     CreatedBy: 'admin'
@@ -1108,8 +1108,8 @@ const seedTasks: Task[] = [
     Workload: 4,
     Difficulty: 1.0,
     CapacityLevel: '600MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER002',
+    ApproverID: 'USER003',
     StartDate: '2025-04-01',
     CreatedDate: '2025-04-01',
     CreatedBy: 'admin'
@@ -1123,12 +1123,12 @@ const seedTasks: Task[] = [
     Category: '设计院提资',
     ProjectID: 'P006',
     AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 10,
     Difficulty: 1.8,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER002',
+    ApproverID: 'USER007',
     StartDate: '2025-01-05',
     CreatedDate: '2025-01-05',
     CreatedBy: 'LEADER001'
@@ -1140,12 +1140,12 @@ const seedTasks: Task[] = [
     Category: 'CT配合与提资',
     ProjectID: 'P006',
     AssigneeID: 'USER002',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 8,
     Difficulty: 1.5,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER001',
+    ApproverID: 'USER003',
     StartDate: '2025-02-01',
     CreatedDate: '2025-02-01',
     CreatedBy: 'admin'
@@ -1161,8 +1161,8 @@ const seedTasks: Task[] = [
     Workload: 7,
     Difficulty: 1.3,
     CapacityLevel: '770MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-02-15',
     CreatedDate: '2025-02-15',
     CreatedBy: 'admin'
@@ -1174,12 +1174,12 @@ const seedTasks: Task[] = [
     Category: '项目特殊项处理',
     ProjectID: 'P008',
     AssigneeID: 'USER004',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 9,
     Difficulty: 1.6,
     CapacityLevel: '600MW',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER006',
+    ApproverID: 'LEADER001',
     StartDate: '2025-03-10',
     CreatedDate: '2025-03-10',
     CreatedBy: 'LEADER001'
@@ -1195,8 +1195,8 @@ const seedTasks: Task[] = [
     Workload: 6,
     Difficulty: 1.2,
     CapacityLevel: '850MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER001',
+    ApproverID: 'USER007',
     StartDate: '2025-03-20',
     CreatedDate: '2025-03-20',
     CreatedBy: 'admin'
@@ -1212,8 +1212,8 @@ const seedTasks: Task[] = [
     Workload: 11,
     Difficulty: 1.7,
     CapacityLevel: '700MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER002',
+    ApproverID: 'USER003',
     StartDate: '2025-04-05',
     CreatedDate: '2025-04-05',
     CreatedBy: 'LEADER001'
@@ -1227,12 +1227,12 @@ const seedTasks: Task[] = [
     Category: '核电设计',
     ProjectID: 'P011',
     AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 15,
     Difficulty: 2.0,
     CapacityLevel: '1200MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER002',
+    ApproverID: 'USER007',
     StartDate: '2025-01-10',
     CreatedDate: '2025-01-10',
     CreatedBy: 'LEADER001'
@@ -1244,12 +1244,12 @@ const seedTasks: Task[] = [
     Category: '核岛接口',
     ProjectID: 'P011',
     AssigneeID: 'USER002',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 12,
     Difficulty: 1.8,
     CapacityLevel: '1200MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER001',
+    ApproverID: 'USER003',
     StartDate: '2025-02-01',
     CreatedDate: '2025-02-01',
     CreatedBy: 'admin'
@@ -1265,8 +1265,8 @@ const seedTasks: Task[] = [
     Workload: 10,
     Difficulty: 1.9,
     CapacityLevel: '1400MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-02-15',
     CreatedDate: '2025-02-15',
     CreatedBy: 'admin'
@@ -1278,12 +1278,12 @@ const seedTasks: Task[] = [
     Category: '设备调试',
     ProjectID: 'P013',
     AssigneeID: 'USER004',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 9,
     Difficulty: 1.6,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER006',
+    ApproverID: 'LEADER001',
     StartDate: '2025-03-15',
     CreatedDate: '2025-03-15',
     CreatedBy: 'LEADER001'
@@ -1299,8 +1299,8 @@ const seedTasks: Task[] = [
     Workload: 13,
     Difficulty: 1.9,
     CapacityLevel: '200MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER001',
+    ApproverID: 'USER007',
     StartDate: '2025-04-01',
     CreatedDate: '2025-04-01',
     CreatedBy: 'admin'
@@ -1312,12 +1312,12 @@ const seedTasks: Task[] = [
     Category: '常规岛配合',
     ProjectID: 'P015',
     AssigneeID: 'USER006',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 11,
     Difficulty: 1.7,
     CapacityLevel: '1100MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER002',
+    ApproverID: 'USER003',
     StartDate: '2025-04-10',
     CreatedDate: '2025-04-10',
     CreatedBy: 'LEADER001'
@@ -1331,12 +1331,12 @@ const seedTasks: Task[] = [
     Category: '技术方案',
     ProjectID: 'P016',
     AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 12,
     Difficulty: 1.8,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER002',
+    ApproverID: 'USER007',
     StartDate: '2025-01-08',
     CreatedDate: '2025-01-08',
     CreatedBy: 'LEADER001'
@@ -1352,8 +1352,8 @@ const seedTasks: Task[] = [
     Workload: 6,
     Difficulty: 1.3,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER001',
+    ApproverID: 'USER003',
     StartDate: '2025-02-20',
     CreatedDate: '2025-02-20',
     CreatedBy: 'admin'
@@ -1369,8 +1369,8 @@ const seedTasks: Task[] = [
     Workload: 8,
     Difficulty: 1.5,
     CapacityLevel: '500MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-03-01',
     CreatedDate: '2025-03-01',
     CreatedBy: 'admin'
@@ -1382,12 +1382,12 @@ const seedTasks: Task[] = [
     Category: '方案评审',
     ProjectID: 'P018',
     AssigneeID: 'USER004',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 7,
     Difficulty: 1.4,
     CapacityLevel: '700MW',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER006',
+    ApproverID: 'LEADER001',
     StartDate: '2025-03-15',
     CreatedDate: '2025-03-15',
     CreatedBy: 'LEADER001'
@@ -1403,8 +1403,8 @@ const seedTasks: Task[] = [
     Workload: 5,
     Difficulty: 1.2,
     CapacityLevel: '300MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER001',
+    ApproverID: 'USER007',
     StartDate: '2025-04-01',
     CreatedDate: '2025-04-01',
     CreatedBy: 'admin'
@@ -1416,12 +1416,12 @@ const seedTasks: Task[] = [
     Category: '设计总结',
     ProjectID: 'P020',
     AssigneeID: 'USER006',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 9,
     Difficulty: 1.6,
     CapacityLevel: '800MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER002',
+    ApproverID: 'USER003',
     StartDate: '2025-04-10',
     CreatedDate: '2025-04-10',
     CreatedBy: 'LEADER001'
@@ -1435,12 +1435,12 @@ const seedTasks: Task[] = [
     Category: '方案编制',
     ProjectID: 'P021',
     AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 10,
     Difficulty: 1.7,
     CapacityLevel: '700MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER002',
+    ApproverID: 'USER007',
     StartDate: '2025-01-12',
     CreatedDate: '2025-01-12',
     CreatedBy: 'LEADER001'
@@ -1456,8 +1456,8 @@ const seedTasks: Task[] = [
     Workload: 8,
     Difficulty: 1.4,
     CapacityLevel: '170MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER003',
+    CheckerID:'USER001',
+    ApproverID: 'USER003',
     StartDate: '2025-02-25',
     CreatedDate: '2025-02-25',
     CreatedBy: 'admin'
@@ -1473,8 +1473,8 @@ const seedTasks: Task[] = [
     Workload: 9,
     Difficulty: 1.5,
     CapacityLevel: '300MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-03-15',
     CreatedDate: '2025-03-15',
     CreatedBy: 'admin'
@@ -1486,12 +1486,12 @@ const seedTasks: Task[] = [
     Category: '前期项目配合',
     ProjectID: 'P024',
     AssigneeID: 'USER004',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 7,
     Difficulty: 1.3,
     CapacityLevel: '550MW',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER006',
+    ApproverID: 'LEADER001',
     StartDate: '2025-04-01',
     CreatedDate: '2025-04-01',
     CreatedBy: 'LEADER001'
@@ -1507,8 +1507,8 @@ const seedTasks: Task[] = [
     Workload: 11,
     Difficulty: 1.8,
     CapacityLevel: '200MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER001',
+    ApproverID: 'USER007',
     StartDate: '2025-04-08',
     CreatedDate: '2025-04-08',
     CreatedBy: 'admin'
@@ -1526,8 +1526,8 @@ const seedTasks: Task[] = [
     Workload: 3,
     Difficulty: 0.5,
     CapacityLevel: 'N/A',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-01-15',
     CreatedDate: '2025-01-15',
     CreatedBy: 'admin'
@@ -1539,12 +1539,12 @@ const seedTasks: Task[] = [
     Category: '学习与培训',
     ProjectID: undefined,
     AssigneeID: 'USER003',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 4,
     Difficulty: 0.8,
     CapacityLevel: 'N/A',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER006',
+    ApproverID: 'LEADER001',
     StartDate: '2025-02-01',
     CreatedDate: '2025-02-01',
     CreatedBy: 'LEADER001'
@@ -1560,8 +1560,8 @@ const seedTasks: Task[] = [
     Workload: 2,
     Difficulty: 0.3,
     CapacityLevel: 'N/A',
-    ReviewerID: 'LEADER001',
-    ReviewerID2: 'USER007',
+    CheckerID:'LEADER001',
+    ApproverID: 'USER007',
     StartDate: '2025-02-15',
     CreatedDate: '2025-02-15',
     CreatedBy: 'admin'
@@ -1573,12 +1573,12 @@ const seedTasks: Task[] = [
     Category: '资料讨论会',
     ProjectID: 'P001',
     AssigneeID: 'USER004',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 2,
     Difficulty: 0.5,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-03-01',
     CreatedDate: '2025-03-01',
     CreatedBy: 'LEADER001'
@@ -1596,8 +1596,8 @@ const seedTasks: Task[] = [
     Workload: 2,
     Difficulty: 0.5,
     CapacityLevel: 'N/A',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER001',
+    ApproverID: 'LEADER001',
     StartDate: '2025-01-05',
     CreatedDate: '2025-01-05',
     CreatedBy: 'admin'
@@ -1613,8 +1613,8 @@ const seedTasks: Task[] = [
     Workload: 6,
     Difficulty: 1.2,
     CapacityLevel: 'N/A',
-    ReviewerID: 'admin',
-    ReviewerID2: 'USER007',
+    CheckerID:'admin',
+    ApproverID: 'USER007',
     StartDate: '2025-02-10',
     CreatedDate: '2025-02-10',
     CreatedBy: 'admin'
@@ -1626,12 +1626,12 @@ const seedTasks: Task[] = [
     Category: '总结报告',
     ProjectID: 'P006',
     AssigneeID: 'USER001',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 5,
     Difficulty: 1.0,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER002',
+    ApproverID: 'LEADER001',
     StartDate: '2025-03-15',
     CreatedDate: '2025-03-15',
     CreatedBy: 'LEADER001'
@@ -1649,8 +1649,8 @@ const seedTasks: Task[] = [
     Workload: 5,
     Difficulty: 1.0,
     CapacityLevel: '1200MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER001',
+    ApproverID: 'LEADER001',
     StartDate: '2025-01-20',
     CreatedDate: '2025-01-20',
     CreatedBy: 'LEADER001'
@@ -1662,12 +1662,12 @@ const seedTasks: Task[] = [
     Category: '常规项目执行出差',
     ProjectID: 'P007',
     AssigneeID: 'USER004',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 7,
     Difficulty: 1.2,
     CapacityLevel: '770MW',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER006',
+    ApproverID: 'USER007',
     StartDate: '2025-02-25',
     CreatedDate: '2025-02-25',
     CreatedBy: 'admin'
@@ -1683,8 +1683,8 @@ const seedTasks: Task[] = [
     Workload: 6,
     Difficulty: 1.5,
     CapacityLevel: '1400MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-03-10',
     CreatedDate: '2025-03-10',
     CreatedBy: 'LEADER001'
@@ -1702,8 +1702,8 @@ const seedTasks: Task[] = [
     Workload: 8,
     Difficulty: 1.0,
     CapacityLevel: '1000MW',
-    ReviewerID: 'USER002',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER002',
+    ApproverID: 'LEADER001',
     StartDate: '2025-01-15',
     CreatedDate: '2025-01-15',
     CreatedBy: 'admin'
@@ -1715,12 +1715,12 @@ const seedTasks: Task[] = [
     Category: '通用任务',
     ProjectID: 'P027',
     AssigneeID: 'USER002',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 10,
     Difficulty: 1.3,
     CapacityLevel: '500MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER001',
+    ApproverID: 'USER007',
     StartDate: '2025-02-01',
     CreatedDate: '2025-02-01',
     CreatedBy: 'LEADER001'
@@ -1736,8 +1736,8 @@ const seedTasks: Task[] = [
     Workload: 7,
     Difficulty: 1.2,
     CapacityLevel: '800MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER002',
+    CheckerID:'USER001',
+    ApproverID: 'USER002',
     StartDate: '2025-03-10',
     CreatedDate: '2025-03-10',
     CreatedBy: 'admin'
@@ -1749,12 +1749,12 @@ const seedTasks: Task[] = [
     Category: '通用任务',
     ProjectID: 'P029',
     AssigneeID: 'USER004',
-    Status: TaskStatus.IN_PROGRESS,
+    Status: TaskStatus.DRAFTING,
     Workload: 9,
     Difficulty: 1.4,
     CapacityLevel: '600MW',
-    ReviewerID: 'USER006',
-    ReviewerID2: 'LEADER001',
+    CheckerID:'USER006',
+    ApproverID: 'LEADER001',
     StartDate: '2025-04-01',
     CreatedDate: '2025-04-01',
     CreatedBy: 'LEADER001'
@@ -1770,8 +1770,8 @@ const seedTasks: Task[] = [
     Workload: 6,
     Difficulty: 1.1,
     CapacityLevel: '400MW',
-    ReviewerID: 'USER001',
-    ReviewerID2: 'USER007',
+    CheckerID:'USER001',
+    ApproverID: 'USER007',
     StartDate: '2025-04-08',
     CreatedDate: '2025-04-08',
     CreatedBy: 'admin'
@@ -1987,6 +1987,70 @@ class DataService {
     }
   }
 
+  // 更新任务的角色状态
+  updateTaskRoleStatus(taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus): void {
+    const tasks = this.getAllTasksRaw();
+    const task = tasks.find(t => t.TaskID === taskId);
+    if (task) {
+      switch (role) {
+        case 'assignee':
+          task.assigneeStatus = status;
+          break;
+        case 'checker':
+          task.checkerStatus = status;
+          break;
+        case 'chiefDesigner':
+          task.chiefDesignerStatus = status;
+          break;
+        case 'approver':
+          task.approverStatus = status;
+          break;
+      }
+
+      // 任务状态与角色状态联动
+      if (status === RoleStatus.COMPLETED) {
+        // 如果设置为完成，检查是否所有角色都完成
+        const allCompleted =
+          (task.assigneeStatus === RoleStatus.COMPLETED) &&
+          (!task.CheckerID || task.checkerStatus === RoleStatus.COMPLETED) &&
+          (!task.ChiefDesignerID || task.chiefDesignerStatus === RoleStatus.COMPLETED) &&
+          (!task.ApproverID || task.approverStatus === RoleStatus.COMPLETED);
+
+        if (allCompleted) {
+          task.Status = TaskStatus.COMPLETED;
+        }
+      } else if (status === RoleStatus.IN_PROGRESS || status === RoleStatus.REVISING || status === RoleStatus.REJECTED) {
+        // 如果任一角色状态为进行中/修改中/驳回中，任务状态设为进行中
+        task.Status = TaskStatus.DRAFTING;
+      }
+      // 未开始状态不自动更新任务状态，让系统判断
+
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+    }
+  }
+
+  // 当任务状态设为完成时，同步更新所有角色状态为完成
+  updateAllRoleStatusToCompleted(taskId: string): void {
+    const tasks = this.getAllTasksRaw();
+    const task = tasks.find(t => t.TaskID === taskId);
+    if (task) {
+      task.Status = TaskStatus.COMPLETED;
+      if (task.assigneeStatus !== RoleStatus.COMPLETED) {
+        task.assigneeStatus = RoleStatus.COMPLETED;
+      }
+      if (task.CheckerID && task.checkerStatus !== RoleStatus.COMPLETED) {
+        task.checkerStatus = RoleStatus.COMPLETED;
+      }
+      if (task.ChiefDesignerID && task.chiefDesignerStatus !== RoleStatus.COMPLETED) {
+        task.chiefDesignerStatus = RoleStatus.COMPLETED;
+      }
+      if (task.ApproverID && task.approverStatus !== RoleStatus.COMPLETED) {
+        task.approverStatus = RoleStatus.COMPLETED;
+      }
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+    }
+  }
+
   // Task Classes
   getTaskClasses(): TaskClass[] {
     const data = localStorage.getItem(STORAGE_KEYS.TASK_CLASSES);
@@ -2103,15 +2167,20 @@ class DataService {
       Remark: poolItem.Remark || taskData.Remark,
       CreatedDate: new Date().toISOString().split('T')[0],
       CreatedBy: poolItem.CreatedBy,
-      ReviewerID: taskData.ReviewerID,
-      ReviewerID2: taskData.ReviewerID2,
-      ReviewerName: taskData.ReviewerName,
-      Reviewer2Name: taskData.Reviewer2Name,
-      ReviewerWorkload: taskData.ReviewerWorkload,
-      Reviewer2Workload: taskData.Reviewer2Workload,
+      CheckerID: taskData.CheckerID,
+      ApproverID: taskData.ApproverID,
+      CheckerName: taskData.CheckerName,
+      ApproverName: taskData.ApproverName,
+      CheckerWorkload: taskData.CheckerWorkload,
+      ApproverWorkload: taskData.ApproverWorkload,
       isForceAssessment: taskData.isForceAssessment,
       CapacityLevel: capacityLevel,
-      is_in_pool: false
+      is_in_pool: false,
+      // Role status - default to NOT_STARTED
+      assigneeStatus: RoleStatus.NOT_STARTED,
+      checkerStatus: RoleStatus.NOT_STARTED,
+      chiefDesignerStatus: RoleStatus.NOT_STARTED,
+      approverStatus: RoleStatus.NOT_STARTED
     };
 
     // Save the new task
@@ -2379,19 +2448,61 @@ class DataService {
 
   // --- Personal Workspace Methods ---
 
-  // Get tasks assigned to a specific user
+  // Get tasks where user has any role (assignee, checker, chiefDesigner, or approver)
   getPersonalTasks(userId: string): Task[] {
     const tasks = this.getTasks();
-    return tasks.filter(t => t.AssigneeID === userId);
+    return tasks.filter(t =>
+      t.AssigneeID === userId ||
+      t.CheckerID === userId ||
+      t.ChiefDesignerID === userId ||
+      t.ApproverID === userId
+    );
   }
 
   // Separate tasks by status
   separateTasksByStatus(tasks: Task[]): SeparatedTasks {
     return {
-      inProgress: tasks.filter(t => t.Status === TaskStatus.IN_PROGRESS),
+      inProgress: tasks.filter(t =>
+        t.Status === TaskStatus.DRAFTING ||
+        t.Status === TaskStatus.REVISING ||
+        t.Status === TaskStatus.REVIEWING ||
+        t.Status === TaskStatus.REVIEWING2
+      ),
       pending: tasks.filter(t => t.Status === TaskStatus.NOT_STARTED),
       completed: tasks.filter(t => t.Status === TaskStatus.COMPLETED)
     };
+  }
+
+  // Get role status for a specific user in a task
+  getRoleStatusForUser(task: Task, userId: string): string {
+    if (task.AssigneeID === userId) return task.assigneeStatus || '未开始';
+    if (task.CheckerID === userId) return task.checkerStatus || '未开始';
+    if (task.ChiefDesignerID === userId) return task.chiefDesignerStatus || '未开始';
+    if (task.ApproverID === userId) return task.approverStatus || '未开始';
+    return '-';
+  }
+
+  // Separate tasks by user's role status (for personal workspace)
+  separateTasksByRoleStatus(tasks: Task[], userId: string): SeparatedTasks {
+    // 使用字符串直接比较，避免枚举问题
+    const inProgressStatuses = ['进行中', '修改中', '驳回中'];
+
+    const inProgress = tasks.filter(t => {
+      const status = this.getRoleStatusForUser(t, userId);
+      return typeof status === 'string' ? inProgressStatuses.includes(status) : false;
+    });
+
+    const pending = tasks.filter(t => {
+      const status = this.getRoleStatusForUser(t, userId);
+      return status === '未开始';
+    });
+
+    const completed = tasks.filter(t => {
+      const status = this.getRoleStatusForUser(t, userId);
+      return status === '已完成';
+    });
+
+    return { inProgress, pending, completed };
   }
 
   // Calculate work days in a period
@@ -2482,18 +2593,30 @@ class DataService {
   }
 
   // Calculate personal statistics
-  calculatePersonalStats(tasks: Task[], period: Period): PersonalStats {
+  calculatePersonalStats(tasks: Task[], period: Period, userId?: string): PersonalStats {
     // Filter tasks by period
     const periodTasks = this.filterTasksByPeriod(tasks, period);
 
     // Get work days info
     const workDaysInfo = this.getWorkDaysInPeriod(period);
 
-    // Separate by status
-    const { inProgress, pending, completed } = this.separateTasksByStatus(periodTasks);
+    // Separate by status (use role status if userId provided)
+    let inProgress: Task[], pending: Task[], completed: Task[];
+    if (userId) {
+      const separated = this.separateTasksByRoleStatus(periodTasks, userId);
+      inProgress = separated.inProgress;
+      pending = separated.pending;
+      completed = separated.completed;
+    } else {
+      const separated = this.separateTasksByStatus(periodTasks);
+      inProgress = separated.inProgress;
+      pending = separated.pending;
+      completed = separated.completed;
+    }
 
-    // Calculate category distribution (excluding TC009/TC007)
-    const categoryTasks = periodTasks.filter(t => t.TaskClassID !== 'TC009' && t.TaskClassID !== 'TC007');
+    // Calculate category distribution (excluding TC009/TC007) - based on role status filtered tasks
+    const allFilteredTasks = [...inProgress, ...pending, ...completed];
+    const categoryTasks = allFilteredTasks.filter(t => t.TaskClassID !== 'TC009' && t.TaskClassID !== 'TC007');
     const categoryMap = new Map<string, number>();
 
     categoryTasks.forEach(t => {
@@ -2509,12 +2632,12 @@ class DataService {
       percentage: totalCategoryTasks > 0 ? Math.round((count / totalCategoryTasks) * 100) : 0
     }));
 
-    // Calculate travel stats (TC009)
-    const travelTasks = periodTasks.filter(t => t.TaskClassID === 'TC009');
+    // Calculate travel stats (TC009) - based on role status filtered tasks
+    const travelTasks = allFilteredTasks.filter(t => t.TaskClassID === 'TC009');
     const totalTravelDays = travelTasks.reduce((sum, t) => sum + (t.TravelDuration || 0), 0);
 
-    // Calculate meeting stats (TC007)
-    const meetingTasks = periodTasks.filter(t => t.TaskClassID === 'TC007');
+    // Calculate meeting stats (TC007) - based on role status filtered tasks
+    const meetingTasks = allFilteredTasks.filter(t => t.TaskClassID === 'TC007');
     const totalMeetingHours = meetingTasks.reduce((sum, t) => sum + (t.MeetingDuration || 0), 0);
 
     const totalCount = inProgress.length + pending.length + completed.length;
@@ -2629,6 +2752,114 @@ class DataService {
     link.download = fileName;
     link.click();
     URL.revokeObjectURL(link.href);
+  }
+
+  // Auto-calculates task status based on role statuses
+  calculateTaskStatus(task: Task): TaskStatus {
+    // If task is completed, return COMPLETED
+    if (task.Status === TaskStatus.COMPLETED) {
+      return TaskStatus.COMPLETED;
+    }
+
+    // All completed - calculate based on role statuses
+    const assigneeCompleted = task.assigneeStatus === RoleStatus.COMPLETED;
+    const checkerCompleted = !task.CheckerID || task.checkerStatus === RoleStatus.COMPLETED;
+    const chiefDesignerCompleted = !task.ChiefDesignerID || task.chiefDesignerStatus === RoleStatus.COMPLETED;
+    const approverCompleted = !task.ApproverID || task.approverStatus === RoleStatus.COMPLETED;
+
+    if (assigneeCompleted && checkerCompleted && chiefDesignerCompleted && approverCompleted) {
+      return TaskStatus.COMPLETED;
+    }
+
+    // Rejected status has priority (highest to lowest: approver -> chiefDesigner -> checker)
+    if (task.approverStatus === RoleStatus.REJECTED) return TaskStatus.REVIEWING2;
+    if (task.chiefDesignerStatus === RoleStatus.REJECTED) return TaskStatus.REVIEWING2;
+    if (task.checkerStatus === RoleStatus.REJECTED) return TaskStatus.REVIEWING;
+    if (task.assigneeStatus === RoleStatus.REJECTED || task.assigneeStatus === RoleStatus.REVISING) {
+      return TaskStatus.REVISING;
+    }
+
+    // In progress status (highest to lowest: approver -> chiefDesigner -> checker -> assignee)
+    if (task.approverStatus === RoleStatus.IN_PROGRESS) return TaskStatus.REVIEWING2;
+    if (task.chiefDesignerStatus === RoleStatus.IN_PROGRESS) return TaskStatus.REVIEWING2;
+    if (task.checkerStatus === RoleStatus.IN_PROGRESS) return TaskStatus.REVIEWING;
+    if (task.assigneeStatus === RoleStatus.IN_PROGRESS) return TaskStatus.DRAFTING;
+
+    // Default to NOT_STARTED
+    return TaskStatus.NOT_STARTED;
+  }
+
+  // Returns true for LEADER or ADMIN roles
+  canViewWorkload(user: SystemRole): boolean {
+    return user === SystemRole.LEADER || user === SystemRole.ADMIN;
+  }
+
+  // Migrates old field names to new ones for existing data
+  migrateTaskStatusFields(): void {
+    const tasks = this.getAllTasksRaw();
+    let hasChanges = false;
+
+    tasks.forEach((task: any) => {
+      // Migrate field names from old to new
+      if ('ReviewerID' in task && !('CheckerID' in task)) {
+        task.CheckerID = task.ReviewerID;
+        delete task.ReviewerID;
+        hasChanges = true;
+      }
+
+      if ('ReviewerID2' in task && !('ApproverID' in task)) {
+        task.ApproverID = task.ReviewerID2;
+        delete task.ReviewerID2;
+        hasChanges = true;
+      }
+
+      if ('ReviewerName' in task && !('CheckerName' in task)) {
+        task.CheckerName = task.ReviewerName;
+        delete task.ReviewerName;
+        hasChanges = true;
+      }
+
+      if ('Reviewer2Name' in task && !('ApproverName' in task)) {
+        task.ApproverName = task.Reviewer2Name;
+        delete task.Reviewer2Name;
+        hasChanges = true;
+      }
+
+      if ('ReviewerWorkload' in task && !('CheckerWorkload' in task)) {
+        task.CheckerWorkload = task.ReviewerWorkload;
+        delete task.ReviewerWorkload;
+        hasChanges = true;
+      }
+
+      if ('Reviewer2Workload' in task && !('ApproverWorkload' in task)) {
+        task.ApproverWorkload = task.Reviewer2Workload;
+        delete task.Reviewer2Workload;
+        hasChanges = true;
+      }
+
+      // Migrate role status fields if not present
+      if (!('assigneeStatus' in task) && task.AssigneeID) {
+        task.assigneeStatus = RoleStatus.NOT_STARTED;
+        hasChanges = true;
+      }
+      if (!('checkerStatus' in task) && task.CheckerID) {
+        task.checkerStatus = RoleStatus.NOT_STARTED;
+        hasChanges = true;
+      }
+      if (!('chiefDesignerStatus' in task) && task.ChiefDesignerID) {
+        task.chiefDesignerStatus = RoleStatus.NOT_STARTED;
+        hasChanges = true;
+      }
+      if (!('approverStatus' in task) && task.ApproverID) {
+        task.approverStatus = RoleStatus.NOT_STARTED;
+        hasChanges = true;
+      }
+    });
+
+    // Save changes if any were made
+    if (hasChanges) {
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+    }
   }
 
   // Helpers

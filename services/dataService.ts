@@ -2663,7 +2663,38 @@ class DataService {
     };
   }
 
+  // Calculate monthly task trend for personal workspace
+  calculateMonthlyTrend(tasks: Task[], months: number, userId: string): { month: string; assigned: number; completed: number }[] {
+    const result: { month: string; assigned: number; completed: number }[] = [];
+    const now = new Date();
+
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      // Count assigned tasks (where user is assignee, checker, chiefDesigner, or approver)
+      const assignedCount = tasks.filter(t => {
+        const createdDate = new Date(t.CreatedDate);
+        return createdDate >= date && createdDate < nextMonth &&
+          (t.AssigneeID === userId || t.CheckerID === userId || t.ChiefDesignerID === userId || t.ApproverID === userId);
+      }).length;
+
+      // Count completed tasks
+      const completedCount = tasks.filter(t => {
+        const completedDate = t.CompletedDate ? new Date(t.CompletedDate) : null;
+        return completedDate && completedDate >= date && completedDate < nextMonth &&
+          (t.AssigneeID === userId || t.CheckerID === userId || t.ChiefDesignerID === userId || t.ApproverID === userId);
+      }).length;
+
+      result.push({ month: monthStr, assigned: assignedCount, completed: completedCount });
+    }
+
+    return result;
+  }
+
   // Retrieve a task back to the pool (LEADER/ADMIN only)
+  // 回收任务时，清空负责人、校核人、主任设计、审查人的所有信息
   retrieveTaskToPool(taskId: string): void {
     const tasks = this.getAllTasksRaw();
     const task = tasks.find(t => t.TaskID === taskId);
@@ -2672,7 +2703,19 @@ class DataService {
       task.is_in_pool = true;
       task.AssigneeID = undefined;
       task.AssigneeName = undefined;
+      task.CheckerID = undefined;
+      task.CheckerName = undefined;
+      task.ChiefDesignerID = undefined;
+      task.ChiefDesignerName = undefined;
+      task.ApproverID = undefined;
+      task.ApproverName = undefined;
       task.ProjectID = undefined;
+      // 重置任务状态和角色状态
+      task.Status = '未开始';
+      task.assigneeStatus = undefined;
+      task.checkerStatus = undefined;
+      task.chiefDesignerStatus = undefined;
+      task.approverStatus = undefined;
       localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
     }
   }

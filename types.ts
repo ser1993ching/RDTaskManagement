@@ -215,6 +215,9 @@ export interface PersonalStats {
     workHoursInPeriod: number;
     percentage: number;
   };
+
+  // Monthly task trend data
+  monthlyTrend: { month: string; assigned: number; completed: number }[];
 }
 
 // Separated tasks by status

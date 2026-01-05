@@ -417,40 +417,42 @@ const RoleStatusDropdown: React.FC<{
 
   return (
     <>
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={toggleDropdown}
-        className={`text-xs px-2 py-1 rounded-full transition-colors ${getStatusBadgeClass(currentStatus)} cursor-pointer hover:opacity-80`}
-      >
-        {currentStatus}
-      </button>
-      {isOpen && (
-        <div
-          ref={menuRef}
-          className="fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] min-w-[100px]"
-          style={{
-            top: menuPosition.top,
-            left: menuPosition.left
-          }}
+      <div className="relative">
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={toggleDropdown}
+          className={`text-xs px-2 py-1 rounded-full transition-colors ${getStatusBadgeClass(currentStatus)} cursor-pointer hover:opacity-80 whitespace-nowrap`}
         >
-          {statusOptions.map((status, idx) => (
-            <button
-              key={idx}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(status);
-                setIsOpen(false);
-              }}
-              className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${
-                status === currentStatus ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-      )}
+          {currentStatus}
+        </button>
+        {isOpen && (
+          <div
+            ref={menuRef}
+            className="fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] w-24"
+            style={{
+              top: menuPosition.top,
+              left: menuPosition.left
+            }}
+          >
+            {statusOptions.map((status, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange(status);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${
+                  status === currentStatus ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </>
   );
 };
@@ -506,31 +508,27 @@ const TaskPanel: React.FC<{
             <div className="py-8 text-center text-gray-500">暂无任务</div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full">
-              <colgroup>
-                <col className="w-48" />
-                <col className="w-24" />
-                <col className="w-16" />
-                <col className="w-24" />
-                <col className="w-24" />
-                {canViewWorkload && <col className="w-20" />}
-              </colgroup>
+            <table className="w-full min-w-[900px]">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap">任务名称</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap">类别</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap">我的角色</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap">开始时间</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap">截止时间</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-1/4">任务名称</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-20">类别</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-16">我的角色</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-20">角色状态</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-24">开始时间</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-24">截止时间</th>
                   {canViewWorkload && (
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap">工作量(天)</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-16">工作量</th>
                   )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {tasks.map((task) => {
-                  const isLongRunning = dataService.isTaskLongRunning(task);
+                  // 已完成的任务不显示长任务标记
+                  const isLongRunning = title !== '已完成' && dataService.isTaskLongRunning(task);
                   const userRole = getUserRoleInTask(task, viewingUserId);
+                  const userRoleType = getUserRoleTypeInTask(task, viewingUserId);
+                  const roleStatus = getRoleStatusInTask(task, viewingUserId);
                   const roleWorkload = getRoleWorkloadInTask(task, viewingUserId);
                   return (
                     <tr key={task.TaskID} className={isLongRunning ? 'bg-yellow-50' : ''}>
@@ -545,6 +543,18 @@ const TaskPanel: React.FC<{
                       <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
                       <td className="px-4 py-2">
                         <span className="text-sm font-medium text-gray-700">{userRole}</span>
+                      </td>
+                      <td className="px-4 py-2">
+                        {userRoleType ? (
+                          <RoleStatusDropdown
+                            currentStatus={roleStatus}
+                            onChange={(status) => onStatusChange(task.TaskID, userRoleType, status)}
+                          />
+                        ) : (
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(roleStatus)}`}>
+                            {roleStatus}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
                       <td className="px-4 py-2 text-sm text-gray-600">{task.DueDate || '-'}</td>

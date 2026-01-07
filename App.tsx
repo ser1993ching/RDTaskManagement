@@ -8,7 +8,7 @@ import { TaskPoolView } from './components/TaskPoolView';
 import PersonalWorkspaceView from './components/PersonalWorkspaceView';
 import { Settings as SettingsComponent } from './components/Settings';
 import { dataService } from './services/dataService';
-import { User, Project, Task } from './types';
+import { User, Project, Task, SystemRole } from './types';
 import { Lock, Settings } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -127,7 +127,13 @@ const App: React.FC = () => {
       currentView={currentView}
       onChangeView={setCurrentView}
     >
-      {currentView === 'dashboard' && <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} />}
+      {currentView === 'dashboard' && (
+        currentUser.SystemRole === SystemRole.MEMBER ? (
+          <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} onChangeView={handleChangeView} />
+        ) : (
+          <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} />
+        )
+      )}
       {currentView === 'workspace' && <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} onChangeView={handleChangeView} />}
       {currentView === 'personnel' && <PersonnelView currentUser={currentUser} users={users} onRefresh={refreshData} />}
       {currentView === 'projects' && <ProjectView currentUser={currentUser} projects={projects} users={users} onRefresh={refreshData} />}

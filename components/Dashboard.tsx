@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { AlertCircle, Clock, CheckCircle2, Calendar, TrendingUp, Users, Plane, Briefcase } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2, Calendar, TrendingUp, Users, Plane, Briefcase, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DashboardProps {
   currentUser: User;
@@ -17,6 +17,7 @@ interface DashboardProps {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 type Period = 'week' | 'month' | 'quarter' | 'halfYear' | 'year' | 'lastYear';
+type DeadlineFilter = 'all' | 'overdue' | 'thisMonth' | 'thisQuarter' | 'thisYear';
 
 // Period selector component
 const PeriodSelector: React.FC<{
@@ -51,8 +52,230 @@ const PeriodSelector: React.FC<{
   );
 };
 
+// Force Assessment Task List Component
+const ForceAssessmentPanel: React.FC<{
+  tasks: Task[];
+  taskClasses: TaskClass[];
+  users: User[];
+}> = ({ tasks, taskClasses, users }) => {
+  const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>('thisMonth');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const getCategoryName = (taskClassId: string) => {
+    const tc = taskClasses.find(t => t.id === taskClassId);
+    return tc?.name || taskClassId;
+  };
+
+  const getUserName = (userId?: string) => {
+    if (!userId) return '-';
+    const user = users.find(u => u.UserID === userId);
+    return user?.Name || userId;
+  };
+
+  const getStatusBadgeClass = (status: TaskStatus): string => {
+    switch (status) {
+      case TaskStatus.NOT_STARTED:
+        return 'bg-gray-100 text-gray-700';
+      case TaskStatus.DRAFTING:
+        return 'bg-blue-100 text-blue-700';
+      case TaskStatus.REVISING:
+        return 'bg-yellow-100 text-yellow-700';
+      case TaskStatus.REVIEWING:
+        return 'bg-purple-100 text-purple-700';
+      case TaskStatus.REVIEWING2:
+        return 'bg-orange-100 text-orange-700';
+      case TaskStatus.COMPLETED:
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const checkDeadline = (dueDate?: string, status?: TaskStatus): { type: DeadlineFilter; days?: number } => {
+    if (!dueDate) return { type: 'all' };
+    const now = new Date();
+    const due = new Date(dueDate);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+    if (due < today) return { type: 'overdue', days: Math.ceil((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)) };
+
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    if (due <= monthEnd && due >= today) return { type: 'thisMonth' };
+
+    // This quarter (next 3 months)
+    const quarterEnd = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+    if (due <= quarterEnd && due >= today) return { type: 'thisQuarter' };
+
+    // This year
+    const yearEnd = new Date(today.getFullYear(), 11, 31);
+    if (due <= yearEnd && due >= today) return { type: 'thisYear' };
+
+    return { type: 'all' };
+  };
+
+  const filteredTasks = useMemo(() => {
+    return tasks
+      .filter(task => {
+        if (deadlineFilter !== 'all') {
+          const deadlineCheck = checkDeadline(task.DueDate, task.Status);
+          if (deadlineCheck.type !== deadlineFilter) return false;
+        }
+        if (statusFilter !== 'all') {
+          if (statusFilter === 'notStarted' && task.Status !== TaskStatus.NOT_STARTED) return false;
+          if (statusFilter === 'inProgress' &&
+              task.Status !== TaskStatus.DRAFTING &&
+              task.Status !== TaskStatus.REVISING &&
+              task.Status !== TaskStatus.REVIEWING &&
+              task.Status !== TaskStatus.REVIEWING2) return false;
+          if (statusFilter === 'completed' && task.Status !== TaskStatus.COMPLETED) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => a.TaskName.localeCompare(b.TaskName, 'zh-CN'));
+  }, [tasks, deadlineFilter, statusFilter]);
+
+  const deadlineLabels: Record<DeadlineFilter, string> = {
+    all: '全部',
+    overdue: '已逾期',
+    thisMonth: '本月',
+    thisQuarter: '近三个月',
+    thisYear: '本年度'
+  };
+
+  const statusOptions = [
+    { value: 'all', label: '全部' },
+    { value: 'notStarted', label: '未开始' },
+    { value: 'inProgress', label: '进行中' },
+    { value: 'completed', label: '已完成' }
+  ];
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-4 py-3 flex items-center justify-between bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-red-500" />
+          <span className="font-semibold text-slate-800">强制考核任务清单</span>
+          <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-sm font-medium">
+            {filteredTasks.length}
+          </span>
+        </div>
+        {isExpanded ? <ChevronUp className="w-5 h-5 text-red-500" /> : <ChevronDown className="w-5 h-5 text-red-500" />}
+      </button>
+
+      {isExpanded && (
+        <div className="p-4">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <span className="text-sm text-slate-600">截止时间:</span>
+              <div className="flex bg-slate-100 rounded-lg p-0.5">
+                {(['all', 'overdue', 'thisMonth', 'thisQuarter', 'thisYear'] as DeadlineFilter[]).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setDeadlineFilter(filter)}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                      deadlineFilter === filter
+                        ? 'bg-white text-red-600 shadow-sm font-medium'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {deadlineLabels[filter]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-slate-400" />
+              <span className="text-sm text-slate-600">状态:</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border border-slate-200 rounded-lg px-3 py-1 text-sm bg-white cursor-pointer"
+              >
+                {statusOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <span className="text-sm text-slate-500 ml-auto">
+              显示 {filteredTasks.length} / {tasks.length} 个任务
+            </span>
+          </div>
+
+          {filteredTasks.length === 0 ? (
+            <div className="py-8 text-center text-slate-400">暂无符合条件的强制考核任务</div>
+          ) : (
+            <div className="overflow-x-auto max-h-64 overflow-y-auto">
+              <table className="w-full min-w-[1000px]">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-slate-600 whitespace-nowrap w-64">任务名称</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-slate-600 whitespace-nowrap w-24">类别</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-slate-600 whitespace-nowrap w-20">负责人</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-slate-600 whitespace-nowrap w-20">校核人</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-slate-600 whitespace-nowrap w-20">状态</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-slate-600 whitespace-nowrap w-24">开始时间</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-slate-600 whitespace-nowrap w-24">截止时间</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredTasks.map((task) => {
+                    const deadlineInfo = checkDeadline(task.DueDate, task.Status);
+                    const isOverdue = deadlineInfo.type === 'overdue';
+                    const displayName = task.TaskName.length > 20
+                      ? task.TaskName.substring(0, 20) + '...'
+                      : task.TaskName;
+
+                    return (
+                      <tr
+                        key={task.TaskID}
+                        className={`${isOverdue ? 'bg-red-50' : 'hover:bg-slate-50'} transition-colors`}
+                      >
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {isOverdue && (
+                              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                            )}
+                            <span className="text-sm text-slate-900 font-medium" title={task.TaskName}>
+                              {displayName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-sm text-slate-600">{getCategoryName(task.TaskClassID)}</td>
+                        <td className="px-3 py-2 text-sm text-slate-600">{getUserName(task.AssigneeID)}</td>
+                        <td className="px-3 py-2 text-sm text-slate-600">{getUserName(task.CheckerID)}</td>
+                        <td className="px-3 py-2">
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.Status)}`}>
+                            {task.Status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-sm text-slate-600">{task.StartDate || '-'}</td>
+                        <td className={`px-3 py-2 text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
+                          {task.DueDate || '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projects, tasks }) => {
   const [period, setPeriod] = useState<Period>('year');
+  const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'nuclear' | 'conventional' | 'research' | 'renovation' | 'other'>('all');
 
   // Get time-bounded tasks
   const getFilteredTasks = useMemo(() => {
@@ -226,19 +449,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       value: filteredVisibleTasks.filter(t => t.TaskClassID === tc.id).length
     })).filter(d => d.value > 0);
 
-    // Workload by Person (Leader/Admin only)
-    const workloadData = users.map(u => {
-      const userTasks = filteredVisibleTasks.filter(t => t.AssigneeID === u.UserID);
-      const pendingTasks = userTasks.filter(t => t.Status !== TaskStatus.COMPLETED);
-      const completedTasks = userTasks.filter(t => t.Status === TaskStatus.COMPLETED);
-      return {
-        name: u.Name,
-        pendingTasks: pendingTasks.length,
-        pendingWorkload: pendingTasks.reduce((sum, t) => sum + (t.Workload || 0), 0),
-        completedTasks: completedTasks.length,
-        completedWorkload: completedTasks.reduce((sum, t) => sum + (t.Workload || 0), 0)
-      };
-    }).sort((a, b) => b.pendingWorkload - a.pendingWorkload).slice(0, 10);
+    // Workload by Person (Leader/Admin only, exclude admin user, only active personnel)
+    const workloadData = users
+      .filter(u => u.SystemRole !== 'ADMIN' && u.Name !== '系统管理员' && u.Status === '在岗')
+      .map(u => {
+        const userTasks = filteredVisibleTasks.filter(t => t.AssigneeID === u.UserID);
+        const pendingTasks = userTasks.filter(t => t.Status !== TaskStatus.COMPLETED);
+        const completedTasks = userTasks.filter(t => t.Status === TaskStatus.COMPLETED);
+        return {
+          name: u.Name,
+          pendingTasks: pendingTasks.length,
+          pendingWorkload: pendingTasks.reduce((sum, t) => sum + (t.Workload || 0), 0),
+          completedTasks: completedTasks.length,
+          completedWorkload: completedTasks.reduce((sum, t) => sum + (t.Workload || 0), 0),
+          totalTasks: userTasks.length
+        };
+      }).sort((a, b) => b.pendingWorkload - a.pendingWorkload).slice(0, 10);
 
     // Category completion rate
     const categoryCompletion = taskClasses.map(tc => {
@@ -278,6 +504,90 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       return dueDate < now;
     });
 
+    // 1. 项目任务数量分配（横向柱状图数据）
+    const projectTaskDist = projects
+      .filter(p => {
+        if (p.is_deleted) return false;
+        switch (projectTypeFilter) {
+          case 'nuclear':
+            return p.category === ProjectCategory.NUCLEAR;
+          case 'conventional':
+            return p.category === ProjectCategory.EXECUTION;
+          case 'research':
+            return p.category === ProjectCategory.RESEARCH;
+          case 'renovation':
+            return p.category === ProjectCategory.RENOVATION;
+          case 'other':
+            return p.category === ProjectCategory.OTHER;
+          default:
+            return true;
+        }
+      })
+      .map(p => ({
+        name: p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name,
+        fullName: p.name,
+        value: filteredVisibleTasks.filter(t => t.ProjectID === p.id).length
+      }))
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    // 2. 容量等级任务数量分配（横向柱状图数据）
+    const capacityLevelData = Object.entries(
+      filteredVisibleTasks.reduce((acc, t) => {
+        const level = t.CapacityLevel || '未分类';
+        acc[level] = (acc[level] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    )
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    // 3. 核电项目与非核电项目工时对比
+    const nuclearWorkload = filteredVisibleTasks.filter(t => {
+      const proj = projects.find(p => p.id === t.ProjectID);
+      return proj?.category === ProjectCategory.NUCLEAR;
+    }).reduce((sum, t) => sum + (t.Workload || 0), 0);
+
+    const nonNuclearWorkload = filteredVisibleTasks.filter(t => {
+      const proj = projects.find(p => p.id === t.ProjectID);
+      return proj?.category !== ProjectCategory.NUCLEAR;
+    }).reduce((sum, t) => sum + (t.Workload || 0), 0);
+
+    const nuclearExecutionDist = [
+      { name: '核电项目', value: Math.round(nuclearWorkload) },
+      { name: '非核电项目', value: Math.round(nonNuclearWorkload) }
+    ];
+
+    // 4. 差旅任务月度趋势
+    const travelTrend = Object.entries(
+      filteredVisibleTasks
+        .filter(t => t.TaskClassID === 'TC009')
+        .reduce((acc, t) => {
+          if (t.DueDate) {
+            const month = t.DueDate.substring(0, 7); // YYYY-MM
+            acc[month] = (acc[month] || 0) + 1;
+          }
+          return acc;
+        }, {} as Record<string, number>)
+    )
+      .map(([month, count]) => ({ month, count }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    // 5. 会议时长月度趋势
+    const meetingTrend = Object.entries(
+      filteredVisibleTasks
+        .filter(t => t.TaskClassID === 'TC007')
+        .reduce((acc, t) => {
+          if (t.DueDate) {
+            const month = t.DueDate.substring(0, 7); // YYYY-MM
+            acc[month] = (acc[month] || 0) + (t.MeetingDuration || 0);
+          }
+          return acc;
+        }, {} as Record<string, number>)
+    )
+      .map(([month, hours]) => ({ month, hours }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
     return {
       pending,
       inProgress,
@@ -290,9 +600,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       specialStats,
       overdueCount: overdueTasks.length,
       overdueTasks: overdueTasks.slice(0, 5),
-      isDailyTrend
+      isDailyTrend,
+      projectTaskDist,
+      capacityLevelData,
+      nuclearExecutionDist,
+      travelTrend,
+      meetingTrend,
+      projectTypeFilter
     };
-  }, [getFilteredTasks, currentUser, users, projects]);
+  }, [getFilteredTasks, currentUser, users, projects, projectTypeFilter]);
+
+  // Get task classes
+  const taskClasses = useMemo(() => {
+    return dataService.getTaskClasses();
+  }, []);
+
+  // Filter force assessment tasks
+  const forceAssessmentTasks = useMemo(() => {
+    return tasks.filter(t => t.isForceAssessment === true && !t.is_deleted);
+  }, [tasks]);
 
   return (
     <div className="space-y-6">
@@ -367,6 +693,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
         </div>
       </div>
 
+      {/* Force Assessment Task List - Second Row */}
+      {forceAssessmentTasks.length > 0 && (
+        <ForceAssessmentPanel
+          tasks={forceAssessmentTasks}
+          taskClasses={taskClasses}
+          users={users}
+        />
+      )}
+
       {/* Charts Row 1: Task Trend & Workload Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Task Trend Chart */}
@@ -427,18 +762,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
             <Users className="text-blue-600" size={20} />
             团队工作量对比
           </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.workloadData} layout="vertical" margin={{ left: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="pendingWorkload" fill="#f59e0b" name="待办工时(小时)" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="completedWorkload" fill="#10b981" name="已完成工时(小时)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="overflow-y-auto max-h-[360px]">
+            <div style={{ height: `${Math.max(360, stats.workloadData.length * 40)}px`, minHeight: '360px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.workloadData} layout="vertical" margin={{ left: 50, right: 30, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value) => Math.round(value as number)} />
+                  <Legend />
+                  <Bar dataKey="totalTasks" fill="#6b7280" name="任务数量" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="pendingWorkload" fill="#f59e0b" name="待办工时(小时)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="completedWorkload" fill="#10b981" name="已完成工时(小时)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>
@@ -563,6 +901,166 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
                   : '0'}
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row 4: 项目与容量等级任务分配 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 项目任务数量分配 */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-slate-800">项目任务数量分配</h3>
+            <div className="flex bg-slate-100 rounded-lg p-0.5 flex-wrap gap-0.5">
+              <button
+                onClick={() => setProjectTypeFilter('all')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  stats.projectTypeFilter === 'all'
+                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                全部
+              </button>
+              <button
+                onClick={() => setProjectTypeFilter('nuclear')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  stats.projectTypeFilter === 'nuclear'
+                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                核电项目
+              </button>
+              <button
+                onClick={() => setProjectTypeFilter('conventional')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  stats.projectTypeFilter === 'conventional'
+                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                常规项目
+              </button>
+              <button
+                onClick={() => setProjectTypeFilter('research')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  stats.projectTypeFilter === 'research'
+                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                科研项目
+              </button>
+              <button
+                onClick={() => setProjectTypeFilter('renovation')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  stats.projectTypeFilter === 'renovation'
+                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                改造项目
+              </button>
+              <button
+                onClick={() => setProjectTypeFilter('other')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  stats.projectTypeFilter === 'other'
+                    ? 'bg-white text-blue-600 shadow-sm font-medium'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                其他项目
+              </button>
+            </div>
+          </div>
+          <div className="overflow-y-auto max-h-[360px]">
+            <div style={{ height: `${Math.max(360, stats.projectTaskDist.length * 40)}px`, minHeight: '360px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.projectTaskDist} layout="vertical" margin={{ left: 110, right: 30, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" width={95} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(value, name, props) => [value, props.payload.fullName || name]} />
+                  <Bar dataKey="value" fill="#3b82f6" name="任务数" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* 容量等级任务数量分配 */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="text-lg font-semibold mb-6">容量等级任务数量分配</h3>
+          <div className="overflow-y-auto max-h-[360px]">
+            <div style={{ height: `${Math.max(360, stats.capacityLevelData.length * 40)}px`, minHeight: '360px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.capacityLevelData} layout="vertical" margin={{ left: 90, right: 30, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#10b981" name="任务数" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row 5: 趋势图 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 差旅任务变化趋势 */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+            <Plane className="text-blue-600" size={20} />
+            班组差旅任务变化趋势
+          </h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats.travelTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#6b7280" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                  name="差旅任务数"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 会议时长变化趋势 */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+            <Briefcase className="text-purple-600" size={20} />
+            会议时长变化趋势
+          </h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats.meetingTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#6b7280" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="hours"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                  dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                  name="会议时长(小时)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>

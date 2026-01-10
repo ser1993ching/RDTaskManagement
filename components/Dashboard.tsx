@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { AlertCircle, Clock, CheckCircle2, Calendar, TrendingUp, Users, Plane, Briefcase, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Clock, CheckCircle2, Calendar, TrendingUp, Users, Plane, Briefcase, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DashboardProps {
   currentUser: User;
@@ -227,7 +227,7 @@ const ForceAssessmentPanel: React.FC<{
           {filteredTasks.length === 0 ? (
             <div className="py-8 text-center text-slate-400">暂无符合条件的强制考核任务</div>
           ) : (
-            <div className="overflow-x-auto max-h-64 overflow-y-auto">
+            <div className="overflow-x-auto max-h-[240px] overflow-y-auto border border-slate-100 rounded-lg">
               <table className="w-full min-w-[1000px]">
                 <thead className="bg-slate-50 sticky top-0">
                   <tr>
@@ -253,7 +253,7 @@ const ForceAssessmentPanel: React.FC<{
                         key={task.TaskID}
                         className={`${isOverdue ? 'bg-red-50' : 'hover:bg-slate-50'} transition-colors`}
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 w-64">
                           <div className="flex items-center gap-2">
                             {isOverdue && (
                               <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
@@ -263,18 +263,155 @@ const ForceAssessmentPanel: React.FC<{
                             </span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-sm text-slate-600">{getCategoryName(task.TaskClassID)}</td>
-                        <td className="px-3 py-2 text-sm text-slate-600">{getUserName(task.AssigneeID)}</td>
-                        <td className="px-3 py-2 text-sm text-slate-600">{getUserName(task.CheckerID)}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{getCategoryName(task.TaskClassID)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.AssigneeID)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.CheckerID)}</td>
+                        <td className="px-3 py-2 w-20">
                           <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.Status)}`}>
                             {task.Status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-sm text-slate-600">{task.StartDate || '-'}</td>
-                        <td className={`px-3 py-2 text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{task.StartDate || '-'}</td>
+                        <td className={`px-3 py-2 w-24 text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
                           {task.DueDate || '-'}
                         </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Delayed Task List Component (tasks created > 45 days ago but not completed)
+const DelayedTaskPanel: React.FC<{
+  tasks: Task[];
+  taskClasses: TaskClass[];
+  users: User[];
+}> = ({ tasks, taskClasses, users }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const getCategoryName = (taskClassId: string) => {
+    const tc = taskClasses.find(t => t.id === taskClassId);
+    return tc?.name || taskClassId;
+  };
+
+  const getUserName = (userId?: string) => {
+    if (!userId) return '-';
+    const user = users.find(u => u.UserID === userId);
+    return user?.Name || userId;
+  };
+
+  const getStatusBadgeClass = (status: TaskStatus): string => {
+    switch (status) {
+      case TaskStatus.NOT_STARTED:
+        return 'bg-gray-100 text-gray-700';
+      case TaskStatus.DRAFTING:
+        return 'bg-blue-100 text-blue-700';
+      case TaskStatus.REVISING:
+        return 'bg-yellow-100 text-yellow-700';
+      case TaskStatus.REVIEWING:
+        return 'bg-purple-100 text-purple-700';
+      case TaskStatus.REVIEWING2:
+        return 'bg-orange-100 text-orange-700';
+      case TaskStatus.COMPLETED:
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  // Filter tasks: start date more than 45 days ago and not completed
+  const delayedTasks = useMemo(() => {
+    const now = new Date();
+    const fortyFiveDaysAgo = new Date(now);
+    fortyFiveDaysAgo.setDate(now.getDate() - 45);
+
+    return tasks
+      .filter(task => {
+        if (task.is_deleted) return false;
+        if (!task.StartDate) return false;
+        if (task.Status === TaskStatus.COMPLETED) return false;
+
+        const startDate = new Date(task.StartDate);
+        return startDate <= fortyFiveDaysAgo;
+      })
+      .sort((a, b) => {
+        // Sort by start date (oldest first)
+        const dateA = new Date(a.StartDate);
+        const dateB = new Date(b.StartDate);
+        return dateA.getTime() - dateB.getTime(); // Older tasks first
+      });
+  }, [tasks]);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-amber-200 overflow-hidden mt-4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-4 py-3 flex items-center justify-between bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Clock className="w-5 h-5 text-amber-500" />
+          <span className="font-semibold text-slate-800">拖延任务清单</span>
+          <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-sm font-medium">
+            {delayedTasks.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-amber-600">距离开始时间超过45天</span>
+          {isExpanded ? <ChevronUp className="w-5 h-5 text-amber-500" /> : <ChevronDown className="w-5 h-5 text-amber-500" />}
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="p-4">
+          {delayedTasks.length === 0 ? (
+            <div className="py-8 text-center text-slate-400">暂无拖延任务</div>
+          ) : (
+            <div className="overflow-x-auto max-h-[240px] overflow-y-auto border border-amber-100 rounded-lg">
+              <table className="w-full min-w-[1000px]">
+                <thead className="bg-amber-50 sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-amber-800 whitespace-nowrap w-64">任务名称</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-amber-800 whitespace-nowrap w-24">类别</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-amber-800 whitespace-nowrap w-20">负责人</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-amber-800 whitespace-nowrap w-20">校核人</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-amber-800 whitespace-nowrap w-20">状态</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-amber-800 whitespace-nowrap w-24">开始时间</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-amber-800 whitespace-nowrap w-24">开始距今天数</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-100">
+                  {delayedTasks.map((task) => {
+                    const startDate = new Date(task.StartDate);
+                    const now = new Date();
+                    const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                    const displayName = task.TaskName.length > 20
+                      ? task.TaskName.substring(0, 20) + '...'
+                      : task.TaskName;
+
+                    return (
+                      <tr key={task.TaskID} className="hover:bg-amber-50 transition-colors">
+                        <td className="px-3 py-2 w-64">
+                          <span className="text-sm text-slate-900 font-medium" title={task.TaskName}>
+                            {displayName}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{getCategoryName(task.TaskClassID)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.AssigneeID)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.CheckerID)}</td>
+                        <td className="px-3 py-2 w-20">
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.Status)}`}>
+                            {task.Status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{task.StartDate || '-'}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-amber-600 font-medium">{daysSinceStart}天</td>
                       </tr>
                     );
                   })}
@@ -716,6 +853,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           users={users}
         />
       )}
+
+      {/* Delayed Task List - Third Row */}
+      <DelayedTaskPanel
+        tasks={tasks}
+        taskClasses={taskClasses}
+        users={users}
+      />
 
       {/* Charts Row 1: Task Trend & Workload Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -188,7 +188,7 @@ export interface TaskPoolItem {
 }
 
 // Period type for statistics
-export type Period = 'week' | 'month' | 'year';
+export type Period = 'week' | 'month' | 'quarter' | 'halfYear' | 'year' | 'yearAndHalf';
 
 // Personal workspace statistics interface
 export interface PersonalStats {

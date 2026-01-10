@@ -2117,11 +2117,11 @@ class DataService {
       isForceAssessment: taskData.isForceAssessment,
       CapacityLevel: capacityLevel,
       is_in_pool: false,
-      // Role status - default to NOT_STARTED
-      assigneeStatus: RoleStatus.NOT_STARTED,
-      checkerStatus: RoleStatus.NOT_STARTED,
-      chiefDesignerStatus: RoleStatus.NOT_STARTED,
-      approverStatus: RoleStatus.NOT_STARTED
+      // Role status - TC007 (Meeting & Training) defaults to COMPLETED, others to NOT_STARTED
+      assigneeStatus: taskData.TaskClassID === 'TC007' ? RoleStatus.COMPLETED : RoleStatus.NOT_STARTED,
+      checkerStatus: taskData.TaskClassID === 'TC007' ? RoleStatus.COMPLETED : RoleStatus.NOT_STARTED,
+      chiefDesignerStatus: taskData.TaskClassID === 'TC007' ? RoleStatus.COMPLETED : RoleStatus.NOT_STARTED,
+      approverStatus: taskData.TaskClassID === 'TC007' ? RoleStatus.COMPLETED : RoleStatus.NOT_STARTED
     };
 
     // Save the new task
@@ -2381,7 +2381,7 @@ class DataService {
     // Initialize Travel Labels from existing task categories
     if (!localStorage.getItem(STORAGE_KEYS.TRAVEL_LABELS)) {
       const tasks = this.getTasks();
-      const travelTasks = tasks.filter(t => t.TaskClassID === 'TC008'); // Travel tasks
+      const travelTasks = tasks.filter(t => t.TaskClassID === 'TC009'); // Travel tasks
       const labels = [...new Set(travelTasks.map(t => t.Category))];
       localStorage.setItem(STORAGE_KEYS.TRAVEL_LABELS, JSON.stringify(labels));
     }
@@ -2415,35 +2415,53 @@ class DataService {
   }
 
   // Get role status for a specific user in a task
-  getRoleStatusForUser(task: Task, userId: string): string {
-    if (task.AssigneeID === userId) return task.assigneeStatus || '未开始';
-    if (task.CheckerID === userId) return task.checkerStatus || '未开始';
-    if (task.ChiefDesignerID === userId) return task.chiefDesignerStatus || '未开始';
-    if (task.ApproverID === userId) return task.approverStatus || '未开始';
-    return '-';
+  getRoleStatusForUser(task: Task, userId: string): RoleStatus {
+    if (task.AssigneeID === userId) return task.assigneeStatus || RoleStatus.NOT_STARTED;
+    if (task.CheckerID === userId) return task.checkerStatus || RoleStatus.NOT_STARTED;
+    if (task.ChiefDesignerID === userId) return task.chiefDesignerStatus || RoleStatus.NOT_STARTED;
+    if (task.ApproverID === userId) return task.approverStatus || RoleStatus.NOT_STARTED;
+    return RoleStatus.NOT_STARTED;
   }
 
   // Separate tasks by user's role status (for personal workspace)
   separateTasksByRoleStatus(tasks: Task[], userId: string): SeparatedTasks {
-    // 使用字符串直接比较，避免枚举问题
-    const inProgressStatuses = ['进行中', '修改中', '驳回中'];
+    // Filter out TC007 (Meeting) and TC009 (Travel) - they are shown separately
+    const regularTasks = tasks.filter(t => t.TaskClassID !== 'TC007' && t.TaskClassID !== 'TC009');
 
-    const inProgress = tasks.filter(t => {
+    const inProgressStatuses = [RoleStatus.IN_PROGRESS, RoleStatus.REVISING, RoleStatus.REJECTED];
+
+    const inProgress = regularTasks.filter(t => {
       const status = this.getRoleStatusForUser(t, userId);
-      return typeof status === 'string' ? inProgressStatuses.includes(status) : false;
+      return inProgressStatuses.includes(status);
     });
 
-    const pending = tasks.filter(t => {
+    const pending = regularTasks.filter(t => {
       const status = this.getRoleStatusForUser(t, userId);
-      return status === '未开始';
+      return status === RoleStatus.NOT_STARTED;
     });
 
-    const completed = tasks.filter(t => {
+    const completed = regularTasks.filter(t => {
       const status = this.getRoleStatusForUser(t, userId);
-      return status === '已完成';
+      return status === RoleStatus.COMPLETED;
     });
 
     return { inProgress, pending, completed };
+  }
+
+  // Get travel tasks (TC009) for a user
+  getTravelTasks(userId: string): Task[] {
+    const tasks = this.getPersonalTasks(userId);
+    return tasks.filter(t => t.TaskClassID === 'TC009');
+  }
+
+  // Get meeting tasks (TC007) for a user - only show if user is in Participants
+  getMeetingTasks(userId: string): Task[] {
+    const tasks = this.getPersonalTasks(userId);
+    return tasks.filter(t =>
+      t.TaskClassID === 'TC007' &&
+      t.Participants &&
+      t.Participants.includes(userId)
+    );
   }
 
   // Calculate work days in a period
@@ -2454,17 +2472,32 @@ class DataService {
 
     switch (period) {
       case 'week':
-        // Start from Monday of current week
+        // 本周 - 从本周一算起
         startDate = new Date(now);
         startDate.setDate(now.getDate() - now.getDay() + 1);
         break;
       case 'month':
-        // Start from first day of current month
+        // 本月 - 从本月第一天算起
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
+      case 'quarter':
+        // 近三个月
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 3);
+        break;
+      case 'halfYear':
+        // 近半年
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 6);
+        break;
       case 'year':
-        // Start from first day of current year
+        // 本年度 - 从今年第一天算起
         startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'yearAndHalf':
+        // 近一年半
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 18);
         break;
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -2514,23 +2547,82 @@ class DataService {
 
     switch (period) {
       case 'week':
+        // 本周 - 从本周一算起
         startDate = new Date(now);
-        startDate.setDate(now.getDate() - 7);
+        startDate.setDate(now.getDate() - now.getDay() + 1);
         break;
       case 'month':
+        // 本月 - 从本月第一天算起
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        // 近三个月
         startDate = new Date(now);
-        startDate.setMonth(now.getMonth() - 1);
+        startDate.setMonth(now.getMonth() - 3);
+        break;
+      case 'halfYear':
+        // 近半年
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 6);
         break;
       case 'year':
+        // 本年度 - 从今年第一天算起
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'yearAndHalf':
+        // 近一年半
         startDate = new Date(now);
-        startDate.setFullYear(now.getFullYear() - 1);
+        startDate.setMonth(now.getMonth() - 18);
         break;
       default:
-        startDate = new Date(now);
-        startDate.setMonth(now.getMonth() - 1);
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
     return tasks.filter(t => new Date(t.CreatedDate) >= startDate);
+  }
+
+  // Filter tasks by period based on StartDate (for task lists)
+  filterTasksByStartDate(tasks: Task[], period: Period): Task[] {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (period) {
+      case 'week':
+        // 本周 - 从本周一算起
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay() + 1);
+        break;
+      case 'month':
+        // 本月 - 从本月第一天算起
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        // 近三个月
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 3);
+        break;
+      case 'halfYear':
+        // 近半年
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 6);
+        break;
+      case 'year':
+        // 本年度 - 从今年第一天算起
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'yearAndHalf':
+        // 近一年半
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 18);
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    return tasks.filter(t => {
+      if (!t.StartDate) return false;
+      return new Date(t.StartDate) >= startDate;
+    });
   }
 
   // Calculate personal statistics
@@ -2573,16 +2665,19 @@ class DataService {
       percentage: totalCategoryTasks > 0 ? Math.round((count / totalCategoryTasks) * 100) : 0
     }));
 
-    // Calculate travel stats (TC009) - based on role status filtered tasks
-    const travelTasks = allFilteredTasks.filter(t => t.TaskClassID === 'TC009');
+    // Calculate travel stats (TC009) - based on periodTasks (not filtered tasks)
+    const travelTasks = periodTasks.filter(t => t.TaskClassID === 'TC009');
     const totalTravelDays = travelTasks.reduce((sum, t) => sum + (t.TravelDuration || 0), 0);
 
-    // Calculate meeting stats (TC007) - based on role status filtered tasks
-    const meetingTasks = allFilteredTasks.filter(t => t.TaskClassID === 'TC007');
+    // Calculate meeting stats (TC007) - based on periodTasks (not filtered tasks)
+    const meetingTasks = periodTasks.filter(t => t.TaskClassID === 'TC007');
     const totalMeetingHours = meetingTasks.reduce((sum, t) => sum + (t.MeetingDuration || 0), 0);
 
     const totalCount = inProgress.length + pending.length + completed.length;
     const completionRate = totalCount > 0 ? Math.round((completed.length / totalCount) * 100) : 0;
+
+    // Calculate monthly trend if userId is provided
+    const monthlyTrend = userId ? this.calculateMonthlyTrend(periodTasks, 6, userId) : [];
 
     return {
       inProgressCount: inProgress.length,
@@ -2600,7 +2695,8 @@ class DataService {
         totalHours: totalMeetingHours,
         workHoursInPeriod: workDaysInfo.workHours,
         percentage: workDaysInfo.workHours > 0 ? Math.round((totalMeetingHours / workDaysInfo.workHours) * 100) : 0
-      }
+      },
+      monthlyTrend
     };
   }
 
@@ -2634,6 +2730,44 @@ class DataService {
     return result;
   }
 
+  // Calculate daily task trend for personal workspace (for week/month period)
+  calculateDailyTrend(tasks: Task[], days: number, userId: string): { month: string; assigned: number; completed: number }[] {
+    const result: { month: string; assigned: number; completed: number }[] = [];
+    const now = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(now.getDate() - i);
+      // Set to start of day
+      date.setHours(0, 0, 0, 0);
+
+      const nextDate = new Date(date);
+      nextDate.setDate(date.getDate() + 1);
+      // Set to start of next day
+      nextDate.setHours(0, 0, 0, 0);
+
+      const dayStr = `${date.getMonth() + 1}/${date.getDate()}`;
+
+      // Count assigned tasks
+      const assignedCount = tasks.filter(t => {
+        const createdDate = new Date(t.CreatedDate);
+        return createdDate >= date && createdDate < nextDate &&
+          (t.AssigneeID === userId || t.CheckerID === userId || t.ChiefDesignerID === userId || t.ApproverID === userId);
+      }).length;
+
+      // Count completed tasks
+      const completedCount = tasks.filter(t => {
+        const completedDate = t.CompletedDate ? new Date(t.CompletedDate) : null;
+        return completedDate && completedDate >= date && completedDate < nextDate &&
+          (t.AssigneeID === userId || t.CheckerID === userId || t.ChiefDesignerID === userId || t.ApproverID === userId);
+      }).length;
+
+      result.push({ month: dayStr, assigned: assignedCount, completed: completedCount });
+    }
+
+    return result;
+  }
+
   // Retrieve a task back to the pool (LEADER/ADMIN only)
   // 回收任务时，清空负责人、校核人、主任设计、审查人的所有信息
   retrieveTaskToPool(taskId: string): void {
@@ -2652,7 +2786,7 @@ class DataService {
       task.ApproverName = undefined;
       task.ProjectID = undefined;
       // 重置任务状态和角色状态
-      task.Status = '未开始';
+      task.Status = TaskStatus.NOT_STARTED;
       task.assigneeStatus = undefined;
       task.checkerStatus = undefined;
       task.chiefDesignerStatus = undefined;

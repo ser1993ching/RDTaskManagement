@@ -11,45 +11,34 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 const PeriodSelector: React.FC<{
   value: Period;
   onChange: (value: Period) => void;
-}> = ({ value, onChange }) => (
-  <div className="flex bg-gray-100 rounded-lg p-1">
-    {(['week', 'month', 'year'] as Period[]).map((period) => (
-      <button
-        key={period}
-        onClick={() => onChange(period)}
-        className={`px-4 py-1.5 text-sm rounded-md transition-colors ${
-          value === period
-            ? 'bg-white text-blue-600 shadow-sm font-medium'
-            : 'text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        {period === 'week' ? '本周' : period === 'month' ? '本月' : '本年度'}
-      </button>
-    ))}
-  </div>
-);
+}> = ({ value, onChange }) => {
+  const periods: { key: Period; label: string }[] = [
+    { key: 'week', label: '本周' },
+    { key: 'month', label: '本月' },
+    { key: 'quarter', label: '近三个月' },
+    { key: 'halfYear', label: '近半年' },
+    { key: 'year', label: '本年度' },
+    { key: 'yearAndHalf', label: '近一年' }
+  ];
 
-// Month range selector component
-const MonthRangeSelector: React.FC<{
-  value: number;
-  onChange: (value: number) => void;
-}> = ({ value, onChange }) => (
-  <div className="flex bg-gray-100 rounded-lg p-1">
-    {[3, 6, 12].map((months) => (
-      <button
-        key={months}
-        onClick={() => onChange(months)}
-        className={`px-3 py-1 text-sm rounded-md transition-colors ${
-          value === months
-            ? 'bg-white text-blue-600 shadow-sm font-medium'
-            : 'text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        {months}个月
-      </button>
-    ))}
-  </div>
-);
+  return (
+    <div className="flex bg-gray-100 rounded-lg p-1">
+      {periods.map((period) => (
+        <button
+          key={period.key}
+          onClick={() => onChange(period.key)}
+          className={`px-3 py-1.5 text-sm rounded-md transition-colors whitespace-nowrap ${
+            value === period.key
+              ? 'bg-white text-blue-600 shadow-sm font-medium'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          {period.label}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 // View mode toggle component
 const ViewModeToggle: React.FC<{
@@ -84,9 +73,7 @@ const ViewModeToggle: React.FC<{
 const ChartView: React.FC<{
   stats: PersonalStats;
   taskClasses: TaskClass[];
-  monthRange: number;
-  onMonthRangeChange: (value: number) => void;
-}> = ({ stats, taskClasses, monthRange, onMonthRangeChange }) => {
+}> = ({ stats, taskClasses }) => {
   // Completion donut data
   const completionData = [
     { name: '已完成', value: stats.completedCount },
@@ -153,10 +140,7 @@ const ChartView: React.FC<{
 
       {/* Task Trend Line Chart */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">任务趋势</h3>
-          <MonthRangeSelector value={monthRange} onChange={onMonthRangeChange} />
-        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">任务趋势</h3>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={stats.monthlyTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -304,6 +288,122 @@ const ListView: React.FC<{
             <span className="ml-2 font-semibold text-purple-900">{stats.meetingStats.percentage}%</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Travel task panel component (TC009)
+const TravelTaskPanel: React.FC<{
+  tasks: Task[];
+  onTaskDoubleClick: (task: Task) => void;
+  taskClasses: TaskClass[];
+}> = ({ tasks, onTaskDoubleClick, taskClasses }) => {
+  const getCategoryName = (taskClassId: string) => {
+    const tc = taskClasses.find(t => t.id === taskClassId);
+    return tc?.name || taskClassId;
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between bg-blue-50">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-900">差旅任务</span>
+          <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-sm">
+            {tasks.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="max-h-[300px] overflow-y-auto">
+        {tasks.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">暂无差旅任务</div>
+        ) : (
+          <table className="w-full min-w-[900px]">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-1/4">任务名称</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-20">任务分类</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-16">标签</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-24">开始日</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-20">天数</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-1/4">出差地点</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {tasks.slice(0, 5).map((task) => (
+                <tr
+                  key={task.TaskID}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  onDoubleClick={() => onTaskDoubleClick(task)}
+                >
+                  <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLabel || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelDuration ? `${task.TravelDuration}天` : '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLocation || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Meeting task panel component (TC007)
+const MeetingTaskPanel: React.FC<{
+  tasks: Task[];
+  onTaskDoubleClick: (task: Task) => void;
+  taskClasses: TaskClass[];
+}> = ({ tasks, onTaskDoubleClick, taskClasses }) => {
+  const getCategoryName = (taskClassId: string) => {
+    const tc = taskClasses.find(t => t.id === taskClassId);
+    return tc?.name || taskClassId;
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between bg-purple-50">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-gray-900">内部会议与培训</span>
+          <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-sm">
+            {tasks.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="max-h-[300px] overflow-y-auto">
+        {tasks.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">暂无会议培训任务</div>
+        ) : (
+          <table className="w-full min-w-[900px]">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-1/4">任务名称</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-20">分类</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-24">会议日期</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-600 whitespace-nowrap w-20">会议时长</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {tasks.slice(0, 5).map((task) => (
+                <tr
+                  key={task.TaskID}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  onDoubleClick={() => onTaskDoubleClick(task)}
+                >
+                  <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.Category || getCategoryName(task.TaskClassID)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.MeetingDuration ? `${task.MeetingDuration}小时` : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -509,7 +609,7 @@ const TaskPanel: React.FC<{
           {tasks.length === 0 ? (
             <div className="py-8 text-center text-gray-500">暂无任务</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="max-h-[400px] overflow-y-auto">
             <table className="w-full min-w-[900px]">
               <thead className="bg-gray-50">
                 <tr>
@@ -540,10 +640,13 @@ const TaskPanel: React.FC<{
                     >
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
+                          {task.isForceAssessment && task.TaskClassID !== 'TC009' && (
+                            <span className="inline-block w-1 h-4 bg-red-500 mr-1 rounded flex-shrink-0" />
+                          )}
                           {isLongRunning && (
                             <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                           )}
-                          <span className="text-sm text-gray-900">{task.TaskName}</span>
+                          <span className={`text-sm ${task.isForceAssessment && task.TaskClassID !== 'TC009' ? 'font-bold text-gray-900' : 'text-gray-900'}`}>{task.TaskName}</span>
                         </div>
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
@@ -615,8 +718,7 @@ const PersonalWorkspaceView: React.FC<{
   onChangeView?: (view: string, taskId?: string) => void;
 }> = ({ currentUser, onRefresh, onChangeView }) => {
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
-  const [period, setPeriod] = useState<Period>('week');
-  const [monthRange, setMonthRange] = useState(6); // 默认最近6个月
+  const [period, setPeriod] = useState<Period>('quarter'); // 默认近三个月
   const [selectedUserId, setSelectedUserId] = useState(currentUser.UserID);
   const [expandedPanels, setExpandedPanels] = useState({
     inProgress: true,
@@ -638,23 +740,56 @@ const PersonalWorkspaceView: React.FC<{
     return dataService.getTeamMembers(currentUser.UserID);
   }, [currentUser.UserID]);
 
-  // Get tasks and calculate stats
+  // Get all tasks for statistics
   const allTasks = useMemo(() => {
     return dataService.getPersonalTasks(viewingUserId);
   }, [viewingUserId, refreshKey]);
 
+  // Filter tasks by period based on StartDate (for task lists)
+  const periodFilteredTasks = useMemo(() => {
+    return dataService.filterTasksByStartDate(allTasks, period);
+  }, [allTasks, period]);
+
   // Separate tasks by user's role status (not task status)
   const separatedTasks = useMemo(() => {
-    return dataService.separateTasksByRoleStatus(allTasks, viewingUserId);
-  }, [allTasks, viewingUserId]);
+    return dataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
+  }, [periodFilteredTasks, viewingUserId]);
+
+  // Get travel tasks filtered by StartDate (shown separately)
+  const travelTasks = useMemo(() => {
+    const allTravelTasks = dataService.getTravelTasks(viewingUserId);
+    return dataService.filterTasksByStartDate(allTravelTasks, period);
+  }, [viewingUserId, period, refreshKey]);
+
+  // Get meeting tasks filtered by StartDate (shown separately)
+  const meetingTasks = useMemo(() => {
+    const allMeetingTasks = dataService.getMeetingTasks(viewingUserId);
+    return dataService.filterTasksByStartDate(allMeetingTasks, period);
+  }, [viewingUserId, period, refreshKey]);
 
   // Calculate stats based on role status
   const stats = useMemo(() => {
     const baseStats = dataService.calculatePersonalStats(allTasks, period, viewingUserId);
-    // Calculate monthly trend
-    const monthlyTrend = dataService.calculateMonthlyTrend(allTasks, monthRange, viewingUserId);
+    // Calculate trend - daily for week/month, monthly for others
+    let monthlyTrend;
+    if (period === 'week' || period === 'month') {
+      // 按天统计（本周显示7天，本月显示约30天）
+      const days = period === 'week' ? 7 : 30;
+      monthlyTrend = dataService.calculateDailyTrend(allTasks, days, viewingUserId);
+    } else {
+      // 按月统计，根据时间段确定月份数
+      let months: number;
+      switch (period) {
+        case 'quarter': months = 3; break;       // 近3个月
+        case 'halfYear': months = 6; break;      // 近半年
+        case 'year': months = 6; break;          // 本年度
+        case 'yearAndHalf': months = 12; break;  // 近一年
+        default: months = 6;
+      }
+      monthlyTrend = dataService.calculateMonthlyTrend(allTasks, months, viewingUserId);
+    }
     return { ...baseStats, monthlyTrend };
-  }, [allTasks, period, monthRange, viewingUserId]);
+  }, [allTasks, period, viewingUserId]);
 
   const taskClasses = useMemo(() => {
     return dataService.getTaskClasses();
@@ -771,6 +906,20 @@ const PersonalWorkspaceView: React.FC<{
             viewingUserId={viewingUserId}
             currentUserRole={currentUser.SystemRole}
           />
+
+          {/* Travel Task Panel */}
+          <TravelTaskPanel
+            tasks={travelTasks}
+            onTaskDoubleClick={handleTaskDoubleClick}
+            taskClasses={taskClasses}
+          />
+
+          {/* Meeting Task Panel */}
+          <MeetingTaskPanel
+            tasks={meetingTasks}
+            onTaskDoubleClick={handleTaskDoubleClick}
+            taskClasses={taskClasses}
+          />
         </div>
 
         {/* Right: Statistics Panel */}
@@ -779,8 +928,6 @@ const PersonalWorkspaceView: React.FC<{
             <ChartView
               stats={stats}
               taskClasses={taskClasses}
-              monthRange={monthRange}
-              onMonthRangeChange={setMonthRange}
             />
           ) : (
             <ListView stats={stats} separatedTasks={separatedTasks} />

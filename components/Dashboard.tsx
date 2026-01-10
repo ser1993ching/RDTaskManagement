@@ -684,13 +684,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       .sort((a, b) => b.value - a.value);
 
     // 2. 容量等级任务数量分配（横向柱状图数据）
-    const capacityLevelData = Object.entries(
-      filteredVisibleTasks.reduce((acc, t) => {
-        const level = t.CapacityLevel || '未分类';
-        acc[level] = (acc[level] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>)
-    )
+    const capacityLevelCount: Record<string, number> = {};
+    filteredVisibleTasks.forEach(t => {
+      const level = t.CapacityLevel || '未分类';
+      capacityLevelCount[level] = (capacityLevelCount[level] || 0) + 1;
+    });
+    const capacityLevelData = Object.entries(capacityLevelCount)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 

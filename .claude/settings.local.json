@@ -22,7 +22,8 @@
       "Bash(./node_modules/.bin/tsc:*)",
       "Bash(cat:*)",
       "Bash(cp:*)",
-      "Bash(cmd:*)"
+      "Bash(cmd:*)",
+      "Bash(dir:*)"
     ]
   }
 }

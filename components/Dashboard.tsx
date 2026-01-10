@@ -17,7 +17,7 @@ interface DashboardProps {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 type Period = 'week' | 'month' | 'quarter' | 'halfYear' | 'year' | 'lastYear';
-type DeadlineFilter = 'all' | 'overdue' | 'thisMonth' | 'thisQuarter' | 'thisYear';
+type DeadlineFilter = 'all' | 'overdue' | 'thisMonth' | 'pastThreeMonths' | 'thisYear';
 
 // Period selector component
 const PeriodSelector: React.FC<{
@@ -97,30 +97,45 @@ const ForceAssessmentPanel: React.FC<{
     const now = new Date();
     const due = new Date(dueDate);
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+    // This year range (Jan 1 to Dec 31)
+    const yearStart = new Date(today.getFullYear(), 0, 1);
+    const yearEnd = new Date(today.getFullYear(), 11, 31);
+
+    // If not in this year, return 'all' for thisYear filter
+    if (due < yearStart || due > yearEnd) {
+      return { type: 'all' };
+    }
 
     if (due < today) return { type: 'overdue', days: Math.ceil((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)) };
 
     const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     if (due <= monthEnd && due >= today) return { type: 'thisMonth' };
 
-    // This quarter (next 3 months)
-    const quarterEnd = new Date(today.getFullYear(), today.getMonth() + 3, 0);
-    if (due <= quarterEnd && due >= today) return { type: 'thisQuarter' };
+    // Past 3 months (from today - 3 months to today)
+    const threeMonthsAgo = new Date(today);
+    threeMonthsAgo.setMonth(today.getMonth() - 3);
+    if (due >= threeMonthsAgo && due < today) return { type: 'pastThreeMonths' };
 
-    // This year
-    const yearEnd = new Date(today.getFullYear(), 11, 31);
-    if (due <= yearEnd && due >= today) return { type: 'thisYear' };
-
-    return { type: 'all' };
+    return { type: 'thisYear' };
   };
 
   const filteredTasks = useMemo(() => {
     return tasks
       .filter(task => {
         if (deadlineFilter !== 'all') {
-          const deadlineCheck = checkDeadline(task.DueDate, task.Status);
-          if (deadlineCheck.type !== deadlineFilter) return false;
+          // Special handling for thisYear - show all tasks with dueDate in this year
+          if (deadlineFilter === 'thisYear') {
+            if (!task.DueDate) return false;
+            const due = new Date(task.DueDate);
+            const today = new Date();
+            const yearStart = new Date(today.getFullYear(), 0, 1);
+            const yearEnd = new Date(today.getFullYear(), 11, 31);
+            if (due < yearStart || due > yearEnd) return false;
+          } else {
+            const deadlineCheck = checkDeadline(task.DueDate, task.Status);
+            if (deadlineCheck.type !== deadlineFilter) return false;
+          }
         }
         if (statusFilter !== 'all') {
           if (statusFilter === 'notStarted' && task.Status !== TaskStatus.NOT_STARTED) return false;
@@ -140,7 +155,7 @@ const ForceAssessmentPanel: React.FC<{
     all: '全部',
     overdue: '已逾期',
     thisMonth: '本月',
-    thisQuarter: '近三个月',
+    pastThreeMonths: '近三个月',
     thisYear: '本年度'
   };
 
@@ -174,7 +189,7 @@ const ForceAssessmentPanel: React.FC<{
               <Calendar className="w-4 h-4 text-slate-400" />
               <span className="text-sm text-slate-600">截止时间:</span>
               <div className="flex bg-slate-100 rounded-lg p-0.5">
-                {(['all', 'overdue', 'thisMonth', 'thisQuarter', 'thisYear'] as DeadlineFilter[]).map((filter) => (
+                {(['all', 'overdue', 'thisMonth', 'pastThreeMonths', 'thisYear'] as DeadlineFilter[]).map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setDeadlineFilter(filter)}

@@ -745,15 +745,22 @@ const PersonalWorkspaceView: React.FC<{
     return dataService.getPersonalTasks(viewingUserId);
   }, [viewingUserId, refreshKey]);
 
-  // Filter tasks by period based on StartDate (for task lists)
+  // Filter tasks by period based on StartDate (only for completed tasks)
   const periodFilteredTasks = useMemo(() => {
     return dataService.filterTasksByStartDate(allTasks, period);
   }, [allTasks, period]);
 
   // Separate tasks by user's role status (not task status)
+  // 进行中和未开始的任务显示所有任务，已完成的任务根据时间段筛选
   const separatedTasks = useMemo(() => {
-    return dataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
-  }, [periodFilteredTasks, viewingUserId]);
+    const allSeparated = dataService.separateTasksByRoleStatus(allTasks, viewingUserId);
+    const completedSeparated = dataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
+    return {
+      inProgress: allSeparated.inProgress,      // 进行中：显示所有
+      pending: allSeparated.pending,            // 未开始：显示所有
+      completed: completedSeparated.completed   // 已完成：根据时间段筛选
+    };
+  }, [allTasks, periodFilteredTasks, viewingUserId]);
 
   // Get travel tasks filtered by StartDate (shown separately)
   const travelTasks = useMemo(() => {

@@ -11,6 +11,7 @@ interface TaskViewProps {
   users: User[];
   onRefresh: () => void;
   targetTaskName?: string;
+  onClearTargetTaskName?: () => void;
 }
 
 // Config for Capacity Level (Market tasks only)
@@ -25,7 +26,7 @@ const CAPACITY_LEVEL_OPTIONS = [
   '调相机'
 ];
 
-export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh, targetTaskName }) => {
+export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh, targetTaskName, onClearTargetTaskName }) => {
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>(dataService.getTaskClasses());
   const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
@@ -511,6 +512,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
     dataService.saveTask(taskToSave);
     setIsModalOpen(false);
+    // 关闭弹窗后清除任务名称筛选器（从个人工作台跳转来的情况）
+    setFilterTaskName('');
+    onClearTargetTaskName?.();
     onRefresh();
   };
 
@@ -1584,7 +1588,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               </div>
 
               <div className="col-span-2 flex justify-end gap-3 mt-3 pt-3 border-t">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>
+                <button type="button" onClick={() => { setIsModalOpen(false); setFilterTaskName(''); onClearTargetTaskName?.(); }} className="px-4 py-2 border rounded hover:bg-slate-50 focus:outline-none">取消</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none">保存任务</button>
               </div>
             </form>

@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Application\R&amp;DTaskSystem.Application.csproj" />
-    <ProjectReference Include="..\Domain\R&amp;DTaskSystem.Domain.csproj" />
+    <ProjectReference Include="..\Application\TaskManageSystem.Application.csproj" />
+    <ProjectReference Include="..\Domain\TaskManageSystem.Domain.csproj" />
   </ItemGroup>
 </Project>

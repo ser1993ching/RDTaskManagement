@@ -1,11 +1,11 @@
 using AutoMapper;
-using R&DTaskSystem.Application.DTOs.Statistics;
-using R&DTaskSystem.Application.DTOs.TaskPool;
-using R&DTaskSystem.Application.Interfaces;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.Statistics;
+using TaskManageSystem.Application.DTOs.TaskPool;
+using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Application.Services;
+namespace TaskManageSystem.Application.Services;
 
 /// <summary>
 /// 统计服务实现
@@ -158,7 +158,7 @@ public class StatisticsService : IStatisticsService
     public async Task<byte[]> ExportStatisticsAsync(string userId, string period)
     {
         var stats = await GetPersonalStatsAsync(userId, period);
-        var csv = $"总任务数,已完成,进行中,未开始,完成率\n{stats.TotalCount},{stats.CompletedCount},{stats.InProgressCount},{stats.PendingCount},{stats.CompletionRate}%\n";
+        var csv = $"总任务数,已完�?进行�?未开�?完成率\n{stats.TotalCount},{stats.CompletedCount},{stats.InProgressCount},{stats.PendingCount},{stats.CompletionRate}%\n";
         return System.Text.Encoding.UTF8.GetBytes(csv);
     }
 
@@ -240,5 +240,5 @@ public class StatisticsService : IStatisticsService
 }
 
 // 使用别名避免冲突
-using TaskEntity = R&DTaskSystem.Domain.Entities.Task;
-using TaskDto = R&DTaskSystem.Application.DTOs.Tasks.TaskDto;
+using TaskEntity = TaskManageSystem.Domain.Entities.Task;
+using TaskDto = TaskManageSystem.Application.DTOs.Tasks.TaskDto;

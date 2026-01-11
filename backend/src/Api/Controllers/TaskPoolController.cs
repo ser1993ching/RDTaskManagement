@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.TaskPool;
-using R&DTaskSystem.Application.Interfaces;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.TaskPool;
+using TaskManageSystem.Application.Interfaces;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
 /// 任务库控制器
@@ -20,7 +20,7 @@ public class TaskPoolController : ControllerBase
     }
 
     /// <summary>
-    /// 获取任务库列表
+    /// 获取任务库列�?
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PaginatedResponse<TaskPoolItemDto>>>> GetPoolItems([FromQuery] TaskPoolQueryParams query)
@@ -38,7 +38,7 @@ public class TaskPoolController : ControllerBase
         var item = await _taskPoolService.GetPoolItemByIdAsync(id);
         if (item == null)
         {
-            return NotFound(new ApiResponse<TaskPoolItemDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "计划任务不存在" } });
+            return NotFound(new ApiResponse<TaskPoolItemDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "计划任务不存�? } });
         }
 
         return Ok(new ApiResponse<TaskPoolItemDto> { Success = true, Data = item });
@@ -65,7 +65,7 @@ public class TaskPoolController : ControllerBase
     }
 
     /// <summary>
-    /// 删除计划任务（软删除）
+    /// 删除计划任务（软删除�?
     /// </summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeletePoolItem(string id)
@@ -73,11 +73,11 @@ public class TaskPoolController : ControllerBase
         var result = await _taskPoolService.SoftDeletePoolItemAsync(id);
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "删除成功" })
-            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "计划任务不存在" } });
+            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "计划任务不存�? } });
     }
 
     /// <summary>
-    /// 分配任务（转化为正式任务）
+    /// 分配任务（转化为正式任务�?
     /// </summary>
     [HttpPost("{id}/assign")]
     public async Task<ActionResult<ApiResponse<AssignTaskResponse>>> AssignTask(string id, [FromBody] AssignTaskRequest request)
@@ -97,7 +97,7 @@ public class TaskPoolController : ControllerBase
     }
 
     /// <summary>
-    /// 获取任务库统计
+    /// 获取任务库统�?
     /// </summary>
     [HttpGet("statistics")]
     public async Task<ActionResult<ApiResponse<TaskPoolStatisticsResponse>>> GetStatistics()
@@ -117,7 +117,7 @@ public class TaskPoolController : ControllerBase
     }
 
     /// <summary>
-    /// 从任务回收
+    /// 从任务回�?
     /// </summary>
     [HttpPost("recover-from-task")]
     public async Task<ActionResult<ApiResponse<RetrieveToPoolResponse>>> RetrieveFromTask([FromBody] string taskId)

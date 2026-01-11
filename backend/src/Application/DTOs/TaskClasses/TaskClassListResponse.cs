@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.TaskClasses;
+namespace TaskManageSystem.Application.DTOs.TaskClasses;
 
 /// <summary>
 /// 任务类别列表响应

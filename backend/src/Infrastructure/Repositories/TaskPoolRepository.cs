@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Infrastructure.Data;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Infrastructure.Data;
 
-namespace R&DTaskSystem.Infrastructure.Repositories;
+namespace TaskManageSystem.Infrastructure.Repositories;
 
 /// <summary>
-/// 任务库仓储实现
+/// 任务库仓储实�?
 /// </summary>
 public class TaskPoolRepository : ITaskPoolRepository
 {

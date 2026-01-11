@@ -1,7 +1,7 @@
-namespace R&DTaskSystem.Tests;
+namespace TaskManageSystem.Tests;
 
 /// <summary>
-/// 测试基础类
+/// 测试基础�?
 /// </summary>
 public class TestBase
 {

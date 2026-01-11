@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Domain.Enums;
+namespace TaskManageSystem.Domain.Enums;
 
 /// <summary>
 /// 系统角色
@@ -8,9 +8,9 @@ public enum SystemRole
     [Display(Name = "组员")]
     Member = 0,
 
-    [Display(Name = "班组长")]
+    [Display(Name = "班组�?)]
     Leader = 1,
 
-    [Display(Name = "管理员")]
+    [Display(Name = "管理�?)]
     Admin = 2
 }

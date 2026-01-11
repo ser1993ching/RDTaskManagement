@@ -1,7 +1,7 @@
-namespace R&DTaskSystem.Application.Interfaces;
+namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>
-/// 任务库服务接口
+/// 任务库服务接�?
 /// </summary>
 public interface ITaskPoolService
 {

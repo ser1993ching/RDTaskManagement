@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.Settings;
+namespace TaskManageSystem.Application.DTOs.Settings;
 
 /// <summary>
 /// 机型管理

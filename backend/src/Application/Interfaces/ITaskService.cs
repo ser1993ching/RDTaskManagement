@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.Interfaces;
+namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>
 /// 任务服务接口

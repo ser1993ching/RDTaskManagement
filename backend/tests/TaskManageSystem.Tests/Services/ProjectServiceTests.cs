@@ -1,13 +1,13 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using R&DTaskSystem.Application.DTOs.Projects;
-using R&DTaskSystem.Application.Services;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Domain.Enums;
-using R&DTaskSystem.Infrastructure.Data;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.Projects;
+using TaskManageSystem.Application.Services;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Domain.Enums;
+using TaskManageSystem.Infrastructure.Data;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Tests.Services;
+namespace TaskManageSystem.Tests.Services;
 
 /// <summary>
 /// 项目服务测试
@@ -76,7 +76,7 @@ public class ProjectServiceTests : TestBase
 
         var request = new CreateProjectRequest
         {
-            Name = "新项目",
+            Name = "新项�?,
             Category = "市场配合项目",
             WorkNo = "MARKET-2025-001",
             Capacity = "1000MW",
@@ -90,7 +90,7 @@ public class ProjectServiceTests : TestBase
 
         // Assert
         result.Should().NotBeNull();
-        result.Name.Should().Be("新项目");
+        result.Name.Should().Be("新项�?);
         result.Category.Should().Be("市场配合项目");
         result.Id.Should().StartWith("P-");
     }

@@ -1,6 +1,6 @@
-using R&DTaskSystem.Domain.Entities;
+using TaskManageSystem.Domain.Entities;
 
-namespace R&DTaskSystem.Infrastructure.Repositories;
+namespace TaskManageSystem.Infrastructure.Repositories;
 
 /// <summary>
 /// 任务类别仓储接口

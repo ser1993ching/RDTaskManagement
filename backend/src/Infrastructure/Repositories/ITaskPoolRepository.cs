@@ -1,9 +1,9 @@
-using R&DTaskSystem.Domain.Entities;
+using TaskManageSystem.Domain.Entities;
 
-namespace R&DTaskSystem.Infrastructure.Repositories;
+namespace TaskManageSystem.Infrastructure.Repositories;
 
 /// <summary>
-/// 任务库仓储接口
+/// 任务库仓储接�?
 /// </summary>
 public interface ITaskPoolRepository
 {

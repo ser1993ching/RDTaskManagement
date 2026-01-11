@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using R&DTaskSystem.Domain.Entities;
+using TaskManageSystem.Domain.Entities;
 
-namespace R&DTaskSystem.Infrastructure.Data.Configurations;
+namespace TaskManageSystem.Infrastructure.Data.Configurations;
 
 /// <summary>
 /// 用户实体配置 - MySQL适配

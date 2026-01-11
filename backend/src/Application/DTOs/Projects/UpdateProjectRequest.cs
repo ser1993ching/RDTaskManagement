@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.Projects;
+namespace TaskManageSystem.Application.DTOs.Projects;
 
 /// <summary>
 /// 更新项目请求

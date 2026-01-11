@@ -1,11 +1,11 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Domain.Enums;
-using R&DTaskSystem.Infrastructure.Data;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Domain.Enums;
+using TaskManageSystem.Infrastructure.Data;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Tests.Repositories;
+namespace TaskManageSystem.Tests.Repositories;
 
 /// <summary>
 /// 用户仓储测试
@@ -31,7 +31,7 @@ public class UserRepositoryTests
         // Assert
         result.Should().NotBeNull();
         result!.UserID.Should().Be("USER001");
-        result.Name.Should().Be("李研发");
+        result.Name.Should().Be("李研�?);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class UserRepositoryTests
         var newUser = new User
         {
             UserID = "NEWUSER",
-            Name = "新用户",
+            Name = "新用�?,
             SystemRole = SystemRole.Member,
             OfficeLocation = OfficeLocation.Chengdu,
             Status = PersonnelStatus.Active,
@@ -180,7 +180,7 @@ public class UserRepositoryTests
         // Verify restored
         var restoredUser = await repository.GetByIdAsync("USER001");
         restoredUser.Should().NotBeNull();
-        restoredUser!.Name.Should().Be("李研发");
+        restoredUser!.Name.Should().Be("李研�?);
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public class UserRepositoryTests
             new()
             {
                 UserID = "admin",
-                Name = "系统管理员",
+                Name = "系统管理�?,
                 SystemRole = SystemRole.Admin,
                 OfficeLocation = OfficeLocation.Chengdu,
                 Status = PersonnelStatus.Active,
@@ -278,7 +278,7 @@ public class UserRepositoryTests
             new()
             {
                 UserID = "USER001",
-                Name = "李研发",
+                Name = "李研�?,
                 SystemRole = SystemRole.Member,
                 OfficeLocation = OfficeLocation.Chengdu,
                 Status = PersonnelStatus.Active,
@@ -287,7 +287,7 @@ public class UserRepositoryTests
             new()
             {
                 UserID = "LEADER001",
-                Name = "张组长",
+                Name = "张组�?,
                 SystemRole = SystemRole.Leader,
                 OfficeLocation = OfficeLocation.Deyang,
                 Status = PersonnelStatus.Active,

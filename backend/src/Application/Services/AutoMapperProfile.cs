@@ -1,11 +1,11 @@
 using AutoMapper;
-using R&DTaskSystem.Application.DTOs.Projects;
-using R&DTaskSystem.Application.DTOs.TaskClasses;
-using R&DTaskSystem.Application.DTOs.Tasks;
-using R&DTaskSystem.Application.DTOs.Users;
-using R&DTaskSystem.Domain.Entities;
+using TaskManageSystem.Application.DTOs.Projects;
+using TaskManageSystem.Application.DTOs.TaskClasses;
+using TaskManageSystem.Application.DTOs.Tasks;
+using TaskManageSystem.Application.DTOs.Users;
+using TaskManageSystem.Domain.Entities;
 
-namespace R&DTaskSystem.Application.Services;
+namespace TaskManageSystem.Application.Services;
 
 /// <summary>
 /// AutoMapper 配置文件

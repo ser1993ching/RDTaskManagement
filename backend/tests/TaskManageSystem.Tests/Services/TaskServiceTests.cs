@@ -1,13 +1,13 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using R&DTaskSystem.Application.DTOs.Tasks;
-using R&DTaskSystem.Application.Services;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Domain.Enums;
-using R&DTaskSystem.Infrastructure.Data;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.Tasks;
+using TaskManageSystem.Application.Services;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Domain.Enums;
+using TaskManageSystem.Infrastructure.Data;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Tests.Services;
+namespace TaskManageSystem.Tests.Services;
 
 /// <summary>
 /// 任务服务测试
@@ -78,7 +78,7 @@ public class TaskServiceTests : TestBase
 
         var request = new CreateTaskRequest
         {
-            TaskName = "新任务",
+            TaskName = "新任�?,
             TaskClassID = "TC001",
             Category = "标书",
             AssigneeID = "USER001",
@@ -91,9 +91,9 @@ public class TaskServiceTests : TestBase
 
         // Assert
         result.Should().NotBeNull();
-        result.TaskName.Should().Be("新任务");
+        result.TaskName.Should().Be("新任�?);
         result.TaskID.Should().StartWith("T-");
-        result.Status.Should().Be("未开始");
+        result.Status.Should().Be("未开�?);
     }
 
     [Fact]
@@ -111,11 +111,11 @@ public class TaskServiceTests : TestBase
         var service = new TaskService(repository, _mapper);
 
         // Act
-        var result = await service.UpdateTaskStatusAsync("T001", "编制中");
+        var result = await service.UpdateTaskStatusAsync("T001", "编制�?);
 
         // Assert
         result.Should().NotBeNull();
-        result.Status.Should().Be("编制中");
+        result.Status.Should().Be("编制�?);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class TaskServiceTests : TestBase
         var request = new UpdateRoleStatusRequest
         {
             Role = "assignee",
-            Status = "进行中"
+            Status = "进行�?
         };
 
         // Act
@@ -143,7 +143,7 @@ public class TaskServiceTests : TestBase
 
         // Assert
         result.Should().NotBeNull();
-        result.AssigneeStatus.Should().Be("进行中");
+        result.AssigneeStatus.Should().Be("进行�?);
     }
 
     [Fact]
@@ -165,9 +165,9 @@ public class TaskServiceTests : TestBase
 
         // Assert
         result.Should().NotBeNull();
-        result.Status.Should().Be("已完成");
-        result.AssigneeStatus.Should().Be("已完成");
-        result.CheckerStatus.Should().Be("已完成");
+        result.Status.Should().Be("已完�?);
+        result.AssigneeStatus.Should().Be("已完�?);
+        result.CheckerStatus.Should().Be("已完�?);
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public class TaskServiceTests : TestBase
         {
             Page = 1,
             PageSize = 10,
-            Status = "未开始"
+            Status = "未开�?
         };
 
         // Act
@@ -265,7 +265,7 @@ public class TaskServiceTests : TestBase
         // Assert
         result.Should().NotBeNull();
         result.Data.Should().HaveCount(1);
-        result.Data.All(t => t.Status == "未开始").Should().BeTrue();
+        result.Data.All(t => t.Status == "未开�?).Should().BeTrue();
     }
 
     private static async Task SeedTestTasks(AppDbContext context)

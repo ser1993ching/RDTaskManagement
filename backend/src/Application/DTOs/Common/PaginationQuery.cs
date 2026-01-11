@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.Common;
+namespace TaskManageSystem.Application.DTOs.Common;
 
 /// <summary>
 /// 分页查询参数

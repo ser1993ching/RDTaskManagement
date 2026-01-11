@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.Projects;
+namespace TaskManageSystem.Application.DTOs.Projects;
 
 /// <summary>
 /// 创建项目请求
@@ -27,6 +27,6 @@ public class CreateProjectRequest
     // 常规/核电项目特有
     public bool IsCommissioned { get; set; }
 
-    // 科研/改造/其他项目特有
+    // 科研/改�?其他项目特有
     public bool IsCompleted { get; set; }
 }

@@ -1,13 +1,13 @@
 using AutoMapper;
-using R&DTaskSystem.Application.DTOs.TaskPool;
-using R&DTaskSystem.Application.Interfaces;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.TaskPool;
+using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Application.Services;
+namespace TaskManageSystem.Application.Services;
 
 /// <summary>
-/// 任务库服务实现
+/// 任务库服务实�?
 /// </summary>
 public class TaskPoolService : ITaskPoolService
 {
@@ -89,10 +89,10 @@ public class TaskPoolService : ITaskPoolService
         var poolItem = await _taskPoolRepository.GetByIdAsync(poolItemId);
         if (poolItem == null)
         {
-            return new AssignTaskResponse { Success = false, Message = "计划任务不存在" };
+            return new AssignTaskResponse { Success = false, Message = "计划任务不存�? };
         }
 
-        // 创建新任务
+        // 创建新任�?
         var task = new TaskEntity
         {
             TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}",
@@ -115,7 +115,7 @@ public class TaskPoolService : ITaskPoolService
 
         await _taskRepository.CreateAsync(task);
 
-        // 软删除计划任务
+        // 软删除计划任�?
         await _taskPoolRepository.SoftDeleteAsync(poolItemId);
 
         return new AssignTaskResponse
@@ -161,7 +161,7 @@ public class TaskPoolService : ITaskPoolService
             AssignedCount = assignedCount,
             FailedCount = failedCount,
             TaskIds = taskIds,
-            Message = $"成功分配 {assignedCount} 个任务，失败 {failedCount} 个"
+            Message = $"成功分配 {assignedCount} 个任务，失败 {failedCount} �?
         };
     }
 
@@ -215,7 +215,7 @@ public class TaskPoolService : ITaskPoolService
         var task = await _taskRepository.GetByIdAsync(taskId);
         if (task == null)
         {
-            return new RetrieveToPoolResponse { Success = false, Message = "任务不存在" };
+            return new RetrieveToPoolResponse { Success = false, Message = "任务不存�? };
         }
 
         // 创建计划任务
@@ -241,17 +241,17 @@ public class TaskPoolService : ITaskPoolService
         poolItem.Id = $"TP-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
         await _taskPoolRepository.CreateAsync(poolItem);
 
-        // 删除原任务
+        // 删除原任�?
         await _taskRepository.SoftDeleteAsync(taskId);
 
         return new RetrieveToPoolResponse
         {
             Success = true,
             PoolItemId = poolItem.Id,
-            Message = "已回收至任务库"
+            Message = "已回收至任务�?
         };
     }
 }
 
 // 使用别名避免与Domain.Task冲突
-using TaskEntity = R&DTaskSystem.Domain.Entities.Task;
+using TaskEntity = TaskManageSystem.Domain.Entities.Task;

@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.Tasks;
-using R&DTaskSystem.Application.Interfaces;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Tasks;
+using TaskManageSystem.Application.Interfaces;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 任务管理控制器
+/// 任务管理控制�?
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -38,7 +38,7 @@ public class TasksController : ControllerBase
         var task = await _taskService.GetTaskByIdAsync(taskId);
         if (task == null)
         {
-            return NotFound(new ApiResponse<TaskDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务不存在" } });
+            return NotFound(new ApiResponse<TaskDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务不存�? } });
         }
 
         return Ok(new ApiResponse<TaskDto> { Success = true, Data = task });
@@ -65,7 +65,7 @@ public class TasksController : ControllerBase
     }
 
     /// <summary>
-    /// 删除任务（软删除）
+    /// 删除任务（软删除�?
     /// </summary>
     [HttpDelete("{taskId}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteTask(string taskId)
@@ -73,37 +73,37 @@ public class TasksController : ControllerBase
         var result = await _taskService.SoftDeleteTaskAsync(taskId);
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "删除成功" })
-            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务不存在" } });
+            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务不存�? } });
     }
 
     /// <summary>
-    /// 更新任务状态
+    /// 更新任务状�?
     /// </summary>
     [HttpPatch("{taskId}/status")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> UpdateStatus(string taskId, [FromBody] string status)
     {
         var task = await _taskService.UpdateTaskStatusAsync(taskId, status);
-        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "状态更新成功" });
+        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "状态更新成�? });
     }
 
     /// <summary>
-    /// 更新角色状态
+    /// 更新角色状�?
     /// </summary>
     [HttpPatch("{taskId}/role-status")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> UpdateRoleStatus(string taskId, [FromBody] UpdateRoleStatusRequest request)
     {
         var task = await _taskService.UpdateRoleStatusAsync(taskId, request);
-        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "角色状态更新成功" });
+        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "角色状态更新成�? });
     }
 
     /// <summary>
-    /// 完成任务所有角色
+    /// 完成任务所有角�?
     /// </summary>
     [HttpPost("{taskId}/complete-all-roles")]
     public async Task<ActionResult<ApiResponse<TaskDto>>> CompleteAllRoles(string taskId)
     {
         var task = await _taskService.CompleteAllRolesAsync(taskId);
-        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "任务已完成" });
+        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "任务已完�? });
     }
 
     /// <summary>
@@ -113,7 +113,7 @@ public class TasksController : ControllerBase
     public async Task<ActionResult<ApiResponse<TaskDto>>> RetrieveToPool(string taskId)
     {
         var task = await _taskService.RetrieveToPoolAsync(taskId);
-        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "已回收至任务库" });
+        return Ok(new ApiResponse<TaskDto> { Success = true, Data = task, Message = "已回收至任务�? });
     }
 
     /// <summary>

@@ -1,16 +1,16 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using R&DTaskSystem.Application.DTOs.TaskPool;
-using R&DTaskSystem.Application.Services;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Domain.Enums;
-using R&DTaskSystem.Infrastructure.Data;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.TaskPool;
+using TaskManageSystem.Application.Services;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Domain.Enums;
+using TaskManageSystem.Infrastructure.Data;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Tests.Services;
+namespace TaskManageSystem.Tests.Services;
 
 /// <summary>
-/// 任务库服务测试
+/// 任务库服务测�?
 /// </summary>
 public class TaskPoolServiceTests : TestBase
 {
@@ -136,7 +136,7 @@ public class TaskPoolServiceTests : TestBase
 
         // Assert
         result.Success.Should().BeFalse();
-        result.Message.Should().Contain("不存在");
+        result.Message.Should().Contain("不存�?);
     }
 
     [Fact]
@@ -200,11 +200,11 @@ public class TaskPoolServiceTests : TestBase
         var service = new TaskPoolService(taskPoolRepository, taskRepository, _mapper);
 
         // Act
-        var result = await service.DuplicateAsync("TP001", "复制的任务", DateTime.UtcNow.AddDays(30));
+        var result = await service.DuplicateAsync("TP001", "复制的任�?, DateTime.UtcNow.AddDays(30));
 
         // Assert
         result.Should().NotBeNull();
-        result.TaskName.Should().Be("复制的任务");
+        result.TaskName.Should().Be("复制的任�?);
         result.Id.Should().NotBe("TP001");
     }
 

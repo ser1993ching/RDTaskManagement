@@ -1,11 +1,11 @@
 using AutoMapper;
-using R&DTaskSystem.Application.DTOs.Users;
-using R&DTaskSystem.Application.Interfaces;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Domain.Enums;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.Users;
+using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Domain.Enums;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Application.Services;
+namespace TaskManageSystem.Application.Services;
 
 /// <summary>
 /// 用户服务实现

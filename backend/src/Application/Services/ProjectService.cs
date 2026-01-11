@@ -1,10 +1,10 @@
 using AutoMapper;
-using R&DTaskSystem.Application.DTOs.Projects;
-using R&DTaskSystem.Application.Interfaces;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.Projects;
+using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Application.Services;
+namespace TaskManageSystem.Application.Services;
 
 /// <summary>
 /// 项目服务实现

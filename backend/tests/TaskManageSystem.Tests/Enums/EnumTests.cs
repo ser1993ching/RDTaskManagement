@@ -1,7 +1,7 @@
 using FluentAssertions;
-using R&DTaskSystem.Domain.Enums;
+using TaskManageSystem.Domain.Enums;
 
-namespace R&DTaskSystem.Tests.Enums;
+namespace TaskManageSystem.Tests.Enums;
 
 /// <summary>
 /// 枚举测试
@@ -106,9 +106,9 @@ public class EnumTests
     public void TaskStatus_CanParseFromChineseString()
     {
         // Arrange & Act
-        var notStartedResult = Enum.TryParse<TaskStatus>("未开始", out var notStarted);
-        var draftingResult = Enum.TryParse<TaskStatus>("编制中", out var drafting);
-        var completedResult = Enum.TryParse<TaskStatus>("已完成", out var completed);
+        var notStartedResult = Enum.TryParse<TaskStatus>("未开�?, out var notStarted);
+        var draftingResult = Enum.TryParse<TaskStatus>("编制�?, out var drafting);
+        var completedResult = Enum.TryParse<TaskStatus>("已完�?, out var completed);
 
         // Assert
         notStartedResult.Should().BeTrue();

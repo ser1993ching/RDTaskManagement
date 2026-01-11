@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.Settings;
-using R&DTaskSystem.Application.Interfaces;
-using R&DTaskSystem.Domain.Entities;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Settings;
+using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Domain.Entities;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 认证控制器
+/// 认证控制�?
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -92,7 +92,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// 重置密码（管理员）
+    /// 重置密码（管理员�?
     /// </summary>
     [HttpPut("reset-password")]
     public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordRequest request)
@@ -101,6 +101,6 @@ public class AuthController : ControllerBase
 
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "密码重置成功" })
-            : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存在" } });
+            : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存�? } });
     }
 }

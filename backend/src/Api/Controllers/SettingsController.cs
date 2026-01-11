@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.Settings;
-using R&DTaskSystem.Application.Interfaces;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Settings;
+using TaskManageSystem.Application.Interfaces;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 系统设置控制器
+/// 系统设置控制�?
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]

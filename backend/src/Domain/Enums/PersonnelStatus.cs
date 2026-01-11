@@ -1,7 +1,7 @@
-namespace R&DTaskSystem.Domain.Enums;
+namespace TaskManageSystem.Domain.Enums;
 
 /// <summary>
-/// 在岗状态
+/// 在岗状�?
 /// </summary>
 public enum PersonnelStatus
 {
@@ -11,7 +11,7 @@ public enum PersonnelStatus
     [Display(Name = "借调")]
     BorrowedIn = 1,
 
-    [Display(Name = "外借")]
+    [Display(Name = "外�?)]
     BorrowedOut = 2,
 
     [Display(Name = "实习")]

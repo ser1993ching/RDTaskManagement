@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Domain.Enums;
+namespace TaskManageSystem.Domain.Enums;
 
 /// <summary>
 /// 任务类别代码

@@ -1,10 +1,10 @@
 using FluentAssertions;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.Projects;
-using R&DTaskSystem.Application.DTOs.Tasks;
-using R&DTaskSystem.Application.DTOs.Users;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Projects;
+using TaskManageSystem.Application.DTOs.Tasks;
+using TaskManageSystem.Application.DTOs.Users;
 
-namespace R&DTaskSystem.Tests.DTOs;
+namespace TaskManageSystem.Tests.DTOs;
 
 /// <summary>
 /// DTO测试
@@ -72,7 +72,7 @@ public class DtoTests
         var response = new ApiResponse<string>
         {
             Success = false,
-            Error = new ApiError { Code = "NOT_FOUND", Message = "资源不存在" }
+            Error = new ApiError { Code = "NOT_FOUND", Message = "资源不存�? }
         };
 
         // Assert
@@ -80,7 +80,7 @@ public class DtoTests
         response.Data.Should().BeNull();
         response.Error.Should().NotBeNull();
         response.Error!.Code.Should().Be("NOT_FOUND");
-        response.Error.Message.Should().Be("资源不存在");
+        response.Error.Message.Should().Be("资源不存�?);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class DtoTests
             TaskName = "测试任务",
             TaskClassID = "TC001",
             Category = "标书",
-            Status = "未开始",
+            Status = "未开�?,
             Workload = 16,
             Difficulty = 1.5m,
             IsForceAssessment = true
@@ -166,7 +166,7 @@ public class DtoTests
         // Arrange
         var request = new CreateProjectRequest
         {
-            Name = "新项目",
+            Name = "新项�?,
             Category = "市场配合项目",
             WorkNo = "MARKET-2025-001",
             Capacity = "1000MW",
@@ -175,7 +175,7 @@ public class DtoTests
         };
 
         // Assert
-        request.Name.Should().Be("新项目");
+        request.Name.Should().Be("新项�?);
         request.Category.Should().Be("市场配合项目");
         request.IsWon.Should().BeTrue();
     }
@@ -186,7 +186,7 @@ public class DtoTests
         // Arrange
         var request = new CreateTaskRequest
         {
-            TaskName = "新任务",
+            TaskName = "新任�?,
             TaskClassID = "TC001",
             Category = "标书",
             AssigneeID = "USER001",
@@ -197,7 +197,7 @@ public class DtoTests
         };
 
         // Assert
-        request.TaskName.Should().Be("新任务");
+        request.TaskName.Should().Be("新任�?);
         request.TaskClassID.Should().Be("TC001");
         request.Participants.Should().HaveCount(2);
     }

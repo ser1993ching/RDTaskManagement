@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.TaskClasses;
-using R&DTaskSystem.Application.Interfaces;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.TaskClasses;
+using TaskManageSystem.Application.Interfaces;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 任务类别控制器
+/// 任务类别控制�?
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -38,7 +38,7 @@ public class TaskClassesController : ControllerBase
         var taskClass = await _taskClassService.GetTaskClassByIdAsync(id);
         if (taskClass == null)
         {
-            return NotFound(new ApiResponse<TaskClassDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务类别不存在" } });
+            return NotFound(new ApiResponse<TaskClassDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务类别不存�? } });
         }
 
         return Ok(new ApiResponse<TaskClassDto> { Success = true, Data = taskClass });
@@ -65,7 +65,7 @@ public class TaskClassesController : ControllerBase
     }
 
     /// <summary>
-    /// 删除任务类别（软删除）
+    /// 删除任务类别（软删除�?
     /// </summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteTaskClass(string id)
@@ -73,11 +73,11 @@ public class TaskClassesController : ControllerBase
         var result = await _taskClassService.SoftDeleteTaskClassAsync(id);
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "删除成功" })
-            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务类别不存在" } });
+            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "任务类别不存�? } });
     }
 
     /// <summary>
-    /// 检查任务类别使用情况
+    /// 检查任务类别使用情�?
     /// </summary>
     [HttpGet("{id}/usage")]
     public async Task<ActionResult<ApiResponse<TaskClassUsageResponse>>> CheckUsage(string id)

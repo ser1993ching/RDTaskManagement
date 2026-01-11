@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.TaskPool;
+namespace TaskManageSystem.Application.DTOs.TaskPool;
 
 /// <summary>
 /// 任务库项DTO

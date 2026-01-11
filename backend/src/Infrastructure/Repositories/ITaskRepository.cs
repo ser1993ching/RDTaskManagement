@@ -1,6 +1,6 @@
-using R&DTaskSystem.Domain.Entities;
+using TaskManageSystem.Domain.Entities;
 
-namespace R&DTaskSystem.Infrastructure.Repositories;
+namespace TaskManageSystem.Infrastructure.Repositories;
 
 /// <summary>
 /// 任务仓储接口
@@ -26,4 +26,4 @@ public interface ITaskRepository
 }
 
 // 使用别名避免与Domain.Task冲突
-using TaskEntity = R&DTaskSystem.Domain.Entities.Task;
+using TaskEntity = TaskManageSystem.Domain.Entities.Task;

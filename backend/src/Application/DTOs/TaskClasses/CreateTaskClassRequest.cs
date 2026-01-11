@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.TaskClasses;
+namespace TaskManageSystem.Application.DTOs.TaskClasses;
 
 /// <summary>
 /// 创建任务类别请求

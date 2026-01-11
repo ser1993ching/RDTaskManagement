@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.Statistics;
-using R&DTaskSystem.Application.DTOs.TaskPool;
-using R&DTaskSystem.Application.Interfaces;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Statistics;
+using TaskManageSystem.Application.DTOs.TaskPool;
+using TaskManageSystem.Application.Interfaces;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 统计控制器
+/// 统计控制�?
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -71,7 +71,7 @@ public class StatisticsController : ControllerBase
     }
 
     /// <summary>
-    /// 获取工作量分布
+    /// 获取工作量分�?
     /// </summary>
     [HttpGet("workload")]
     public async Task<ActionResult<ApiResponse<WorkloadDistribution>>> GetWorkloadDistribution([FromQuery] string period = "month")
@@ -101,7 +101,7 @@ public class StatisticsController : ControllerBase
     }
 
     /// <summary>
-    /// 获取工作日信息
+    /// 获取工作日信�?
     /// </summary>
     [HttpGet("workdays")]
     public async Task<ActionResult<ApiResponse<WorkDayInfo>>> GetWorkDays([FromQuery] string period)

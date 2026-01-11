@@ -1,14 +1,14 @@
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using R&DTaskSystem.Application.DTOs.Users;
-using R&DTaskSystem.Application.Services;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Domain.Enums;
-using R&DTaskSystem.Infrastructure.Data;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.Users;
+using TaskManageSystem.Application.Services;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Domain.Enums;
+using TaskManageSystem.Infrastructure.Data;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Tests.Services;
+namespace TaskManageSystem.Tests.Services;
 
 /// <summary>
 /// 用户服务测试
@@ -62,7 +62,7 @@ public class UserServiceTests : TestBase
         // Assert
         result.Should().NotBeNull();
         result!.UserID.Should().Be("USER001");
-        result.Name.Should().Be("李研发");
+        result.Name.Should().Be("李研�?);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class UserServiceTests : TestBase
         var request = new CreateUserRequest
         {
             UserID = "USER002",
-            Name = "王测试",
+            Name = "王测�?,
             SystemRole = "Member",
             OfficeLocation = "Chengdu",
             Status = "Active",
@@ -112,7 +112,7 @@ public class UserServiceTests : TestBase
         // Assert
         result.Should().NotBeNull();
         result.UserID.Should().Be("USER002");
-        result.Name.Should().Be("王测试");
+        result.Name.Should().Be("王测�?);
         result.SystemRole.Should().Be("Member");
     }
 
@@ -227,7 +227,7 @@ public class UserServiceTests : TestBase
 
         // Assert
         result.Should().NotBeNull();
-        result.Data.Should().HaveCount(2); // admin 和 USER001 在成都
+        result.Data.Should().HaveCount(2); // admin �?USER001 在成�?
         result.Data.All(u => u.OfficeLocation == "Chengdu").Should().BeTrue();
     }
 
@@ -238,7 +238,7 @@ public class UserServiceTests : TestBase
             new()
             {
                 UserID = "admin",
-                Name = "系统管理员",
+                Name = "系统管理�?,
                 SystemRole = SystemRole.Admin,
                 OfficeLocation = OfficeLocation.Chengdu,
                 Status = PersonnelStatus.Active,
@@ -247,7 +247,7 @@ public class UserServiceTests : TestBase
             new()
             {
                 UserID = "USER001",
-                Name = "李研发",
+                Name = "李研�?,
                 SystemRole = SystemRole.Member,
                 OfficeLocation = OfficeLocation.Chengdu,
                 Status = PersonnelStatus.Active,
@@ -256,7 +256,7 @@ public class UserServiceTests : TestBase
             new()
             {
                 UserID = "LEADER001",
-                Name = "张组长",
+                Name = "张组�?,
                 SystemRole = SystemRole.Leader,
                 OfficeLocation = OfficeLocation.Deyang,
                 Status = PersonnelStatus.Active,

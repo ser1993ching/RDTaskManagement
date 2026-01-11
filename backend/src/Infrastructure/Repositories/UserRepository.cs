@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Infrastructure.Data;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Infrastructure.Data;
 
-namespace R&DTaskSystem.Infrastructure.Repositories;
+namespace TaskManageSystem.Infrastructure.Repositories;
 
 /// <summary>
 /// 用户仓储实现

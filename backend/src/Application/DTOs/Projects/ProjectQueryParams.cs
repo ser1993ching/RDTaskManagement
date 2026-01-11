@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.Projects;
+namespace TaskManageSystem.Application.DTOs.Projects;
 
 /// <summary>
 /// 项目查询参数

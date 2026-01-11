@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.Projects;
-using R&DTaskSystem.Application.Interfaces;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Projects;
+using TaskManageSystem.Application.Interfaces;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 项目管理控制器
+/// 项目管理控制�?
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -38,7 +38,7 @@ public class ProjectsController : ControllerBase
         var project = await _projectService.GetProjectByIdAsync(id);
         if (project == null)
         {
-            return NotFound(new ApiResponse<ProjectDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "项目不存在" } });
+            return NotFound(new ApiResponse<ProjectDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "项目不存�? } });
         }
 
         return Ok(new ApiResponse<ProjectDto> { Success = true, Data = project });
@@ -65,7 +65,7 @@ public class ProjectsController : ControllerBase
     }
 
     /// <summary>
-    /// 删除项目（软删除）
+    /// 删除项目（软删除�?
     /// </summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteProject(string id)
@@ -73,11 +73,11 @@ public class ProjectsController : ControllerBase
         var result = await _projectService.SoftDeleteProjectAsync(id);
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "删除成功" })
-            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "项目不存在" } });
+            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "项目不存�? } });
     }
 
     /// <summary>
-    /// 检查项目使用情况
+    /// 检查项目使用情�?
     /// </summary>
     [HttpGet("{id}/usage")]
     public async Task<ActionResult<ApiResponse<object>>> CheckUsage(string id)

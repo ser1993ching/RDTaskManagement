@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Domain.Entities;
+namespace TaskManageSystem.Domain.Entities;
 
 /// <summary>
 /// 用户实体
@@ -17,7 +17,7 @@ public class User : BaseEntity<string>
     public string? PasswordHash { get; set; }            // 密码哈希
     public string? Remark { get; set; }
 
-    // 导航属性
+    // 导航属�?
     public virtual ICollection<Task> CreatedTasks { get; set; } = new List<Task>();
     public virtual ICollection<Task> AssignedTasks { get; set; } = new List<Task>();
     public virtual ICollection<Task> CheckerTasks { get; set; } = new List<Task>();

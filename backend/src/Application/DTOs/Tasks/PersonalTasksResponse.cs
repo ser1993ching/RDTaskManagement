@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.Tasks;
+namespace TaskManageSystem.Application.DTOs.Tasks;
 
 /// <summary>
 /// 个人任务响应

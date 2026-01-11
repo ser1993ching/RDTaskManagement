@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Domain.Enums;
+namespace TaskManageSystem.Domain.Enums;
 
 /// <summary>
 /// 项目类型
@@ -17,7 +17,7 @@ public enum ProjectCategory
     [Display(Name = "科研项目")]
     Research = 3,
 
-    [Display(Name = "改造项目")]
+    [Display(Name = "改造项�?)]
     Renovation = 4,
 
     [Display(Name = "其他项目")]

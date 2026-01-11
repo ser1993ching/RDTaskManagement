@@ -1,7 +1,7 @@
-namespace R&DTaskSystem.Domain.Entities;
+namespace TaskManageSystem.Domain.Entities;
 
 /// <summary>
-/// 任务库实体
+/// 任务库实�?
 /// </summary>
 public class TaskPoolItem : BaseEntity<string>
 {
@@ -27,7 +27,7 @@ public class TaskPoolItem : BaseEntity<string>
     public bool IsForceAssessment { get; set; }
     public string? Remark { get; set; }
 
-    // 导航属性
+    // 导航属�?
     public virtual User? PersonInCharge { get; set; }
     public virtual User? Creator { get; set; }
     public virtual Project? Project { get; set; }

@@ -1,4 +1,4 @@
-namespace R&DTaskSystem.Application.DTOs.Users;
+namespace TaskManageSystem.Application.DTOs.Users;
 
 /// <summary>
 /// 更新用户请求

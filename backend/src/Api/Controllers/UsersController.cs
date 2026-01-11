@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using R&DTaskSystem.Application.DTOs.Common;
-using R&DTaskSystem.Application.DTOs.Users;
-using R&DTaskSystem.Application.Interfaces;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Users;
+using TaskManageSystem.Application.Interfaces;
 
-namespace R&DTaskSystem.Api.Controllers;
+namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 用户管理控制器
+/// 用户管理控制�?
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -38,7 +38,7 @@ public class UsersController : ControllerBase
         var user = await _userService.GetUserByIdAsync(userId);
         if (user == null)
         {
-            return NotFound(new ApiResponse<UserDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "用户不存在" } });
+            return NotFound(new ApiResponse<UserDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "用户不存�? } });
         }
 
         return Ok(new ApiResponse<UserDto> { Success = true, Data = user });
@@ -65,7 +65,7 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// 删除用户（软删除）
+    /// 删除用户（软删除�?
     /// </summary>
     [HttpDelete("{userId}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteUser(string userId)
@@ -73,7 +73,7 @@ public class UsersController : ControllerBase
         var result = await _userService.SoftDeleteUserAsync(userId);
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "删除成功" })
-            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "用户不存在" } });
+            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "用户不存�? } });
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ public class UsersController : ControllerBase
         var result = await _userService.RestoreUserAsync(userId);
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "恢复成功" })
-            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "用户不存在" } });
+            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "用户不存�? } });
     }
 
     /// <summary>

@@ -1,11 +1,11 @@
 using AutoMapper;
-using R&DTaskSystem.Application.DTOs.Tasks;
-using R&DTaskSystem.Application.Interfaces;
-using R&DTaskSystem.Domain.Entities;
-using R&DTaskSystem.Domain.Enums;
-using R&DTaskSystem.Infrastructure.Repositories;
+using TaskManageSystem.Application.DTOs.Tasks;
+using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Domain.Entities;
+using TaskManageSystem.Domain.Enums;
+using TaskManageSystem.Infrastructure.Repositories;
 
-namespace R&DTaskSystem.Application.Services;
+namespace TaskManageSystem.Application.Services;
 
 /// <summary>
 /// 任务服务实现
@@ -238,4 +238,4 @@ public class TaskService : ITaskService
 }
 
 // 使用别名避免与Domain.Task冲突
-using TaskEntity = R&DTaskSystem.Domain.Entities.Task;
+using TaskEntity = TaskManageSystem.Domain.Entities.Task;

@@ -1,3 +1,5 @@
+using TaskManageSystem.Application.DTOs.Settings;
+
 namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>

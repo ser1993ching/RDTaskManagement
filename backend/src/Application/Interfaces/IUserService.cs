@@ -1,3 +1,6 @@
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Users;
+
 namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>

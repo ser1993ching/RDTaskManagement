@@ -1,8 +1,10 @@
 using AutoMapper;
+using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Projects;
 using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Domain.Entities;
-using TaskManageSystem.Infrastructure.Repositories;
+using TaskManageSystem.Domain.Enums;
 
 namespace TaskManageSystem.Application.Services;
 
@@ -27,19 +29,19 @@ public class ProjectService : IProjectService
         // 过滤
         if (!string.IsNullOrEmpty(query.Category))
         {
-            if (Enum.TryParse<ProjectCategory>(query.Category, out var category))
-                projects = projects.Where(p => p.Category == category);
+            if (Enum.TryParse<Domain.Enums.ProjectCategory>(query.Category, out var category))
+                projects = projects.Where(p => p.Category == category).ToList();
         }
 
         if (query.IsKeyProject.HasValue)
         {
-            projects = projects.Where(p => p.IsKeyProject == query.IsKeyProject.Value);
+            projects = projects.Where(p => p.IsKeyProject == query.IsKeyProject.Value).ToList();
         }
 
-        var total = projects.Count();
+        var total = projects.Count;
         var pages = (int)Math.Ceiling(total / (double)query.PageSize);
 
-        projects = projects.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize);
+        projects = projects.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
 
         return new PaginatedResponse<ProjectDto>
         {
@@ -90,11 +92,15 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectStatisticsResponse> GetStatisticsAsync(string? category)
     {
-        ProjectCategory? categoryEnum = null;
-        if (!string.IsNullOrEmpty(category) && Enum.TryParse<ProjectCategory>(category, out var cat))
+        Domain.Enums.ProjectCategory? categoryEnum = null;
+        if (!string.IsNullOrEmpty(category) && Enum.TryParse<Domain.Enums.ProjectCategory>(category, out var cat))
             categoryEnum = cat;
 
-        var (total, byCategory, keyProjects, completed) = await _projectRepository.GetStatisticsAsync(categoryEnum);
+        var result = await _projectRepository.GetStatisticsAsync(categoryEnum);
+        int total = result.Total;
+        var byCategory = result.ByCategory;
+        int keyProjects = result.KeyProjects;
+        int completed = result.Completed;
 
         return new ProjectStatisticsResponse
         {

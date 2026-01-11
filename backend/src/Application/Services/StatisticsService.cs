@@ -1,9 +1,11 @@
 using AutoMapper;
+using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Statistics;
 using TaskManageSystem.Application.DTOs.TaskPool;
+using TaskManageSystem.Application.DTOs.Tasks;
 using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Domain.Entities;
-using TaskManageSystem.Infrastructure.Repositories;
 
 namespace TaskManageSystem.Application.Services;
 
@@ -50,9 +52,9 @@ public class StatisticsService : IStatisticsService
 
         return new PersonalTasksResponse
         {
-            InProgress = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status != Domain.Enums.TaskStatus.Completed && t.Status != Domain.Enums.TaskStatus.NotStarted)),
-            Pending = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.NotStarted)),
-            Completed = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.Completed))
+            InProgress = _mapper.Map<List<DTOs.Tasks.TaskDto>>(tasks.Where(t => t.Status != Domain.Enums.TaskStatus.Completed && t.Status != Domain.Enums.TaskStatus.NotStarted)),
+            Pending = _mapper.Map<List<DTOs.Tasks.TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.NotStarted)),
+            Completed = _mapper.Map<List<DTOs.Tasks.TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.Completed))
         };
     }
 
@@ -101,8 +103,8 @@ public class StatisticsService : IStatisticsService
             CompletionRate = totalTasks > 0 ? Math.Round((double)completedTasks / totalTasks * 100, 2) : 0,
             ByUser = new List<TeamMemberStats>(),
             ByCategory = GetCategoryDistribution(tasks),
-            OverdueTasks = _mapper.Map<List<TaskDto>>(await _taskRepository.GetOverdueTasksAsync(null)),
-            LongRunningTasks = _mapper.Map<List<TaskDto>>(await _taskRepository.GetDelayedTasksAsync(null, 60))
+            OverdueTasks = _mapper.Map<List<DTOs.Tasks.TaskDto>>(await _taskRepository.GetOverdueTasksAsync(null)),
+            LongRunningTasks = _mapper.Map<List<DTOs.Tasks.TaskDto>>(await _taskRepository.GetDelayedTasksAsync(null, 60))
         };
     }
 
@@ -158,7 +160,7 @@ public class StatisticsService : IStatisticsService
     public async Task<byte[]> ExportStatisticsAsync(string userId, string period)
     {
         var stats = await GetPersonalStatsAsync(userId, period);
-        var csv = $"总任务数,已完�?进行�?未开�?完成率\n{stats.TotalCount},{stats.CompletedCount},{stats.InProgressCount},{stats.PendingCount},{stats.CompletionRate}%\n";
+        var csv = $"总任务数,已完成,进行中,未开始,完成率\n{stats.TotalCount},{stats.CompletedCount},{stats.InProgressCount},{stats.PendingCount},{stats.CompletionRate}%\n";
         return System.Text.Encoding.UTF8.GetBytes(csv);
     }
 
@@ -167,7 +169,7 @@ public class StatisticsService : IStatisticsService
         var tasks = await _taskRepository.GetDelayedTasksAsync(userId, daysThreshold);
         return new DelayedTasksResponse
         {
-            Tasks = _mapper.Map<List<TaskDto>>(tasks),
+            Tasks = _mapper.Map<List<DTOs.Tasks.TaskDto>>(tasks),
             Count = tasks.Count
         };
     }
@@ -177,12 +179,12 @@ public class StatisticsService : IStatisticsService
         var tasks = await _taskRepository.GetOverdueTasksAsync(userId);
         return new DelayedTasksResponse
         {
-            Tasks = _mapper.Map<List<TaskDto>>(tasks),
+            Tasks = _mapper.Map<List<DTOs.Tasks.TaskDto>>(tasks),
             Count = tasks.Count
         };
     }
 
-    private List<CategoryDistributionItem> GetCategoryDistribution(IReadOnlyList<TaskEntity> tasks)
+    private List<CategoryDistributionItem> GetCategoryDistribution(IReadOnlyList<TaskItem> tasks)
     {
         var total = tasks.Count;
         if (total == 0) return new List<CategoryDistributionItem>();
@@ -198,7 +200,7 @@ public class StatisticsService : IStatisticsService
             .ToList();
     }
 
-    private TravelStats GetTravelStats(IReadOnlyList<TaskEntity> tasks)
+    private TravelStats GetTravelStats(IReadOnlyList<TaskItem> tasks)
     {
         var travelTasks = tasks.Where(t => t.TaskClassID == "TC009").ToList();
         var totalDays = travelTasks.Sum(t => t.TravelDuration ?? 0);
@@ -211,7 +213,7 @@ public class StatisticsService : IStatisticsService
         };
     }
 
-    private MeetingStats GetMeetingStats(IReadOnlyList<TaskEntity> tasks)
+    private MeetingStats GetMeetingStats(IReadOnlyList<TaskItem> tasks)
     {
         var meetingTasks = tasks.Where(t => t.TaskClassID == "TC007").ToList();
         var totalHours = meetingTasks.Sum(t => t.MeetingDuration ?? 0);
@@ -224,7 +226,7 @@ public class StatisticsService : IStatisticsService
         };
     }
 
-    private List<MonthlyTrendItem> GetMonthlyTrendData(IReadOnlyList<TaskEntity> tasks)
+    private List<MonthlyTrendItem> GetMonthlyTrendData(IReadOnlyList<TaskItem> tasks)
     {
         return tasks
             .GroupBy(t => t.CreatedDate.ToString("yyyy-MM"))
@@ -238,7 +240,3 @@ public class StatisticsService : IStatisticsService
             .ToList();
     }
 }
-
-// 使用别名避免冲突
-using TaskEntity = TaskManageSystem.Domain.Entities.Task;
-using TaskDto = TaskManageSystem.Application.DTOs.Tasks.TaskDto;

@@ -1,3 +1,11 @@
+using Microsoft.EntityFrameworkCore;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Application.Repositories;
+using TaskManageSystem.Application.Services;
+using TaskManageSystem.Infrastructure.Data;
+using TaskManageSystem.Infrastructure.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
@@ -9,7 +17,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))));
+        new MySqlServerVersion(new Version(8, 0, 0)),
+        mysqlOptions => mysqlOptions.SchemaBehavior(MySqlSchemaBehavior.Ignore)));
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));

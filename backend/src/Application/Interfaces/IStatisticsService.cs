@@ -1,3 +1,6 @@
+using TaskManageSystem.Application.DTOs.Statistics;
+using TaskManageSystem.Application.DTOs.Tasks;
+
 namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>

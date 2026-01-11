@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TaskManageSystem.Domain.Entities;
 using TaskManageSystem.Infrastructure.Data;
+using TaskManageSystem.Application.Repositories;
 
 namespace TaskManageSystem.Infrastructure.Repositories;
 

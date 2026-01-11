@@ -1,13 +1,14 @@
 using AutoMapper;
+using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.TaskPool;
 using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Domain.Entities;
-using TaskManageSystem.Infrastructure.Repositories;
 
 namespace TaskManageSystem.Application.Services;
 
 /// <summary>
-/// 任务库服务实�?
+/// 任务库服务实现
 /// </summary>
 public class TaskPoolService : ITaskPoolService
 {
@@ -28,18 +29,18 @@ public class TaskPoolService : ITaskPoolService
 
         // 过滤
         if (!string.IsNullOrEmpty(query.TaskClassID))
-            items = items.Where(tp => tp.TaskClassID == query.TaskClassID);
+            items = items.Where(tp => tp.TaskClassID == query.TaskClassID).ToList();
 
         if (!string.IsNullOrEmpty(query.Category))
-            items = items.Where(tp => tp.Category == query.Category);
+            items = items.Where(tp => tp.Category == query.Category).ToList();
 
         if (!string.IsNullOrEmpty(query.ProjectID))
-            items = items.Where(tp => tp.ProjectID == query.ProjectID);
+            items = items.Where(tp => tp.ProjectID == query.ProjectID).ToList();
 
-        var total = items.Count();
+        var total = items.Count;
         var pages = (int)Math.Ceiling(total / (double)query.PageSize);
 
-        items = items.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize);
+        items = items.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
 
         return new PaginatedResponse<TaskPoolItemDto>
         {
@@ -89,11 +90,11 @@ public class TaskPoolService : ITaskPoolService
         var poolItem = await _taskPoolRepository.GetByIdAsync(poolItemId);
         if (poolItem == null)
         {
-            return new AssignTaskResponse { Success = false, Message = "计划任务不存�? };
+            return new AssignTaskResponse { Success = false, Message = "计划任务不存在" };
         }
 
-        // 创建新任�?
-        var task = new TaskEntity
+        // 创建新任务
+        var task = new TaskItem
         {
             TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}",
             TaskName = poolItem.TaskName,
@@ -115,7 +116,7 @@ public class TaskPoolService : ITaskPoolService
 
         await _taskRepository.CreateAsync(task);
 
-        // 软删除计划任�?
+        // 软删除计划任务
         await _taskPoolRepository.SoftDeleteAsync(poolItemId);
 
         return new AssignTaskResponse
@@ -161,7 +162,7 @@ public class TaskPoolService : ITaskPoolService
             AssignedCount = assignedCount,
             FailedCount = failedCount,
             TaskIds = taskIds,
-            Message = $"成功分配 {assignedCount} 个任务，失败 {failedCount} �?
+            Message = $"成功分配 {assignedCount} 个任务，失败 {failedCount} 个"
         };
     }
 
@@ -215,7 +216,7 @@ public class TaskPoolService : ITaskPoolService
         var task = await _taskRepository.GetByIdAsync(taskId);
         if (task == null)
         {
-            return new RetrieveToPoolResponse { Success = false, Message = "任务不存�? };
+            return new RetrieveToPoolResponse { Success = false, Message = "任务不存在" };
         }
 
         // 创建计划任务
@@ -241,17 +242,14 @@ public class TaskPoolService : ITaskPoolService
         poolItem.Id = $"TP-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
         await _taskPoolRepository.CreateAsync(poolItem);
 
-        // 删除原任�?
+        // 删除原任务
         await _taskRepository.SoftDeleteAsync(taskId);
 
         return new RetrieveToPoolResponse
         {
             Success = true,
             PoolItemId = poolItem.Id,
-            Message = "已回收至任务�?
+            Message = "已回收至任务库"
         };
     }
 }
-
-// 使用别名避免与Domain.Task冲突
-using TaskEntity = TaskManageSystem.Domain.Entities.Task;

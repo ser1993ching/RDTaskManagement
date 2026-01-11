@@ -1,7 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.TaskPool;
+using TaskManageSystem.Application.DTOs.Tasks;
+
 namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>
-/// 任务库服务接�?
+/// 任务库服务接口
 /// </summary>
 public interface ITaskPoolService
 {

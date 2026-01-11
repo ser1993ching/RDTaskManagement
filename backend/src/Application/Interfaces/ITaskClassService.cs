@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using TaskManageSystem.Application.DTOs.TaskClasses;
+
 namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>
@@ -40,6 +43,9 @@ public class AddCategoryRequest
 
 public class UpdateCategoryNameRequest
 {
+    [Required]
+    public string OldName { get; set; } = string.Empty;
+
     [Required]
     public string NewName { get; set; } = string.Empty;
 }

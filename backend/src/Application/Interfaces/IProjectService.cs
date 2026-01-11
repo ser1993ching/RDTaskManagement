@@ -1,3 +1,6 @@
+using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Application.DTOs.Projects;
+
 namespace TaskManageSystem.Application.Interfaces;
 
 /// <summary>

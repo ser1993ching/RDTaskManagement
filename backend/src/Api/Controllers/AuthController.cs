@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using TaskManageSystem.Application.DTOs.Common;
+using TaskManageSystem.Api.Models;
 using TaskManageSystem.Application.DTOs.Settings;
+using TaskManageSystem.Application.DTOs.Users;
 using TaskManageSystem.Application.Interfaces;
-using TaskManageSystem.Domain.Entities;
 
 namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 认证控制�?
+/// 认证控制器
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -21,19 +21,18 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// 登录
+    /// 用户登录
     /// </summary>
     [HttpPost("login")]
-    public async Task<ActionResult<ApiResponse<LoginResponse>>> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var user = await _userService.ValidateCredentialsAsync(request.UserId, request.Password);
-
         if (user == null)
         {
-            return Ok(new ApiResponse<LoginResponse>
+            return BadRequest(new ApiResponse<object>
             {
                 Success = false,
-                Error = new ApiError { Code = "INVALID_CREDENTIALS", Message = "用户名或密码错误" }
+                Error = new ApiError { Code = "AUTH_FAILED", Message = "用户名或密码错误" }
             });
         }
 
@@ -44,63 +43,32 @@ public class AuthController : ControllerBase
             {
                 Success = true,
                 User = user,
-                Token = "jwt-token-placeholder",  // 实际项目中应生成JWT Token
-                Message = "登录成功"
+                Token = "mock-jwt-token"
             }
         });
     }
 
     /// <summary>
-    /// 获取当前用户
-    /// </summary>
-    [HttpGet("me")]
-    public async Task<ActionResult<ApiResponse<UserDto>>> GetCurrentUser()
-    {
-        // 从Token或Session获取当前用户ID
-        var userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        var user = await _userService.GetUserByIdAsync(userId);
-        if (user == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(new ApiResponse<UserDto> { Success = true, Data = user });
-    }
-
-    /// <summary>
     /// 修改密码
     /// </summary>
-    [HttpPut("password")]
-    public async Task<ActionResult<ApiResponse<object>>> ChangePassword([FromBody] ChangePasswordRequest request)
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
-        var userId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Unauthorized();
-        }
-
-        var result = await _userService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
-
+        var result = await _userService.ChangePasswordAsync(request.UserId, request.CurrentPassword, request.NewPassword);
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "密码修改成功" })
-            : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "PASSWORD_MISMATCH", Message = "当前密码错误" } });
+            : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "PASSWORD_CHANGE_FAILED", Message = "密码修改失败" } });
     }
 
     /// <summary>
-    /// 重置密码（管理员�?
+    /// 重置密码
     /// </summary>
-    [HttpPut("reset-password")]
-    public async Task<ActionResult<ApiResponse<object>>> ResetPassword([FromBody] ResetPasswordRequest request)
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
     {
         var result = await _userService.ResetPasswordAsync(request.UserId, request.NewPassword);
-
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "密码重置成功" })
-            : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存�? } });
+            : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存在" } });
     }
 }

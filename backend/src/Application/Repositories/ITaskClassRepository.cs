@@ -1,6 +1,6 @@
 using TaskManageSystem.Domain.Entities;
 
-namespace TaskManageSystem.Infrastructure.Repositories;
+namespace TaskManageSystem.Application.Repositories;
 
 /// <summary>
 /// 任务类别仓储接口

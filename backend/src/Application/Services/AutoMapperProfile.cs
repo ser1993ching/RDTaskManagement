@@ -1,6 +1,7 @@
 using AutoMapper;
 using TaskManageSystem.Application.DTOs.Projects;
 using TaskManageSystem.Application.DTOs.TaskClasses;
+using TaskManageSystem.Application.DTOs.TaskPool;
 using TaskManageSystem.Application.DTOs.Tasks;
 using TaskManageSystem.Application.DTOs.Users;
 using TaskManageSystem.Domain.Entities;
@@ -32,10 +33,10 @@ public class AutoMapperProfile : Profile
         CreateMap<TaskItem, TaskDto>()
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(src => src.CreatedDate.ToString("yyyy-MM-dd")))
-            .ForMember(dest => dest.CheckerStatus, opt => opt.MapFrom(src => src.CheckerStatus?.ToString()))
-            .ForMember(dest => dest.ChiefDesignerStatus, opt => opt.MapFrom(src => src.ChiefDesignerStatus?.ToString()))
-            .ForMember(dest => dest.ApproverStatus, opt => opt.MapFrom(src => src.ApproverStatus?.ToString()))
-            .ForMember(dest => dest.AssigneeStatus, opt => opt.MapFrom(src => src.AssigneeStatus?.ToString()));
+            .ForMember(dest => dest.CheckerStatus, opt => opt.MapFrom(src => src.CheckerStatus.HasValue ? src.CheckerStatus.Value.ToString() : null))
+            .ForMember(dest => dest.ChiefDesignerStatus, opt => opt.MapFrom(src => src.ChiefDesignerStatus.HasValue ? src.ChiefDesignerStatus.Value.ToString() : null))
+            .ForMember(dest => dest.ApproverStatus, opt => opt.MapFrom(src => src.ApproverStatus.HasValue ? src.ApproverStatus.Value.ToString() : null))
+            .ForMember(dest => dest.AssigneeStatus, opt => opt.MapFrom(src => src.AssigneeStatus.HasValue ? src.AssigneeStatus.Value.ToString() : null));
 
         // TaskClass mappings
         CreateMap<TaskClass, TaskClassDto>()

@@ -1,9 +1,10 @@
 using AutoMapper;
+using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Tasks;
 using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Domain.Entities;
 using TaskManageSystem.Domain.Enums;
-using TaskManageSystem.Infrastructure.Repositories;
 
 namespace TaskManageSystem.Application.Services;
 
@@ -28,29 +29,29 @@ public class TaskService : ITaskService
         // 过滤
         if (!string.IsNullOrEmpty(query.Status))
         {
-            if (Enum.TryParse<TaskStatus>(query.Status, out var status))
-                tasks = tasks.Where(t => t.Status == status);
+            if (Enum.TryParse<Domain.Enums.TaskStatus>(query.Status, out var status))
+                tasks = tasks.Where(t => t.Status == status).ToList();
         }
 
         if (!string.IsNullOrEmpty(query.TaskClassID))
-            tasks = tasks.Where(t => t.TaskClassID == query.TaskClassID);
+            tasks = tasks.Where(t => t.TaskClassID == query.TaskClassID).ToList();
 
         if (!string.IsNullOrEmpty(query.ProjectID))
-            tasks = tasks.Where(t => t.ProjectID == query.ProjectID);
+            tasks = tasks.Where(t => t.ProjectID == query.ProjectID).ToList();
 
         if (!string.IsNullOrEmpty(query.AssigneeID))
-            tasks = tasks.Where(t => t.AssigneeID == query.AssigneeID);
+            tasks = tasks.Where(t => t.AssigneeID == query.AssigneeID).ToList();
 
         if (!string.IsNullOrEmpty(query.CheckerID))
-            tasks = tasks.Where(t => t.CheckerID == query.CheckerID);
+            tasks = tasks.Where(t => t.CheckerID == query.CheckerID).ToList();
 
         if (!string.IsNullOrEmpty(query.ApproverID))
-            tasks = tasks.Where(t => t.ApproverID == query.ApproverID);
+            tasks = tasks.Where(t => t.ApproverID == query.ApproverID).ToList();
 
-        var total = tasks.Count();
+        var total = tasks.Count;
         var pages = (int)Math.Ceiling(total / (double)query.PageSize);
 
-        tasks = tasks.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize);
+        tasks = tasks.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
 
         return new PaginatedResponse<TaskDto>
         {
@@ -70,13 +71,12 @@ public class TaskService : ITaskService
 
     public async Task<TaskDto> CreateTaskAsync(CreateTaskRequest request)
     {
-        var task = _mapper.Map<TaskEntity>(request);
+        var task = _mapper.Map<TaskItem>(request);
 
         // 生成任务ID
         task.TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
 
-        if (string.IsNullOrEmpty(request.Status))
-            task.Status = TaskStatus.NotStarted;
+        task.Status = Domain.Enums.TaskStatus.NotStarted;
 
         task.CreatedDate = DateTime.UtcNow;
 
@@ -104,10 +104,10 @@ public class TaskService : ITaskService
         var task = await _taskRepository.GetByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        if (Enum.TryParse<TaskStatus>(status, out var newStatus))
+        if (Enum.TryParse<Domain.Enums.TaskStatus>(status, out var newStatus))
         {
             task.Status = newStatus;
-            if (newStatus == TaskStatus.Completed)
+            if (newStatus == Domain.Enums.TaskStatus.Completed)
                 task.CompletedDate = DateTime.UtcNow;
         }
 
@@ -152,7 +152,7 @@ public class TaskService : ITaskService
         task.CheckerStatus = RoleStatus.Completed;
         task.ChiefDesignerStatus = RoleStatus.Completed;
         task.ApproverStatus = RoleStatus.Completed;
-        task.Status = TaskStatus.Completed;
+        task.Status = Domain.Enums.TaskStatus.Completed;
         task.CompletedDate = DateTime.UtcNow;
 
         task = await _taskRepository.UpdateAsync(task);
@@ -186,11 +186,11 @@ public class TaskService : ITaskService
         var response = new PersonalTasksResponse
         {
             InProgress = _mapper.Map<List<TaskDto>>(tasks.Where(t =>
-                t.Status == TaskStatus.Drafting || t.Status == TaskStatus.Revising ||
+                t.Status == Domain.Enums.TaskStatus.Drafting || t.Status == Domain.Enums.TaskStatus.Revising ||
                 t.AssigneeStatus == RoleStatus.InProgress || t.CheckerStatus == RoleStatus.InProgress ||
                 t.ChiefDesignerStatus == RoleStatus.InProgress || t.ApproverStatus == RoleStatus.InProgress)),
-            Pending = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == TaskStatus.NotStarted)),
-            Completed = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == TaskStatus.Completed))
+            Pending = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.NotStarted)),
+            Completed = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.Completed))
         };
 
         return response;
@@ -236,6 +236,3 @@ public class TaskService : ITaskService
         }
     }
 }
-
-// 使用别名避免与Domain.Task冲突
-using TaskEntity = TaskManageSystem.Domain.Entities.Task;

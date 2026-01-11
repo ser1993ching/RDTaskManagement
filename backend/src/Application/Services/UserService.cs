@@ -1,9 +1,11 @@
 using AutoMapper;
+using BCrypt.Net;
+using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Users;
 using TaskManageSystem.Application.Interfaces;
+using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Domain.Entities;
 using TaskManageSystem.Domain.Enums;
-using TaskManageSystem.Infrastructure.Repositories;
 
 namespace TaskManageSystem.Application.Services;
 
@@ -29,25 +31,25 @@ public class UserService : IUserService
         if (!string.IsNullOrEmpty(query.OfficeLocation))
         {
             if (Enum.TryParse<OfficeLocation>(query.OfficeLocation, out var location))
-                users = users.Where(u => u.OfficeLocation == location);
+                users = users.Where(u => u.OfficeLocation == location).ToList();
         }
 
         if (!string.IsNullOrEmpty(query.Status))
         {
             if (Enum.TryParse<PersonnelStatus>(query.Status, out var status))
-                users = users.Where(u => u.Status == status);
+                users = users.Where(u => u.Status == status).ToList();
         }
 
         if (!string.IsNullOrEmpty(query.SystemRole))
         {
             if (Enum.TryParse<SystemRole>(query.SystemRole, out var role))
-                users = users.Where(u => u.SystemRole == role);
+                users = users.Where(u => u.SystemRole == role).ToList();
         }
 
-        var total = users.Count();
+        var total = users.Count;
         var pages = (int)Math.Ceiling(total / (double)query.PageSize);
 
-        users = users.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize);
+        users = users.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
 
         return new PaginatedResponse<UserDto>
         {
@@ -131,7 +133,7 @@ public class UserService : IUserService
 
         var users = await _userRepository.GetAllAsync();
         // 排除当前用户和admin
-        users = users.Where(u => u.UserID != currentUserId && u.UserID != "admin");
+        users = users.Where(u => u.UserID != currentUserId && u.UserID != "admin").ToList();
 
         return _mapper.Map<List<UserDto>>(users);
     }

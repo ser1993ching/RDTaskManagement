@@ -1,148 +1,132 @@
 using Microsoft.AspNetCore.Mvc;
-using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Statistics;
-using TaskManageSystem.Application.DTOs.TaskPool;
 using TaskManageSystem.Application.Interfaces;
 
 namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 统计控制�?
+/// 统计控制器
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class StatisticsController : ControllerBase
 {
     private readonly IStatisticsService _statisticsService;
+    private readonly ITaskService _taskService;
 
-    public StatisticsController(IStatisticsService statisticsService)
+    public StatisticsController(IStatisticsService statisticsService, ITaskService taskService)
     {
         _statisticsService = statisticsService;
+        _taskService = taskService;
     }
 
     /// <summary>
     /// 获取个人统计
     /// </summary>
     [HttpGet("personal")]
-    public async Task<ActionResult<ApiResponse<PersonalStats>>> GetPersonalStats([FromQuery] string userId, [FromQuery] string period = "month")
+    public async Task<IActionResult> GetPersonalStats([FromQuery] string userId, [FromQuery] string period)
     {
         var stats = await _statisticsService.GetPersonalStatsAsync(userId, period);
-        return Ok(new ApiResponse<PersonalStats> { Success = true, Data = stats });
+        return Ok(stats);
     }
 
     /// <summary>
-    /// 获取个人任务（按状态分离）
+    /// 获取个人任务（按状态分类）
     /// </summary>
     [HttpGet("personal/tasks")]
-    public async Task<ActionResult<ApiResponse<PersonalTasksResponse>>> GetPersonalTasks([FromQuery] string userId, [FromQuery] string? period, [FromQuery] string? status)
+    public async Task<IActionResult> GetPersonalTasks([FromQuery] string userId, [FromQuery] string period, [FromQuery] string? status)
     {
-        var tasks = await _statisticsService.GetPersonalTasksByStatusAsync(userId, period ?? "month", status);
-        return Ok(new ApiResponse<PersonalTasksResponse> { Success = true, Data = tasks });
-    }
-
-    /// <summary>
-    /// 获取差旅统计
-    /// </summary>
-    [HttpGet("travel")]
-    public async Task<ActionResult<ApiResponse<TravelStatisticsResponse>>> GetTravelStats([FromQuery] string? userId, [FromQuery] string period = "month", [FromQuery] string? projectId = null)
-    {
-        var stats = await _statisticsService.GetTravelStatisticsAsync(userId, period, projectId);
-        return Ok(new ApiResponse<TravelStatisticsResponse> { Success = true, Data = stats });
-    }
-
-    /// <summary>
-    /// 获取会议统计
-    /// </summary>
-    [HttpGet("meetings")]
-    public async Task<ActionResult<ApiResponse<MeetingStatisticsResponse>>> GetMeetingStats([FromQuery] string? userId, [FromQuery] string period = "month")
-    {
-        var stats = await _statisticsService.GetMeetingStatisticsAsync(userId, period);
-        return Ok(new ApiResponse<MeetingStatisticsResponse> { Success = true, Data = stats });
+        var tasks = await _statisticsService.GetPersonalTasksByStatusAsync(userId, period, status);
+        return Ok(tasks);
     }
 
     /// <summary>
     /// 获取团队统计
     /// </summary>
     [HttpGet("team")]
-    public async Task<ActionResult<ApiResponse<TeamStats>>> GetTeamStats([FromQuery] string period = "month", [FromQuery] string? officeLocation = null)
+    public async Task<IActionResult> GetTeamStats([FromQuery] string period, [FromQuery] string? officeLocation)
     {
         var stats = await _statisticsService.GetTeamStatsAsync(period, officeLocation);
-        return Ok(new ApiResponse<TeamStats> { Success = true, Data = stats });
+        return Ok(stats);
     }
 
     /// <summary>
-    /// 获取工作量分�?
+    /// 获取工作量分布
     /// </summary>
     [HttpGet("workload")]
-    public async Task<ActionResult<ApiResponse<WorkloadDistribution>>> GetWorkloadDistribution([FromQuery] string period = "month")
+    public async Task<IActionResult> GetWorkload([FromQuery] string period)
     {
-        var stats = await _statisticsService.GetWorkloadDistributionAsync(period);
-        return Ok(new ApiResponse<WorkloadDistribution> { Success = true, Data = stats });
+        var workload = await _statisticsService.GetWorkloadDistributionAsync(period);
+        return Ok(workload);
     }
 
     /// <summary>
     /// 获取月度趋势
     /// </summary>
     [HttpGet("trend/monthly")]
-    public async Task<ActionResult<ApiResponse<List<MonthlyTrendItem>>>> GetMonthlyTrend([FromQuery] string? userId, [FromQuery] int months = 6, [FromQuery] string period = "month")
+    public async Task<IActionResult> GetMonthlyTrend([FromQuery] string? userId, [FromQuery] int months = 12, [FromQuery] string period = "month")
     {
         var trend = await _statisticsService.GetMonthlyTrendAsync(userId, months, period);
-        return Ok(new ApiResponse<List<MonthlyTrendItem>> { Success = true, Data = trend });
+        return Ok(trend);
     }
 
     /// <summary>
-    /// 获取每日趋势
+    /// 获取日趋势
     /// </summary>
     [HttpGet("trend/daily")]
-    public async Task<ActionResult<ApiResponse<List<DailyTrendItem>>>> GetDailyTrend([FromQuery] string userId, [FromQuery] int days = 7)
+    public async Task<IActionResult> GetDailyTrend([FromQuery] string userId, [FromQuery] int days = 7)
     {
         var trend = await _statisticsService.GetDailyTrendAsync(userId, days);
-        return Ok(new ApiResponse<List<DailyTrendItem>> { Success = true, Data = trend });
+        return Ok(trend);
     }
 
     /// <summary>
-    /// 获取工作日信�?
+    /// 获取拖延任务
     /// </summary>
-    [HttpGet("workdays")]
-    public async Task<ActionResult<ApiResponse<WorkDayInfo>>> GetWorkDays([FromQuery] string period)
-    {
-        var info = await _statisticsService.GetWorkDaysAsync(period);
-        return Ok(new ApiResponse<WorkDayInfo> { Success = true, Data = info });
-    }
-
-    /// <summary>
-    /// 导出统计数据
-    /// </summary>
-    [HttpPost("export")]
-    public async Task<IActionResult> ExportStatistics([FromBody] ExportStatisticsRequest request)
-    {
-        var data = await _statisticsService.ExportStatisticsAsync(request.UserId, request.Period);
-        return File(data, "text/csv", $"statistics_{DateTime.UtcNow:yyyyMMdd}.csv");
-    }
-
-    /// <summary>
-    /// 获取拖延任务清单
-    /// </summary>
-    [HttpGet("delayed-tasks")]
-    public async Task<ActionResult<ApiResponse<DelayedTasksResponse>>> GetDelayedTasks([FromQuery] string? userId, [FromQuery] int daysThreshold = 60)
+    [HttpGet("delayed")]
+    public async Task<IActionResult> GetDelayedTasks([FromQuery] string? userId, [FromQuery] int daysThreshold = 60)
     {
         var tasks = await _statisticsService.GetDelayedTasksAsync(userId, daysThreshold);
-        return Ok(new ApiResponse<DelayedTasksResponse> { Success = true, Data = tasks });
+        return Ok(tasks);
     }
 
     /// <summary>
     /// 获取逾期任务
     /// </summary>
-    [HttpGet("overdue-tasks")]
-    public async Task<ActionResult<ApiResponse<DelayedTasksResponse>>> GetOverdueTasks([FromQuery] string? userId)
+    [HttpGet("overdue")]
+    public async Task<IActionResult> GetOverdueTasks([FromQuery] string? userId)
     {
         var tasks = await _statisticsService.GetOverdueTasksAsync(userId);
-        return Ok(new ApiResponse<DelayedTasksResponse> { Success = true, Data = tasks });
+        return Ok(tasks);
     }
-}
 
-public class ExportStatisticsRequest
-{
-    public string UserId { get; set; } = string.Empty;
-    public string Period { get; set; } = "month";
+    /// <summary>
+    /// 获取差旅统计
+    /// </summary>
+    [HttpGet("travel")]
+    public async Task<IActionResult> GetTravelStatistics([FromQuery] string? userId, [FromQuery] string period, [FromQuery] string? projectId)
+    {
+        var stats = await _statisticsService.GetTravelStatisticsAsync(userId, period, projectId);
+        return Ok(stats);
+    }
+
+    /// <summary>
+    /// 获取会议统计
+    /// </summary>
+    [HttpGet("meeting")]
+    public async Task<IActionResult> GetMeetingStatistics([FromQuery] string? userId, [FromQuery] string period)
+    {
+        var stats = await _statisticsService.GetMeetingStatisticsAsync(userId, period);
+        return Ok(stats);
+    }
+
+    /// <summary>
+    /// 获取工作日信息
+    /// </summary>
+    [HttpGet("workdays")]
+    public async Task<IActionResult> GetWorkDays([FromQuery] string period)
+    {
+        var workDays = await _statisticsService.GetWorkDaysAsync(period);
+        return Ok(workDays);
+    }
 }

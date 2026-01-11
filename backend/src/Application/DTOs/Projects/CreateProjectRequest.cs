@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TaskManageSystem.Application.DTOs.Projects;
 
 /// <summary>
@@ -27,6 +29,6 @@ public class CreateProjectRequest
     // 常规/核电项目特有
     public bool IsCommissioned { get; set; }
 
-    // 科研/改�?其他项目特有
+    // 科研/改�?其他项目特有
     public bool IsCompleted { get; set; }
 }

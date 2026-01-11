@@ -1,7 +1,9 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TaskManageSystem.Application.DTOs.Tasks;
 
 /// <summary>
-/// 更新角色状态请�?
+/// 更新角色状态请求
 /// </summary>
 public class UpdateRoleStatusRequest
 {

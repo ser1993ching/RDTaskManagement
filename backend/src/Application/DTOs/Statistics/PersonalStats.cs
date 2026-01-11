@@ -1,7 +1,9 @@
+using TaskManageSystem.Application.DTOs.Tasks;
+
 namespace TaskManageSystem.Application.DTOs.Statistics;
 
 /// <summary>
-/// 类别分布�?
+/// 类别分布�?
 /// </summary>
 public class CategoryDistributionItem
 {
@@ -31,7 +33,7 @@ public class MeetingStats
 }
 
 /// <summary>
-/// 月度趋势�?
+/// 月度趋势�?
 /// </summary>
 public class MonthlyTrendItem
 {
@@ -41,7 +43,7 @@ public class MonthlyTrendItem
 }
 
 /// <summary>
-/// 团队成员统计�?
+/// 团队成员统计�?
 /// </summary>
 public class TeamMemberStats
 {

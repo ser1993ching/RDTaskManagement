@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.TaskPool;
 using TaskManageSystem.Application.Interfaces;
 
@@ -20,115 +19,110 @@ public class TaskPoolController : ControllerBase
     }
 
     /// <summary>
-    /// 获取任务库列�?
+    /// 获取任务库列表
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<PaginatedResponse<TaskPoolItemDto>>>> GetPoolItems([FromQuery] TaskPoolQueryParams query)
+    public async Task<IActionResult> GetPoolItems([FromQuery] TaskPoolQueryParams query)
     {
         var result = await _taskPoolService.GetPoolItemsAsync(query);
-        return Ok(new ApiResponse<PaginatedResponse<TaskPoolItemDto>> { Success = true, Data = result });
+        return Ok(result);
     }
 
     /// <summary>
-    /// 获取单个计划任务
+    /// 获取任务库统计
+    /// </summary>
+    [HttpGet("statistics")]
+    public async Task<IActionResult> GetStatistics()
+    {
+        var stats = await _taskPoolService.GetStatisticsAsync();
+        return Ok(stats);
+    }
+
+    /// <summary>
+    /// 获取单个任务库项
     /// </summary>
     [HttpGet("{id}")]
-    public async Task<ActionResult<ApiResponse<TaskPoolItemDto>>> GetPoolItem(string id)
+    public async Task<IActionResult> GetPoolItem(string id)
     {
         var item = await _taskPoolService.GetPoolItemByIdAsync(id);
         if (item == null)
-        {
-            return NotFound(new ApiResponse<TaskPoolItemDto> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "计划任务不存�? } });
-        }
-
-        return Ok(new ApiResponse<TaskPoolItemDto> { Success = true, Data = item });
+            return NotFound();
+        return Ok(item);
     }
 
     /// <summary>
-    /// 创建计划任务
+    /// 创建任务库项
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<TaskPoolItemDto>>> CreatePoolItem([FromBody] CreateTaskPoolItemRequest request)
+    public async Task<IActionResult> CreatePoolItem([FromBody] CreateTaskPoolItemRequest request)
     {
         var item = await _taskPoolService.CreatePoolItemAsync(request);
-        return CreatedAtAction(nameof(GetPoolItem), new { id = item.Id }, new ApiResponse<TaskPoolItemDto> { Success = true, Data = item, Message = "创建成功" });
+        return CreatedAtAction(nameof(GetPoolItem), new { id = item.Id }, item);
     }
 
     /// <summary>
-    /// 更新计划任务
+    /// 更新任务库项
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<ActionResult<ApiResponse<TaskPoolItemDto>>> UpdatePoolItem(string id, [FromBody] CreateTaskPoolItemRequest request)
+    public async Task<IActionResult> UpdatePoolItem(string id, [FromBody] CreateTaskPoolItemRequest request)
     {
         var item = await _taskPoolService.UpdatePoolItemAsync(id, request);
-        return Ok(new ApiResponse<TaskPoolItemDto> { Success = true, Data = item, Message = "更新成功" });
+        return Ok(item);
     }
 
     /// <summary>
-    /// 删除计划任务（软删除�?
+    /// 删除任务库项
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ApiResponse<object>>> DeletePoolItem(string id)
+    public async Task<IActionResult> DeletePoolItem(string id)
     {
         var result = await _taskPoolService.SoftDeletePoolItemAsync(id);
-        return result
-            ? Ok(new ApiResponse<object> { Success = true, Message = "删除成功" })
-            : NotFound(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "NOT_FOUND", Message = "计划任务不存�? } });
+        if (!result)
+            return NotFound();
+        return NoContent();
     }
 
     /// <summary>
-    /// 分配任务（转化为正式任务�?
+    /// 分配任务
     /// </summary>
     [HttpPost("{id}/assign")]
-    public async Task<ActionResult<ApiResponse<AssignTaskResponse>>> AssignTask(string id, [FromBody] AssignTaskRequest request)
+    public async Task<IActionResult> AssignTask(string id, [FromBody] AssignTaskRequest request)
     {
         var result = await _taskPoolService.AssignTaskAsync(id, request);
-        return Ok(new ApiResponse<AssignTaskResponse> { Success = true, Data = result });
+        if (!result.Success)
+            return BadRequest(result);
+        return Ok(result);
     }
 
     /// <summary>
     /// 批量分配任务
     /// </summary>
     [HttpPost("batch-assign")]
-    public async Task<ActionResult<ApiResponse<BatchAssignResponse>>> BatchAssign([FromBody] BatchAssignRequest request)
+    public async Task<IActionResult> BatchAssign([FromBody] BatchAssignRequest request)
     {
         var result = await _taskPoolService.BatchAssignAsync(request);
-        return Ok(new ApiResponse<BatchAssignResponse> { Success = true, Data = result });
+        return Ok(result);
     }
 
     /// <summary>
-    /// 获取任务库统�?
-    /// </summary>
-    [HttpGet("statistics")]
-    public async Task<ActionResult<ApiResponse<TaskPoolStatisticsResponse>>> GetStatistics()
-    {
-        var stats = await _taskPoolService.GetStatisticsAsync();
-        return Ok(new ApiResponse<TaskPoolStatisticsResponse> { Success = true, Data = stats });
-    }
-
-    /// <summary>
-    /// 复制计划任务
+    /// 复制任务库项
     /// </summary>
     [HttpPost("{id}/duplicate")]
-    public async Task<ActionResult<ApiResponse<TaskPoolItemDto>>> Duplicate(string id, [FromBody] DuplicateRequest? request)
+    public async Task<IActionResult> Duplicate(string id, [FromQuery] string? newTaskName, [FromQuery] DateTime? newDueDate)
     {
-        var item = await _taskPoolService.DuplicateAsync(id, request?.TaskName, request?.DueDate);
-        return Ok(new ApiResponse<TaskPoolItemDto> { Success = true, Data = item, Message = "复制成功" });
+        var item = await _taskPoolService.DuplicateAsync(id, newTaskName, newDueDate);
+        return CreatedAtAction(nameof(GetPoolItem), new { id = item.Id }, item);
     }
 
     /// <summary>
-    /// 从任务回�?
+    /// 从任务回收
     /// </summary>
-    [HttpPost("recover-from-task")]
-    public async Task<ActionResult<ApiResponse<RetrieveToPoolResponse>>> RetrieveFromTask([FromBody] string taskId)
+    [HttpPost("retrieve/{taskId}")]
+    public async Task<IActionResult> RetrieveFromTask(string taskId)
     {
         var result = await _taskPoolService.RetrieveFromTaskAsync(taskId);
-        return Ok(new ApiResponse<RetrieveToPoolResponse> { Success = true, Data = result });
+        if (!result.Success)
+            return BadRequest(result);
+        return Ok(result);
     }
-}
-
-public class DuplicateRequest
-{
-    public string? TaskName { get; set; }
-    public DateTime? DueDate { get; set; }
 }

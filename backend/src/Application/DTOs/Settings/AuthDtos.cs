@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using TaskManageSystem.Application.DTOs.Users;
+
 namespace TaskManageSystem.Application.DTOs.Settings;
 
 /// <summary>
@@ -29,6 +32,9 @@ public class LoginResponse
 public class ChangePasswordRequest
 {
     [Required]
+    public string UserId { get; set; } = string.Empty;
+
+    [Required]
     public string CurrentPassword { get; set; } = string.Empty;
 
     [Required]
@@ -36,7 +42,7 @@ public class ChangePasswordRequest
 }
 
 /// <summary>
-/// 重置密码请求（管理员�?
+/// 重置密码请求（管理员�?
 /// </summary>
 public class ResetPasswordRequest
 {

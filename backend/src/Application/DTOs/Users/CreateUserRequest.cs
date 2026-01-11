@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TaskManageSystem.Application.DTOs.Users;
 
 /// <summary>

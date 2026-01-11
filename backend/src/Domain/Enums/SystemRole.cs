@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TaskManageSystem.Domain.Enums;
 
 /// <summary>
@@ -8,9 +10,9 @@ public enum SystemRole
     [Display(Name = "组员")]
     Member = 0,
 
-    [Display(Name = "班组�?)]
+    [Display(Name = "班组长")]
     Leader = 1,
 
-    [Display(Name = "管理�?)]
+    [Display(Name = "管理员")]
     Admin = 2
 }

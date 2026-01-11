@@ -16,37 +16,37 @@ public class TaskRepository : ITaskRepository
         _context = context;
     }
 
-    public async Task<TaskEntity?> GetByIdAsync(string taskId)
+    public async Task<TaskItemEntity?> GetByIdAsync(string taskId)
     {
         return await _context.Tasks.FirstOrDefaultAsync(t => t.TaskID == taskId && !t.IsDeleted);
     }
 
-    public async Task<TaskEntity?> GetByIdNoTrackingAsync(string taskId)
+    public async Task<TaskItemEntity?> GetByIdNoTrackingAsync(string taskId)
     {
         return await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.TaskID == taskId);
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetAllAsync()
+    public async Task<IReadOnlyList<TaskItemEntity>> GetAllAsync()
     {
         return await _context.Tasks.Where(t => !t.IsDeleted).OrderByDescending(t => t.CreatedDate).ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetByAssigneeAsync(string assigneeId)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetByAssigneeAsync(string assigneeId)
     {
         return await _context.Tasks.Where(t => t.AssigneeID == assigneeId && !t.IsDeleted).ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetByProjectAsync(string projectId)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetByProjectAsync(string projectId)
     {
         return await _context.Tasks.Where(t => t.ProjectID == projectId && !t.IsDeleted).ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetByTaskClassAsync(string taskClassId)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetByTaskClassAsync(string taskClassId)
     {
         return await _context.Tasks.Where(t => t.TaskClassID == taskClassId && !t.IsDeleted).ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetRelatedToUserAsync(string userId)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetRelatedToUserAsync(string userId)
     {
         return await _context.Tasks
             .Where(t => !t.IsDeleted && (
@@ -58,7 +58,7 @@ public class TaskRepository : ITaskRepository
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetPersonalTasksAsync(string userId, string? status)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetPersonalTasksAsync(string userId, string? status)
     {
         var query = _context.Tasks
             .Where(t => !t.IsDeleted && (
@@ -75,7 +75,7 @@ public class TaskRepository : ITaskRepository
         return await query.ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetTravelTasksAsync(string userId, string? period)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetTravelTasksAsync(string userId, string? period)
     {
         var query = _context.Tasks
             .Where(t => t.TaskClassID == "TC009" && !t.IsDeleted && (
@@ -87,7 +87,7 @@ public class TaskRepository : ITaskRepository
         return await query.ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetMeetingTasksAsync(string userId, string? period)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetMeetingTasksAsync(string userId, string? period)
     {
         var query = _context.Tasks
             .Where(t => t.TaskClassID == "TC007" && !t.IsDeleted);
@@ -95,7 +95,7 @@ public class TaskRepository : ITaskRepository
         return await query.ToListAsync();
     }
 
-    public async Task<TaskEntity> CreateAsync(TaskEntity task)
+    public async Task<TaskItemEntity> CreateAsync(TaskItemEntity task)
     {
         task.CreatedDate = DateTime.UtcNow;
         task.CreatedAt = DateTime.UtcNow;
@@ -104,7 +104,7 @@ public class TaskRepository : ITaskRepository
         return task;
     }
 
-    public async Task<TaskEntity> UpdateAsync(TaskEntity task)
+    public async Task<TaskItemEntity> UpdateAsync(TaskItemEntity task)
     {
         task.UpdatedAt = DateTime.UtcNow;
         _context.Tasks.Update(task);
@@ -132,7 +132,7 @@ public class TaskRepository : ITaskRepository
         return task.CreatedDate < thresholdDate && task.Status != Domain.Enums.TaskStatus.Completed;
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetDelayedTasksAsync(string? userId, int daysThreshold)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetDelayedTasksAsync(string? userId, int daysThreshold)
     {
         var thresholdDate = DateTime.UtcNow.AddDays(-daysThreshold);
         var query = _context.Tasks.Where(t => !t.IsDeleted && t.CreatedDate < thresholdDate);
@@ -149,7 +149,7 @@ public class TaskRepository : ITaskRepository
         return await query.ToListAsync();
     }
 
-    public async Task<IReadOnlyList<TaskEntity>> GetOverdueTasksAsync(string? userId)
+    public async Task<IReadOnlyList<TaskItemEntity>> GetOverdueTasksAsync(string? userId)
     {
         var today = DateTime.UtcNow.Date;
         var query = _context.Tasks
@@ -167,3 +167,4 @@ public class TaskRepository : ITaskRepository
         return await query.ToListAsync();
     }
 }
+

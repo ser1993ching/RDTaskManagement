@@ -29,7 +29,7 @@ public class AutoMapperProfile : Profile
         CreateMap<UpdateProjectRequest, Project>();
 
         // Task mappings
-        CreateMap<Task, TaskDto>()
+        CreateMap<TaskItem, TaskDto>()
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(src => src.CreatedDate.ToString("yyyy-MM-dd")))
             .ForMember(dest => dest.CheckerStatus, opt => opt.MapFrom(src => src.CheckerStatus?.ToString()))

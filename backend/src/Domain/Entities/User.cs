@@ -1,3 +1,5 @@
+using TaskManageSystem.Domain.Enums;
+
 namespace TaskManageSystem.Domain.Entities;
 
 /// <summary>
@@ -17,11 +19,11 @@ public class User : BaseEntity<string>
     public string? PasswordHash { get; set; }            // 密码哈希
     public string? Remark { get; set; }
 
-    // 导航属�?
-    public virtual ICollection<Task> CreatedTasks { get; set; } = new List<Task>();
-    public virtual ICollection<Task> AssignedTasks { get; set; } = new List<Task>();
-    public virtual ICollection<Task> CheckerTasks { get; set; } = new List<Task>();
-    public virtual ICollection<Task> ChiefDesignerTasks { get; set; } = new List<Task>();
-    public virtual ICollection<Task> ApproverTasks { get; set; } = new List<Task>();
+    // 导航属性
+    public virtual ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
+    public virtual ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
+    public virtual ICollection<TaskItem> CheckerTasks { get; set; } = new List<TaskItem>();
+    public virtual ICollection<TaskItem> ChiefDesignerTasks { get; set; } = new List<TaskItem>();
+    public virtual ICollection<TaskItem> ApproverTasks { get; set; } = new List<TaskItem>();
     public virtual ICollection<TaskPoolItem> CreatedPoolItems { get; set; } = new List<TaskPoolItem>();
 }

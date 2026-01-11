@@ -7,23 +7,24 @@ namespace TaskManageSystem.Infrastructure.Repositories;
 /// </summary>
 public interface ITaskRepository
 {
-    Task<TaskEntity?> GetByIdAsync(string taskId);
-    Task<TaskEntity?> GetByIdNoTrackingAsync(string taskId);
-    Task<IReadOnlyList<TaskEntity>> GetAllAsync();
-    Task<IReadOnlyList<TaskEntity>> GetByAssigneeAsync(string assigneeId);
-    Task<IReadOnlyList<TaskEntity>> GetByProjectAsync(string projectId);
-    Task<IReadOnlyList<TaskEntity>> GetByTaskClassAsync(string taskClassId);
-    Task<IReadOnlyList<TaskEntity>> GetRelatedToUserAsync(string userId);
-    Task<IReadOnlyList<TaskEntity>> GetPersonalTasksAsync(string userId, string? status);
-    Task<IReadOnlyList<TaskEntity>> GetTravelTasksAsync(string userId, string? period);
-    Task<IReadOnlyList<TaskEntity>> GetMeetingTasksAsync(string userId, string? period);
-    Task<TaskEntity> CreateAsync(TaskEntity task);
-    Task<TaskEntity> UpdateAsync(TaskEntity task);
+    Task<TaskItemEntity?> GetByIdAsync(string taskId);
+    Task<TaskItemEntity?> GetByIdNoTrackingAsync(string taskId);
+    Task<IReadOnlyList<TaskItemEntity>> GetAllAsync();
+    Task<IReadOnlyList<TaskItemEntity>> GetByAssigneeAsync(string assigneeId);
+    Task<IReadOnlyList<TaskItemEntity>> GetByProjectAsync(string projectId);
+    Task<IReadOnlyList<TaskItemEntity>> GetByTaskClassAsync(string taskClassId);
+    Task<IReadOnlyList<TaskItemEntity>> GetRelatedToUserAsync(string userId);
+    Task<IReadOnlyList<TaskItemEntity>> GetPersonalTasksAsync(string userId, string? status);
+    Task<IReadOnlyList<TaskItemEntity>> GetTravelTasksAsync(string userId, string? period);
+    Task<IReadOnlyList<TaskItemEntity>> GetMeetingTasksAsync(string userId, string? period);
+    Task<TaskItemEntity> CreateAsync(TaskItemEntity task);
+    Task<TaskItemEntity> UpdateAsync(TaskItemEntity task);
     Task<bool> SoftDeleteAsync(string taskId);
     Task<bool> IsLongRunningAsync(string taskId, int daysThreshold = 60);
-    Task<IReadOnlyList<TaskEntity>> GetDelayedTasksAsync(string? userId, int daysThreshold);
-    Task<IReadOnlyList<TaskEntity>> GetOverdueTasksAsync(string? userId);
+    Task<IReadOnlyList<TaskItemEntity>> GetDelayedTasksAsync(string? userId, int daysThreshold);
+    Task<IReadOnlyList<TaskItemEntity>> GetOverdueTasksAsync(string? userId);
 }
 
-// 使用别名避免与Domain.Task冲突
-using TaskEntity = TaskManageSystem.Domain.Entities.Task;
+// 使用别名避免与System.Threading.Tasks.Task冲突
+using TaskItemEntity = TaskManageSystem.Domain.Entities.TaskItem;
+

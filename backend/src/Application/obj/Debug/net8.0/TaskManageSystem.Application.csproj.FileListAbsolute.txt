@@ -1,0 +1,5 @@
+E:\code\r&d-task-master\backend\src\Application\obj\Debug\net8.0\TaskManageSystem.Application.csproj.AssemblyReference.cache
+E:\code\r&d-task-master\backend\src\Application\obj\Debug\net8.0\TaskManageSystem.Application.GeneratedMSBuildEditorConfig.editorconfig
+E:\code\r&d-task-master\backend\src\Application\obj\Debug\net8.0\TaskManageSystem.Application.AssemblyInfoInputs.cache
+E:\code\r&d-task-master\backend\src\Application\obj\Debug\net8.0\TaskManageSystem.Application.AssemblyInfo.cs
+E:\code\r&d-task-master\backend\src\Application\obj\Debug\net8.0\TaskManageSystem.Application.csproj.CoreCompileInputs.cache

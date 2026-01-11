@@ -7,9 +7,9 @@ namespace TaskManageSystem.Infrastructure.Data.Configurations;
 /// <summary>
 /// 任务实体配置 - MySQL适配
 /// </summary>
-public class TaskConfiguration : IEntityTypeConfiguration<Task>
+public class TaskConfiguration : IEntityTypeConfiguration<TaskItem>
 {
-    public void Configure(EntityTypeBuilder<Task> builder)
+    public void Configure(EntityTypeBuilder<TaskItem> builder)
     {
         builder.ToTable("tasks")
             .HasCharSet("utf8mb4");

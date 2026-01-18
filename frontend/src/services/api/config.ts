@@ -1,0 +1,69 @@
+// API Configuration
+export const API_CONFIG = {
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001',
+  timeout: 30000,
+};
+
+// API Endpoints
+export const API_ENDPOINTS = {
+  auth: {
+    login: '/api/auth/login',
+    changePassword: '/api/auth/change-password',
+    resetPassword: '/api/auth/reset-password',
+  },
+  users: {
+    list: '/api/users',
+    get: (id: string) => `/api/users/${id}`,
+    create: '/api/users',
+    update: (id: string) => `/api/users/${id}`,
+    delete: (id: string) => `/api/users/${id}`,
+    restore: (id: string) => `/api/users/${id}/restore`,
+    team: (userId: string) => `/api/users/team/${userId}`,
+  },
+  tasks: {
+    list: '/api/tasks',
+    get: (id: string) => `/api/tasks/${id}`,
+    create: '/api/tasks',
+    update: (id: string) => `/api/tasks/${id}`,
+    delete: (id: string) => `/api/tasks/${id}`,
+    updateStatus: (id: string) => `/api/tasks/${id}/status`,
+    updateRoleStatus: (id: string) => `/api/tasks/${id}/role-status`,
+    completeAll: (id: string) => `/api/tasks/${id}/complete-all`,
+    retrieve: (id: string) => `/api/tasks/${id}/retrieve`,
+    personal: (userId: string) => `/api/tasks/personal/${userId}`,
+    travel: (userId: string) => `/api/tasks/travel/${userId}`,
+    meeting: (userId: string) => `/api/tasks/meeting/${userId}`,
+  },
+  projects: {
+    list: '/api/projects',
+    get: (id: string) => `/api/projects/${id}`,
+    create: '/api/projects',
+    update: (id: string) => `/api/projects/${id}`,
+    delete: (id: string) => `/api/projects/${id}`,
+    statistics: '/api/projects/statistics',
+    inUse: (id: string) => `/api/projects/${id}/in-use`,
+  },
+  taskClasses: {
+    list: '/api/taskclasses',
+    get: (id: string) => `/api/taskclasses/${id}`,
+  },
+  taskPool: {
+    list: '/api/taskpool',
+    get: (id: string) => `/api/taskpool/${id}`,
+    create: '/api/taskpool',
+    update: (id: string) => `/api/taskpool/${id}`,
+    delete: (id: string) => `/api/taskpool/${id}`,
+    assign: (id: string) => `/api/taskpool/${id}/assign`,
+  },
+  statistics: {
+    dashboard: '/api/statistics/dashboard',
+    personal: (userId: string) => `/api/statistics/personal/${userId}`,
+    team: (userId: string) => `/api/statistics/team/${userId}`,
+  },
+  settings: {
+    equipmentModels: '/api/settings/equipment-models',
+    capacityLevels: '/api/settings/capacity-levels',
+    travelLabels: '/api/settings/travel-labels',
+    taskCategories: '/api/settings/task-categories',
+  },
+};

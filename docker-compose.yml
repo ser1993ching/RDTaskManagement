@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  # 前端 + Nginx 代理
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rd-task-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rd-task-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+
+  # 后端 API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rd-task-backend
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    environment:
+      # 服务器配置（IP 和端口）
+      - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
+      - SERVER_PORT=${SERVER_PORT:-5001}
+      # 数据库连接
+      - ConnectionStrings__DefaultConnection=Server=mysql,Port=3306,Database=TaskManageSystem,User=root,Password=${MYSQL_ROOT_PASSWORD},CharSet=utf8mb4;SslMode=Preferred;
+      - ConnectionStrings__LogConnection=Server=mysql,Port=3306,Database=TaskManageSystem_Logs,User=root,Password=${MYSQL_ROOT_PASSWORD},CharSet=utf8mb4;SslMode=Preferred;
+      # JWT 配置
+      - Jwt__SecretKey=${JWT_SECRET_KEY}
+      - Jwt__Issuer=TaskManageSystem
+      - Jwt__Audience=TaskManageSystemClient
+      # 日志配置
+      - Serilog__MinimumLevel=Information
+      - Serilog__WriteTo__0__Args__path=logs/api-.log
+      - Serilog__WriteTo__0__Args__rollingInterval=Day
+      - Serilog__WriteTo__0__Args__retainedFileCountLimit=30
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - rd-task-network
+    volumes:
+      - backend-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/swagger/index.html"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: rd-task-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=TaskManageSystem
+      - MYSQL_CHARSET=utf8mb4
+      - MYSQL_COLLATION=utf8mb4_unicode_ci
+    networks:
+      - rd-task-network
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - mysql-config:/etc/mysql/conf.d
+    healthcheck:
+      # 使用环境变量文件名，避免 Windows 变量展开问题
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # phpMyAdmin (可选 - 数据库管理)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: rd-task-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    env_file:
+      - .env
+    environment:
+      - PMA_HOST=mysql
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - rd-task-network
+
+networks:
+  rd-task-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+  mysql-config:
+    driver: local
+  backend-logs:
+    driver: local

@@ -4,15 +4,6 @@ import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Cloc
 import { dataService } from '../services/dataService';
 import AutocompleteInput from './AutocompleteInput';
 
-// 日期格式化函数 - 只显示日期部分
-const formatDate = (dateStr: string | undefined): string => {
-  if (!dateStr) return '-';
-  // 解析日期字符串，去除时间部分
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr;
-  return date.toISOString().split('T')[0];
-};
-
 interface TaskViewProps {
   currentUser: User;
   tasks: Task[];
@@ -1535,10 +1526,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       </td>
                     )}
                     {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
-                    <td className="px-6 py-4 text-slate-500">{formatDate(t.StartDate) || '-'}</td>
+                    <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
                     {/* 会议培训任务和差旅任务不显示截止日 */}
                     {!isMeetingTask && t.TaskClassID !== 'TC009' && (
-                      <td className="px-6 py-4 text-slate-500">{formatDate(t.DueDate) || '-'}</td>
+                      <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
                     )}
                     {/* 差旅任务显示出差天数 */}
                     {t.TaskClassID === 'TC009' && (
@@ -1896,7 +1887,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           开始日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.StartDate) || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -1910,7 +1901,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           截止日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.DueDate) || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.DueDate || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1927,7 +1918,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           会议日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.StartDate) || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
                       </div>
                       <div></div>
                       <div className="bg-white rounded-md p-2">
@@ -1952,21 +1943,21 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           开始日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.StartDate) || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Calendar size={12} className="text-amber-500" />
                           截止日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.DueDate) || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.DueDate || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <CheckCircle size={12} className="text-amber-500" />
                           完成日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.CompletedDate) || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.CompletedDate || '-'}</div>
                       </div>
                     </div>
                   </div>

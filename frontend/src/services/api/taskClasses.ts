@@ -29,14 +29,22 @@ class TaskClassService {
    */
   async getTaskClasses(includeDeleted?: boolean): Promise<TaskClass[]> {
     const params = includeDeleted ? '?includeDeleted=true' : '';
-    return apiClient.get<TaskClass[]>(`/api/taskclasses${params}`);
+    // 后端返回 { taskClasses: [...], categories: {...} }
+    const response = await apiClient.get<any>(`/api/taskclasses${params}`);
+    // 提取 taskClasses 数组
+    return response.taskClasses || response.data?.taskClasses || [];
   }
 
   /**
    * 获取任务分类（包含子类别）
    */
   async getTaskClassesWithCategories(): Promise<TaskClassesResponse> {
-    return apiClient.get<TaskClassesResponse>('/api/taskclasses/with-categories');
+    // 后端返回 { taskClasses: [...], categories: {...} }
+    const response = await apiClient.get<any>('/api/taskclasses/with-categories');
+    return {
+      taskClasses: response.taskClasses || response.data?.taskClasses || [],
+      categories: response.categories || response.data?.categories || {}
+    };
   }
 
   /**

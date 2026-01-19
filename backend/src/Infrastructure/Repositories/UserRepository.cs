@@ -82,7 +82,17 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByCredentialsAsync(string userId, string password)
     {
+        // 先尝试通过工号查找
         var user = await GetByIdAsync(userId);
+
+        // 如果工号找不到，尝试通过姓名查找
+        if (user == null)
+        {
+            user = await _context.Users
+                .Where(u => u.Name == userId && !u.IsDeleted)
+                .FirstOrDefaultAsync();
+        }
+
         if (user == null || string.IsNullOrEmpty(user.PasswordHash))
             return null;
 

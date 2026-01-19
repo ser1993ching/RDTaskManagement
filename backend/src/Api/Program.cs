@@ -76,4 +76,11 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapControllers();
 
+// Ensure database is created
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.EnsureCreated();
+}
+
 app.Run();

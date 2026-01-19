@@ -30,16 +30,17 @@ public class SettingsService : ISettingsService
 
     private static readonly Dictionary<string, List<string>> TaskCategories = new()
     {
-        ["MARKET"] = new List<string> { "标书", "复询", "技术支持", "其他" },
-        ["EXECUTION"] = new List<string> { "搭建生产资料", "设计院提资", "CT配合与提资", "随机资料", "项目特殊项处理", "用户配合", "图纸会签", "传真回复", "其他" },
-        ["NUCLEAR"] = new List<string> { "核电设计", "核安全审评", "设备调试", "常规岛配合", "核岛接口", "技术支持", "其他" },
-        ["PRODUCT_DEV"] = new List<string> { "技术支持", "设计流程", "方案评审", "专利申请", "出图", "图纸改版", "设计总结" },
-        ["RESEARCH"] = new List<string> { "开题报告", "专利申请", "结题报告", "其他" },
-        ["RENOVATION"] = new List<string> { "前期项目配合", "方案编制", "其他" },
-        ["MEETING_TRAINING"] = new List<string> { "学习与培训", "党建会议", "班务会", "设计评审会", "资料讨论会", "其他" },
-        ["ADMIN_PARTY"] = new List<string> { "报表填报", "ppt汇报", "总结报告", "其他" },
-        ["TRAVEL"] = new List<string> { "市场配合出差", "常规项目执行出差", "核电项目执行出差", "科研出差", "改造服务出差", "其他任务出差" },
-        ["OTHER"] = new List<string> { "通用任务" }
+        // key 与 taskClass.code 保持一致（驼峰命名）
+        ["Market"] = new List<string> { "标书", "复询", "技术支持", "其他" },
+        ["Execution"] = new List<string> { "搭建生产资料", "设计院提资", "CT配合与提资", "随机资料", "项目特殊项处理", "用户配合", "图纸会签", "传真回复", "其他" },
+        ["Nuclear"] = new List<string> { "核电设计", "核安全审评", "设备调试", "常规岛配合", "核岛接口", "技术支持", "其他" },
+        ["ProductDev"] = new List<string> { "技术支持", "设计流程", "方案评审", "专利申请", "出图", "图纸改版", "设计总结" },
+        ["Research"] = new List<string> { "开题报告", "专利申请", "结题报告", "其他" },
+        ["Renovation"] = new List<string> { "前期项目配合", "方案编制", "其他" },
+        ["MeetingTraining"] = new List<string> { "学习与培训", "党建会议", "班务会", "设计评审会", "资料讨论会", "其他" },
+        ["AdminParty"] = new List<string> { "报表填报", "ppt汇报", "总结报告", "其他" },
+        ["Travel"] = new List<string> { "市场配合出差", "常规项目执行出差", "核电项目执行出差", "科研出差", "改造服务出差", "其他任务出差" },
+        ["Other"] = new List<string> { "通用任务" }
     };
 
     private static readonly Dictionary<string, string> UserAvatars = new();

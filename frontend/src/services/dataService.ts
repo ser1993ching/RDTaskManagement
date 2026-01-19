@@ -1,3 +1,8 @@
+/**
+ * @deprecated
+ * 此服务已不再使用，请使用 apiDataService
+ * 保留此文件仅作为参考，不会在生产环境中使用
+ */
 import { User, Project, Task, TaskClass, TaskPoolItem, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus, RoleStatus, Period, PersonalStats, SeparatedTasks, WorkDayInfo } from '../types';
 
 const STORAGE_KEYS = {

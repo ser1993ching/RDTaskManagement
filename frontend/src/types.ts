@@ -1,9 +1,4 @@
 // Enums
-export enum Gender {
-  MALE = '男',
-  FEMALE = '女'
-}
-
 export enum SystemRole {
   MEMBER = '组员',
   LEADER = '班组长',
@@ -65,7 +60,6 @@ export interface TaskClass {
 export interface User {
   UserID: string; // 工号 (PK)
   Name: string;
-  Gender: Gender;
   SystemRole: SystemRole;
   OfficeLocation: OfficeLocation;
   Title?: string;

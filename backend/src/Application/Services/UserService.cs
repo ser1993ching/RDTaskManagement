@@ -32,18 +32,6 @@ public class UserService : IUserService
         },
         new User
         {
-            UserID = "LEADER001",
-            Name = "张组长",
-            SystemRole = SystemRole.Leader,
-            OfficeLocation = OfficeLocation.Deyang,
-            Status = PersonnelStatus.Active,
-            Title = "主任工程师",
-            JoinDate = new DateTime(2015, 5, 15),
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"),
-            CreatedAt = new DateTime(2025, 1, 1)
-        },
-        new User
-        {
             UserID = "USER001",
             Name = "李研究员",
             SystemRole = SystemRole.Member,

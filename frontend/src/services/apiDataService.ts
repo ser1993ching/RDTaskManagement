@@ -262,15 +262,6 @@ class ApiDataService {
     }
   }
 
-  async getTaskCategories(): Promise<Record<string, string[]>> {
-    try {
-      return await taskClassService.getTaskCategoriesWithSubcategories();
-    } catch (error) {
-      console.error('获取任务子分类失败:', error);
-      return {};
-    }
-  }
-
   // 任务库相关
   async getTaskPoolItems(): Promise<TaskPoolItemDto[]> {
     try {
@@ -321,37 +312,164 @@ class ApiDataService {
   }
 
   // 设置相关
+  // ========== 设备型号管理 ==========
   async getEquipmentModels(): Promise<string[]> {
     try {
-      const response = await apiClient.get<any[]>('/api/settings/equipment-models');
-      return response.data || [];
+      const response = await apiClient.get<any>('/api/settings/equipment-models');
+      // 后端返回 { success: true, data: { models: [...] } }
+      return response.data?.models || response.data?.Models || [];
     } catch (error) {
+      console.error('获取设备型号失败:', error);
       return [];
     }
   }
 
+  async saveEquipmentModel(model: string): Promise<boolean> {
+    try {
+      const response = await apiClient.post<any>('/api/settings/equipment-models', { model });
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('保存设备型号失败:', error);
+      return false;
+    }
+  }
+
+  async deleteEquipmentModel(model: string): Promise<boolean> {
+    try {
+      const response = await apiClient.delete<any>(`/api/settings/equipment-models/${encodeURIComponent(model)}`);
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('删除设备型号失败:', error);
+      return false;
+    }
+  }
+
+  // ========== 容量等级管理 ==========
   async getCapacityLevels(): Promise<string[]> {
     try {
-      const response = await apiClient.get<any[]>('/api/settings/capacity-levels');
-      return response.data || [];
+      const response = await apiClient.get<any>('/api/settings/capacity-levels');
+      // 后端返回 { success: true, data: { levels: [...] } }
+      return response.data?.levels || response.data?.Levels || [];
     } catch (error) {
+      console.error('获取容量等级失败:', error);
       return [];
     }
   }
 
+  async saveCapacityLevel(level: string): Promise<boolean> {
+    try {
+      const response = await apiClient.post<any>('/api/settings/capacity-levels', { level });
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('保存容量等级失败:', error);
+      return false;
+    }
+  }
+
+  async deleteCapacityLevel(level: string): Promise<boolean> {
+    try {
+      const response = await apiClient.delete<any>(`/api/settings/capacity-levels/${encodeURIComponent(level)}`);
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('删除容量等级失败:', error);
+      return false;
+    }
+  }
+
+  // ========== 差旅标签管理 ==========
   async getTravelLabels(): Promise<string[]> {
     try {
-      const response = await apiClient.get<any[]>('/api/settings/travel-labels');
-      return response.data || [];
+      const response = await apiClient.get<any>('/api/settings/travel-labels');
+      // 后端返回 { success: true, data: { labels: [...] } }
+      return response.data?.labels || response.data?.Labels || [];
     } catch (error) {
+      console.error('获取差旅标签失败:', error);
       return [];
+    }
+  }
+
+  async saveTravelLabel(label: string): Promise<boolean> {
+    try {
+      const response = await apiClient.post<any>('/api/settings/travel-labels', { label });
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('保存差旅标签失败:', error);
+      return false;
+    }
+  }
+
+  async deleteTravelLabel(label: string): Promise<boolean> {
+    try {
+      const response = await apiClient.delete<any>(`/api/settings/travel-labels/${encodeURIComponent(label)}`);
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('删除差旅标签失败:', error);
+      return false;
+    }
+  }
+
+  // ========== 用户头像管理 ==========
+  async getUserAvatar(userId: string): Promise<string | null> {
+    try {
+      const response = await apiClient.get<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`);
+      // 后端返回 { success: true, data: { avatar: "..." } }
+      return response.data?.avatar || response.data?.Avatar || null;
+    } catch (error) {
+      console.error('获取用户头像失败:', error);
+      return null;
+    }
+  }
+
+  async saveUserAvatar(userId: string, avatar: string): Promise<boolean> {
+    try {
+      const response = await apiClient.post<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`, { avatar });
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('保存用户头像失败:', error);
+      return false;
+    }
+  }
+
+  async deleteUserAvatar(userId: string): Promise<boolean> {
+    try {
+      const response = await apiClient.delete<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`);
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('删除用户头像失败:', error);
+      return false;
+    }
+  }
+
+  // ========== 任务分类管理 ==========
+  async getTaskCategories(): Promise<Record<string, string[]>> {
+    try {
+      const response = await apiClient.get<any>('/api/settings/task-categories');
+      console.log('【调试】task-categories API响应:', response);
+      // 后端返回 { success: true, data: { categories: {...} } }
+      // apiClient.get 返回解析后的JSON对象
+      const result = response.data?.categories || response.data?.Categories || {};
+      console.log('【调试】task-categories 返回值:', result);
+      return result;
+    } catch (error) {
+      console.error('获取任务分类失败:', error);
+      return {};
+    }
+  }
+
+  async saveTaskCategories(code: string, categories: string[]): Promise<boolean> {
+    try {
+      const response = await apiClient.put<any>(`/api/settings/task-categories/${code}`, { categories });
+      return response.data?.success || false;
+    } catch (error) {
+      console.error('保存任务分类失败:', error);
+      return false;
     }
   }
 
   // 健康检查 - 专门用于检测后端是否可用
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await apiClient.get<{ status: string }>('/health');
+      const response = await apiClient.get<{ status: string }>('/api/health');
       const isHealthy = response.status === 'ok';
       setApiAvailable(isHealthy, isHealthy ? null : '后端服务返回异常状态');
       return isHealthy;

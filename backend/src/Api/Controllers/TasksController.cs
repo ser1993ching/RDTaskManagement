@@ -47,7 +47,7 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskRequest request)
     {
         var task = await _taskService.CreateTaskAsync(request);
-        return CreatedAtAction(nameof(GetTask), new { taskId = task.TaskID }, task);
+        return Ok(task);
     }
 
     /// <summary>

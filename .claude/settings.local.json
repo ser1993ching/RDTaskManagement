@@ -23,7 +23,10 @@
       "Bash(cat:*)",
       "Bash(cp:*)",
       "Bash(cmd:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(chmod:*)"
     ]
   }
 }

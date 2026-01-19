@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace TaskManageSystem.Domain.Entities;
 
 /// <summary>
@@ -60,12 +62,25 @@ public class TaskItem : BaseEntity<string>
     public bool IsForceAssessment { get; set; }        // 是否强制考核
     public bool IsInPool { get; set; }                 // 是否在任务库中
 
-    // 导航属性
+    // 导航属性（不使用EF Core关系，仅用于API返回）
+    [NotMapped]
     public virtual User? Assignee { get; set; }
+
+    [NotMapped]
     public virtual User? Checker { get; set; }
+
+    [NotMapped]
     public virtual User? ChiefDesigner { get; set; }
+
+    [NotMapped]
     public virtual User? Approver { get; set; }
+
+    [NotMapped]
     public virtual User? Creator { get; set; }
+
+    [NotMapped]
     public virtual Project? Project { get; set; }
+
+    [NotMapped]
     public virtual TaskClass? TaskClass { get; set; }
 }

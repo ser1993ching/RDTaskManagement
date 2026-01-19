@@ -4,14 +4,6 @@ import { ChevronDown, ChevronUp, Download, Printer, AlertTriangle, User, FileTex
 import { Task, User as UserType, PersonalStats, SeparatedTasks, Period, TaskClass, RoleStatus, SystemRole } from '../types';
 import { dataService } from '../services/dataService';
 
-// 日期格式化函数 - 只显示日期部分
-const formatDate = (dateStr: string | undefined): string => {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr;
-  return date.toISOString().split('T')[0];
-};
-
 // Colors for charts
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -348,7 +340,7 @@ const TravelTaskPanel: React.FC<{
                   <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLabel || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.TravelDuration ? `${task.TravelDuration}天` : '-'}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLocation || '-'}</td>
                 </tr>
@@ -405,7 +397,7 @@ const MeetingTaskPanel: React.FC<{
                 >
                   <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.Category || getCategoryName(task.TaskClassID)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.MeetingDuration ? `${task.MeetingDuration}小时` : '-'}</td>
                 </tr>
               ))}
@@ -673,8 +665,8 @@ const TaskPanel: React.FC<{
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.DueDate)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{task.DueDate || '-'}</td>
                       {canViewWorkload && (
                         <td className="px-4 py-2 text-sm text-gray-600">{roleWorkload ?? '-'}</td>
                       )}

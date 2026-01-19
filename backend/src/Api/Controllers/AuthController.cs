@@ -41,7 +41,6 @@ public class AuthController : ControllerBase
             Success = true,
             Data = new LoginResponse
             {
-                Success = true,
                 User = user,
                 Token = "mock-jwt-token"
             }

@@ -57,7 +57,7 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> CreateProject([FromBody] CreateProjectRequest request)
     {
         var project = await _projectService.CreateProjectAsync(request);
-        return CreatedAtAction(nameof(GetProject), new { id = project.Id }, project);
+        return Ok(project);
     }
 
     /// <summary>

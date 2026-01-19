@@ -16,14 +16,12 @@ public class LoginRequest
 }
 
 /// <summary>
-/// 认证响应
+/// 认证响应（ApiResponse包装后返回）
 /// </summary>
 public class LoginResponse
 {
-    public bool Success { get; set; }
     public UserDto? User { get; set; }
     public string? Token { get; set; }
-    public string? Message { get; set; }
 }
 
 /// <summary>

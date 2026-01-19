@@ -7,92 +7,14 @@ import { TaskView } from './components/TaskView';
 import { TaskPoolView } from './components/TaskPoolView';
 import PersonalWorkspaceView from './components/PersonalWorkspaceView';
 import { Settings as SettingsComponent } from './components/Settings';
-import { apiDataService, isApiAvailable, getLastApiError } from './services/apiDataService';
-import { authService } from './services/api';
-import { User, Project, Task, Gender, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus, RoleStatus } from './types';
-import { Lock, Settings, AlertTriangle, RefreshCw } from 'lucide-react';
-
-// API响应值转中文枚举（后端已直接返回中文值，此函数保留用于兼容）
-const convertGender = (value: string): Gender => {
-  const map: Record<string, Gender> = {
-    '男': Gender.MALE,
-    '女': Gender.FEMALE,
-  };
-  return map[value] || Gender.MALE;
-};
-
-const convertSystemRole = (value: string): SystemRole => {
-  const map: Record<string, SystemRole> = {
-    '管理员': SystemRole.ADMIN,
-    '班组长': SystemRole.LEADER,
-    '组员': SystemRole.MEMBER,
-  };
-  return map[value] || SystemRole.MEMBER;
-};
-
-const convertOfficeLocation = (value: string): OfficeLocation => {
-  const map: Record<string, OfficeLocation> = {
-    '成都': OfficeLocation.CHENGDU,
-    '德阳': OfficeLocation.DEYANG,
-  };
-  return map[value] || OfficeLocation.CHENGDU;
-};
-
-const convertPersonnelStatus = (value: string): PersonnelStatus => {
-  const map: Record<string, PersonnelStatus> = {
-    '在岗': PersonnelStatus.ACTIVE,
-    '借调': PersonnelStatus.BORROWED_IN,
-    '外借': PersonnelStatus.BORROWED_OUT,
-    '实习': PersonnelStatus.INTERN,
-    '离岗': PersonnelStatus.LEAVE,
-  };
-  return map[value] || PersonnelStatus.ACTIVE;
-};
-
-const convertProjectCategory = (value: string): ProjectCategory => {
-  const map: Record<string, ProjectCategory> = {
-    '市场配合项目': ProjectCategory.MARKET,
-    '常规项目': ProjectCategory.EXECUTION,
-    '核电项目': ProjectCategory.NUCLEAR,
-    '科研项目': ProjectCategory.RESEARCH,
-    '改造项目': ProjectCategory.RENOVATION,
-    '其他项目': ProjectCategory.OTHER,
-  };
-  return map[value] || ProjectCategory.OTHER;
-};
-
-const convertTaskStatus = (value: string): TaskStatus => {
-  const map: Record<string, TaskStatus> = {
-    '未开始': TaskStatus.NOT_STARTED,
-    '编制中': TaskStatus.DRAFTING,
-    '修改中': TaskStatus.REVISING,
-    '校核中': TaskStatus.REVIEWING,
-    '审查中': TaskStatus.REVIEWING2,
-    '已完成': TaskStatus.COMPLETED,
-  };
-  return map[value] || TaskStatus.NOT_STARTED;
-};
-
-const convertRoleStatus = (value: string): RoleStatus => {
-  const map: Record<string, RoleStatus> = {
-    '未开始': RoleStatus.NOT_STARTED,
-    '进行中': RoleStatus.IN_PROGRESS,
-    '修改中': RoleStatus.REVISING,
-    '驳回中': RoleStatus.REJECTED,
-    '已完成': RoleStatus.COMPLETED,
-  };
-  return map[value] || RoleStatus.NOT_STARTED;
-};
+import { apiDataService } from './services/apiDataService';
+import { User, Project, Task, SystemRole } from './types';
+import { Lock, Settings } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState('dashboard');
   const [targetTaskName, setTargetTaskName] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
-
-  // API状态
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [apiConnected, setApiConnected] = useState(true);
 
   // Application Data State
   const [users, setUsers] = useState<User[]>([]);
@@ -103,166 +25,111 @@ const App: React.FC = () => {
   const [loginId, setLoginId] = useState('');
   const [loginPwd, setLoginPwd] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 加载数据的函数
-  const loadData = async () => {
-    try {
-      // 首先进行健康检查，确认后端是否可用
-      const isHealthy = await apiDataService.healthCheck();
-      if (!isHealthy) {
-        setApiConnected(false);
-        setApiError('无法连接到后端服务，请确保后端程序已启动');
-        setLoading(false);
-        return;
-      }
-
-      // 后端可用，加载数据
-      const [usersData, projectsData, tasksData] = await Promise.all([
-        apiDataService.getUsers(),
-        apiDataService.getProjects(),
-        apiDataService.getTasks(),
-      ]);
-
-      // 检查是否真的获取到了数据（健康检查后API调用应该成功）
-      if (usersData.length === 0 && projectsData.length === 0 && tasksData.length === 0) {
-        // 清空现有数据
-        setUsers([]);
-        setProjects([]);
-        setTasks([]);
-        setApiConnected(false);
-        setApiError('后端服务无响应或数据库为空');
-        setLoading(false);
-        return;
-      }
-
-      // 后端正常连接
-      setApiConnected(true);
-      setApiError(null);
-
-      // 转换为前端类型（包含中文枚举转换）
-      setUsers(usersData.map((u: any) => ({
-        UserID: u.userID,
-        Name: u.name,
-        Gender: convertGender(u.gender),
-        SystemRole: convertSystemRole(u.systemRole),
-        OfficeLocation: convertOfficeLocation(u.officeLocation),
-        Title: u.title,
-        JoinDate: u.joinDate,
-        Status: convertPersonnelStatus(u.status),
-        Education: u.education,
-        School: u.school,
-        Remark: u.remark,
-      })));
-
-      setProjects(projectsData.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        category: convertProjectCategory(p.category),
-        workNo: p.workNo,
-        capacity: p.capacity,
-        model: p.model,
-        isWon: p.isWon,
-        isForeign: p.isForeign,
-        startDate: p.startDate,
-        endDate: p.endDate,
-        remark: p.remark,
-        isCommissioned: p.isCommissioned,
-        isCompleted: p.isCompleted,
-        isKeyProject: p.isKeyProject,
-        is_deleted: false,
-      })));
-
-      setTasks(tasksData.map((t: any) => ({
-        TaskID: t.taskID,
-        TaskName: t.taskName,
-        TaskClassID: t.taskClassID,
-        Category: t.category,
-        ProjectID: t.projectID,
-        AssigneeID: t.assigneeID,
-        AssigneeName: t.assigneeName,
-        StartDate: t.startDate,
-        DueDate: t.dueDate,
-        CompletedDate: t.completedDate,
-        Status: convertTaskStatus(t.status),
-        Workload: t.workload,
-        Difficulty: t.difficulty,
-        Remark: t.remark,
-        CreatedDate: t.createdDate,
-        CreatedBy: t.createdBy,
-        TravelLocation: t.travelLocation,
-        TravelDuration: t.travelDuration,
-        TravelLabel: t.travelLabel,
-        MeetingDuration: t.meetingDuration,
-        Participants: t.participants,
-        ParticipantNames: t.participantNames,
-        CapacityLevel: t.capacityLevel,
-        CheckerID: t.checkerID,
-        CheckerName: t.checkerName,
-        CheckerWorkload: t.checkerWorkload,
-        checkerStatus: convertRoleStatus(t.checkerStatus),
-        ChiefDesignerID: t.chiefDesignerID,
-        ChiefDesignerName: t.chiefDesignerName,
-        ChiefDesignerWorkload: t.chiefDesignerWorkload,
-        chiefDesignerStatus: convertRoleStatus(t.chiefDesignerStatus),
-        ApproverID: t.approverID,
-        ApproverName: t.approverName,
-        ApproverWorkload: t.approverWorkload,
-        approverStatus: convertRoleStatus(t.approverStatus),
-        assigneeStatus: convertRoleStatus(t.assigneeStatus),
-        isForceAssessment: t.isForceAssessment,
-        is_in_pool: t.isInPool,
-        is_deleted: false,
-      })));
-
-      // 检查API可用性
-      setApiConnected(isApiAvailable());
-      setApiError(getLastApiError());
-    } catch (error) {
-      console.error('加载数据失败:', error);
-      setApiConnected(false);
-      setApiError(error instanceof Error ? error.message : '加载数据失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 刷新数据
-  const refreshData = () => {
-    setLoading(true);
-    loadData();
-  };
-
-  // 初始化 - 检查会话
+  // Initial Load - check for existing session
   useEffect(() => {
-    const initAuth = async () => {
-      if (authService.isLoggedIn()) {
-        const storedUser = authService.getStoredUser();
-        if (storedUser) {
-          setCurrentUser({
-            UserID: storedUser.userID,
-            Name: storedUser.name,
-            Gender: convertGender(storedUser.gender),
-            SystemRole: convertSystemRole(storedUser.systemRole),
-            OfficeLocation: convertOfficeLocation(storedUser.officeLocation),
-            Title: storedUser.title,
-            JoinDate: storedUser.joinDate,
-            Status: convertPersonnelStatus(storedUser.status),
-            Education: storedUser.education,
-            School: storedUser.school,
-            Remark: storedUser.remark,
-          });
-          await loadData();
-        } else {
-          setLoading(false);
+    const checkSession = async () => {
+      if (apiDataService.isLoggedIn()) {
+        const user = apiDataService.getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+          await refreshData();
         }
-      } else {
-        setLoading(false);
       }
     };
-
-    initAuth();
+    checkSession();
   }, []);
+
+  const refreshData = async () => {
+    const [apiUsers, apiProjects, apiTasks] = await Promise.all([
+      apiDataService.getUsers(),
+      apiDataService.getProjects(),
+      apiDataService.getTasks(),
+    ]);
+
+    // Convert API users to frontend User format
+    const convertedUsers: User[] = apiUsers.map((apiUser: any) => ({
+      UserID: apiUser.userID,
+      Name: apiUser.name,
+      SystemRole: apiUser.systemRole as SystemRole,
+      OfficeLocation: apiUser.officeLocation as any,
+      Title: apiUser.title,
+      JoinDate: apiUser.joinDate,
+      Status: apiUser.status as any,
+      Education: apiUser.education,
+      School: apiUser.school,
+      Remark: apiUser.remark,
+      Gender: apiUser.gender,
+      Password: '',
+    }));
+
+    // Convert API projects to frontend Project format
+    const convertedProjects: Project[] = apiProjects.map((apiProject: any) => ({
+      id: apiProject.id,
+      name: apiProject.name,
+      category: apiProject.category as any,
+      workNo: apiProject.workNo,
+      capacity: apiProject.capacity,
+      model: apiProject.model,
+      isWon: apiProject.isWon,
+      isForeign: apiProject.isForeign,
+      startDate: apiProject.startDate,
+      endDate: apiProject.endDate,
+      remark: apiProject.remark,
+      isCommissioned: apiProject.isCommissioned,
+      isCompleted: apiProject.isCompleted,
+      isKeyProject: apiProject.isKeyProject,
+      is_deleted: false,
+    }));
+
+    // Convert API tasks to frontend Task format
+    const convertedTasks: Task[] = apiTasks.map((apiTask: any) => ({
+      TaskID: apiTask.taskID,
+      TaskName: apiTask.taskName,
+      TaskClassID: apiTask.taskClassID,
+      Category: apiTask.category,
+      ProjectID: apiTask.projectID,
+      AssigneeID: apiTask.assigneeID,
+      AssigneeName: apiTask.assigneeName,
+      StartDate: apiTask.startDate,
+      DueDate: apiTask.dueDate,
+      CompletedDate: apiTask.completedDate,
+      Status: apiTask.status as any,
+      Workload: apiTask.workload,
+      Difficulty: apiTask.difficulty,
+      Remark: apiTask.remark,
+      CreatedDate: apiTask.createdDate,
+      CreatedBy: apiTask.createdBy,
+      TravelLocation: apiTask.travelLocation,
+      TravelDuration: apiTask.travelDuration,
+      TravelLabel: apiTask.travelLabel,
+      MeetingDuration: apiTask.meetingDuration,
+      Participants: apiTask.participants,
+      ParticipantNames: apiTask.participantNames,
+      CapacityLevel: apiTask.capacityLevel,
+      CheckerID: apiTask.checkerID,
+      CheckerName: apiTask.checkerName,
+      CheckerWorkload: apiTask.checkerWorkload,
+      checkerStatus: apiTask.checkerStatus as any,
+      ChiefDesignerID: apiTask.chiefDesignerID,
+      ChiefDesignerName: apiTask.chiefDesignerName,
+      ChiefDesignerWorkload: apiTask.chiefDesignerWorkload,
+      chiefDesignerStatus: apiTask.chiefDesignerStatus as any,
+      ApproverID: apiTask.approverID,
+      ApproverName: apiTask.approverName,
+      ApproverWorkload: apiTask.approverWorkload,
+      approverStatus: apiTask.approverStatus as any,
+      assigneeStatus: apiTask.assigneeStatus as any,
+      isForceAssessment: apiTask.isForceAssessment,
+      is_in_pool: apiTask.isInPool,
+      is_deleted: false,
+    }));
+
+    setUsers(convertedUsers);
+    setProjects(convertedProjects);
+    setTasks(convertedTasks);
+  };
 
   const handleChangeView = (view: string, taskId?: string) => {
     setCurrentView(view);
@@ -271,46 +138,44 @@ const App: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoggingIn(true);
     setLoginError('');
+    setIsLoading(true);
 
     try {
       const result = await apiDataService.login(loginId, loginPwd);
       if (result) {
-        // 保存用户信息
-        authService.setStoredUser(result.user);
-
-        const user = {
+        // Convert API user to frontend format
+        const convertedUser: User = {
           UserID: result.user.userID,
           Name: result.user.name,
-          Gender: convertGender(result.user.gender),
-          SystemRole: convertSystemRole(result.user.systemRole),
-          OfficeLocation: convertOfficeLocation(result.user.officeLocation),
+          SystemRole: result.user.systemRole as SystemRole,
+          OfficeLocation: result.user.officeLocation as any,
           Title: result.user.title,
           JoinDate: result.user.joinDate,
-          Status: convertPersonnelStatus(result.user.status),
+          Status: result.user.status as any,
           Education: result.user.education,
           School: result.user.school,
           Remark: result.user.remark,
+          Gender: result.user.gender,
+          Password: '',
         };
-
-        setCurrentUser(user);
-        await loadData();
+        setCurrentUser(convertedUser);
+        await refreshData();
+        setLoginError('');
       } else {
         setLoginError('用户名或密码错误');
-        setLoading(false);
       }
     } catch (error) {
-      setLoginError('登录失败，请检查网络连接');
+      setLoginError('登录失败，请稍后重试');
       console.error('登录错误:', error);
-      setLoading(false);
     } finally {
-      setIsLoggingIn(false);
+      setIsLoading(false);
     }
   };
 
   const handleLogout = () => {
-    authService.logout();
+    apiDataService.logout();
+    localStorage.removeItem('auth_token');
     setCurrentUser(null);
     setLoginId('');
     setLoginPwd('');
@@ -319,20 +184,7 @@ const App: React.FC = () => {
     setUsers([]);
     setProjects([]);
     setTasks([]);
-    setLoading(false);
   };
-
-  // 显示加载状态
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">加载中...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!currentUser) {
     return (
@@ -371,59 +223,27 @@ const App: React.FC = () => {
             {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
             <button
               type="submit"
-              disabled={isLoggingIn}
-              className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+              className={`w-full text-white font-semibold py-2 rounded-lg transition-colors flex justify-center items-center gap-2 ${
+                isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
-              {isLoggingIn ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <Lock size={18} />
-              )}
-              {isLoggingIn ? '登录中...' : '登录系统'}
+              <Lock size={18} />
+              {isLoading ? '登录中...' : '登录系统'}
             </button>
           </form>
-          <div className="mt-4 text-center text-sm text-slate-500">
-            <p>默认账号: admin/admin123</p>
-          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <>
-      {/* API错误提示横幅 */}
-      {!apiConnected && apiError && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-50 border-b border-red-200 px-4 py-3">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="text-red-600" size={20} />
-              <div>
-                <p className="text-red-800 font-medium">后端服务连接失败</p>
-                <p className="text-red-600 text-sm">{apiError}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setLoading(true);
-                loadData();
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-            >
-              <RefreshCw size={16} />
-              重试
-            </button>
-          </div>
-        </div>
-      )}
-      {/* 占位符，防止错误提示遮挡内容 */}
-      {!apiConnected && apiError && <div className="h-24" />}
-      <Layout
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        currentView={currentView}
-        onChangeView={setCurrentView}
-      >
+    <Layout
+      currentUser={currentUser}
+      onLogout={handleLogout}
+      currentView={currentView}
+      onChangeView={setCurrentView}
+    >
       {currentView === 'dashboard' && (
         currentUser.SystemRole === SystemRole.MEMBER ? (
           <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} onChangeView={handleChangeView} />
@@ -445,7 +265,6 @@ const App: React.FC = () => {
       )}
       {currentView === 'settings' && <SettingsComponent currentUser={currentUser} />}
     </Layout>
-    </>
   );
 };
 

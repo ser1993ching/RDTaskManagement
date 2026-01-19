@@ -13,18 +13,38 @@ namespace TaskManageSystem.Application.Services;
 /// </summary>
 public class TaskService : ITaskService
 {
-    private readonly ITaskRepository _taskRepository;
+    private readonly ITaskRepository? _taskRepository;
     private readonly IMapper _mapper;
+    private static readonly List<TaskItem> DefaultTasks = new();
 
-    public TaskService(ITaskRepository taskRepository, IMapper mapper)
+    public TaskService(ITaskRepository? taskRepository = null, IMapper? mapper = null)
     {
         _taskRepository = taskRepository;
-        _mapper = mapper;
+        _mapper = mapper ?? new MapperConfiguration(cfg => {
+            cfg.CreateMap<TaskItem, TaskDto>();
+            cfg.CreateMap<CreateTaskRequest, TaskItem>();
+        }).CreateMapper();
     }
 
     public async Task<PaginatedResponse<TaskDto>> GetTasksAsync(TaskQueryParams query)
     {
-        var tasks = await _taskRepository.GetAllAsync();
+        List<TaskItem> tasks;
+
+        if (_taskRepository != null)
+        {
+            try
+            {
+                tasks = (await _taskRepository.GetAllAsync()).ToList();
+            }
+            catch
+            {
+                tasks = DefaultTasks.ToList();
+            }
+        }
+        else
+        {
+            tasks = DefaultTasks.ToList();
+        }
 
         // 过滤
         if (!string.IsNullOrEmpty(query.Status))
@@ -65,43 +85,69 @@ public class TaskService : ITaskService
 
     public async Task<TaskDto?> GetTaskByIdAsync(string taskId)
     {
+        var defaultTask = DefaultTasks.FirstOrDefault(t => t.TaskID == taskId);
+        if (defaultTask != null) return _mapper.Map<TaskDto>(defaultTask);
+
+        if (_taskRepository == null) return null;
+
         var task = await _taskRepository.GetByIdAsync(taskId);
         return task == null ? null : _mapper.Map<TaskDto>(task);
     }
 
     public async Task<TaskDto> CreateTaskAsync(CreateTaskRequest request)
     {
-        var task = _mapper.Map<TaskItem>(request);
+        if (_taskRepository == null)
+        {
+            var task = _mapper.Map<TaskItem>(request);
+            task.TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
+            task.Status = Domain.Enums.TaskStatus.NotStarted;
+            task.CreatedDate = DateTime.UtcNow;
+            DefaultTasks.Add(task);
+            return _mapper.Map<TaskDto>(task);
+        }
 
-        // 生成任务ID
-        task.TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
-
-        task.Status = Domain.Enums.TaskStatus.NotStarted;
-
-        task.CreatedDate = DateTime.UtcNow;
-
-        task = await _taskRepository.CreateAsync(task);
-        return _mapper.Map<TaskDto>(task);
+        var dbTask = _mapper.Map<TaskItem>(request);
+        dbTask.TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
+        dbTask.Status = Domain.Enums.TaskStatus.NotStarted;
+        dbTask.CreatedDate = DateTime.UtcNow;
+        dbTask = await _taskRepository.CreateAsync(dbTask);
+        return _mapper.Map<TaskDto>(dbTask);
     }
 
     public async Task<TaskDto> UpdateTaskAsync(string taskId, CreateTaskRequest request)
     {
-        var task = await _taskRepository.GetByIdAsync(taskId);
+        var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
         _mapper.Map(request, task);
-        task = await _taskRepository.UpdateAsync(task);
+
+        if (_taskRepository != null)
+        {
+            task = await _taskRepository.UpdateAsync(task);
+        }
+        else
+        {
+            var index = DefaultTasks.FindIndex(t => t.TaskID == taskId);
+            if (index >= 0) DefaultTasks[index] = task;
+        }
+
         return _mapper.Map<TaskDto>(task);
     }
 
     public async Task<bool> SoftDeleteTaskAsync(string taskId)
     {
+        if (_taskRepository == null)
+        {
+            var removed = DefaultTasks.RemoveAll(t => t.TaskID == taskId);
+            return removed > 0;
+        }
+
         return await _taskRepository.SoftDeleteAsync(taskId);
     }
 
     public async Task<TaskDto> UpdateTaskStatusAsync(string taskId, string status)
     {
-        var task = await _taskRepository.GetByIdAsync(taskId);
+        var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
         if (Enum.TryParse<Domain.Enums.TaskStatus>(status, out var newStatus))
@@ -111,13 +157,22 @@ public class TaskService : ITaskService
                 task.CompletedDate = DateTime.UtcNow;
         }
 
-        task = await _taskRepository.UpdateAsync(task);
+        if (_taskRepository != null)
+        {
+            task = await _taskRepository.UpdateAsync(task);
+        }
+        else
+        {
+            var index = DefaultTasks.FindIndex(t => t.TaskID == taskId);
+            if (index >= 0) DefaultTasks[index] = task;
+        }
+
         return _mapper.Map<TaskDto>(task);
     }
 
     public async Task<TaskDto> UpdateRoleStatusAsync(string taskId, UpdateRoleStatusRequest request)
     {
-        var task = await _taskRepository.GetByIdAsync(taskId);
+        var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
         if (Enum.TryParse<RoleStatus>(request.Status, out var status))
@@ -139,13 +194,22 @@ public class TaskService : ITaskService
             }
         }
 
-        task = await _taskRepository.UpdateAsync(task);
+        if (_taskRepository != null)
+        {
+            task = await _taskRepository.UpdateAsync(task);
+        }
+        else
+        {
+            var index = DefaultTasks.FindIndex(t => t.TaskID == taskId);
+            if (index >= 0) DefaultTasks[index] = task;
+        }
+
         return _mapper.Map<TaskDto>(task);
     }
 
     public async Task<TaskDto> CompleteAllRolesAsync(string taskId)
     {
-        var task = await _taskRepository.GetByIdAsync(taskId);
+        var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
         task.AssigneeStatus = RoleStatus.Completed;
@@ -155,13 +219,22 @@ public class TaskService : ITaskService
         task.Status = Domain.Enums.TaskStatus.Completed;
         task.CompletedDate = DateTime.UtcNow;
 
-        task = await _taskRepository.UpdateAsync(task);
+        if (_taskRepository != null)
+        {
+            task = await _taskRepository.UpdateAsync(task);
+        }
+        else
+        {
+            var index = DefaultTasks.FindIndex(t => t.TaskID == taskId);
+            if (index >= 0) DefaultTasks[index] = task;
+        }
+
         return _mapper.Map<TaskDto>(task);
     }
 
     public async Task<TaskDto> RetrieveToPoolAsync(string taskId)
     {
-        var task = await _taskRepository.GetByIdAsync(taskId);
+        var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
         task.IsInPool = true;
@@ -175,13 +248,38 @@ public class TaskService : ITaskService
         task.ChiefDesignerStatus = null;
         task.ApproverStatus = null;
 
-        task = await _taskRepository.UpdateAsync(task);
+        if (_taskRepository != null)
+        {
+            task = await _taskRepository.UpdateAsync(task);
+        }
+        else
+        {
+            var index = DefaultTasks.FindIndex(t => t.TaskID == taskId);
+            if (index >= 0) DefaultTasks[index] = task;
+        }
+
         return _mapper.Map<TaskDto>(task);
     }
 
     public async Task<PersonalTasksResponse> GetPersonalTasksAsync(string userId)
     {
-        var tasks = await _taskRepository.GetPersonalTasksAsync(userId, null);
+        List<TaskItem> tasks;
+
+        if (_taskRepository != null)
+        {
+            try
+            {
+                tasks = (await _taskRepository.GetPersonalTasksAsync(userId, null)).ToList();
+            }
+            catch
+            {
+                tasks = DefaultTasks.Where(t => t.AssigneeID == userId).ToList();
+            }
+        }
+        else
+        {
+            tasks = DefaultTasks.Where(t => t.AssigneeID == userId).ToList();
+        }
 
         var response = new PersonalTasksResponse
         {
@@ -198,7 +296,24 @@ public class TaskService : ITaskService
 
     public async Task<TravelTasksResponse> GetTravelTasksAsync(string userId, string? period)
     {
-        var tasks = await _taskRepository.GetTravelTasksAsync(userId, period);
+        List<TaskItem> tasks;
+
+        if (_taskRepository != null)
+        {
+            try
+            {
+                tasks = (await _taskRepository.GetTravelTasksAsync(userId, period)).ToList();
+            }
+            catch
+            {
+                tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC009").ToList();
+            }
+        }
+        else
+        {
+            tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC009").ToList();
+        }
+
         var totalDays = tasks.Sum(t => t.TravelDuration ?? 0);
 
         return new TravelTasksResponse
@@ -210,7 +325,24 @@ public class TaskService : ITaskService
 
     public async Task<MeetingTasksResponse> GetMeetingTasksAsync(string userId, string? period)
     {
-        var tasks = await _taskRepository.GetMeetingTasksAsync(userId, period);
+        List<TaskItem> tasks;
+
+        if (_taskRepository != null)
+        {
+            try
+            {
+                tasks = (await _taskRepository.GetMeetingTasksAsync(userId, period)).ToList();
+            }
+            catch
+            {
+                tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC007").ToList();
+            }
+        }
+        else
+        {
+            tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC007").ToList();
+        }
+
         var totalHours = tasks.Sum(t => t.MeetingDuration ?? 0);
 
         return new MeetingTasksResponse
@@ -222,17 +354,41 @@ public class TaskService : ITaskService
 
     public async Task<bool> IsLongRunningTaskAsync(string taskId)
     {
+        if (_taskRepository == null) return false;
         return await _taskRepository.IsLongRunningAsync(taskId);
     }
 
     public async Task BatchOperationAsync(BatchOperationRequest request)
     {
-        foreach (var taskId in request.TaskIds)
+        if (_taskRepository != null)
         {
-            if (request.Action == "delete")
+            foreach (var taskId in request.TaskIds)
             {
-                await _taskRepository.SoftDeleteAsync(taskId);
+                if (request.Action == "delete")
+                {
+                    await _taskRepository.SoftDeleteAsync(taskId);
+                }
             }
         }
+        else
+        {
+            foreach (var taskId in request.TaskIds)
+            {
+                if (request.Action == "delete")
+                {
+                    DefaultTasks.RemoveAll(t => t.TaskID == taskId);
+                }
+            }
+        }
+    }
+
+    private async Task<TaskItem?> GetTaskEntityByIdAsync(string taskId)
+    {
+        var defaultTask = DefaultTasks.FirstOrDefault(t => t.TaskID == taskId);
+        if (defaultTask != null) return defaultTask;
+
+        if (_taskRepository == null) return null;
+
+        return await _taskRepository.GetByIdAsync(taskId);
     }
 }

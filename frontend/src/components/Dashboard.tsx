@@ -7,14 +7,6 @@ import {
 } from 'recharts';
 import { AlertCircle, AlertTriangle, Clock, CheckCircle2, Calendar, TrendingUp, Users, Plane, Briefcase, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 
-// 日期格式化函数 - 只显示日期部分
-const formatDate = (dateStr: string | undefined): string => {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr;
-  return date.toISOString().split('T')[0];
-};
-
 interface DashboardProps {
   currentUser: User;
   users: User[];
@@ -279,9 +271,9 @@ const ForceAssessmentPanel: React.FC<{
                             {task.Status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.StartDate)}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{task.StartDate || '-'}</td>
                         <td className={`px-3 py-2 w-24 text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
-                          {formatDate(task.DueDate)}
+                          {task.DueDate || '-'}
                         </td>
                       </tr>
                     );
@@ -418,7 +410,7 @@ const DelayedTaskPanel: React.FC<{
                             {task.Status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.StartDate)}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{task.StartDate || '-'}</td>
                         <td className="px-3 py-2 w-24 text-sm text-amber-600 font-medium">{daysSinceStart}天</td>
                       </tr>
                     );

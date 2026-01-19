@@ -36,13 +36,5 @@ public class TaskConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.HasIndex(t => t.ApproverID);
         builder.HasIndex(t => t.Status);
         builder.HasIndex(t => t.CreatedDate);
-
-        // 关系
-        builder.HasOne(t => t.Assignee).WithMany().HasForeignKey(t => t.AssigneeID).OnDelete(DeleteBehavior.SetNull);
-        builder.HasOne(t => t.Checker).WithMany().HasForeignKey(t => t.CheckerID).OnDelete(DeleteBehavior.SetNull);
-        builder.HasOne(t => t.Approver).WithMany().HasForeignKey(t => t.ApproverID).OnDelete(DeleteBehavior.SetNull);
-        builder.HasOne(t => t.Creator).WithMany().HasForeignKey(t => t.CreatedBy).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(t => t.Project).WithMany(p => p.Tasks).HasForeignKey(t => t.ProjectID).OnDelete(DeleteBehavior.SetNull);
-        builder.HasOne(t => t.TaskClass).WithMany().HasForeignKey(t => t.TaskClassID).OnDelete(DeleteBehavior.Restrict);
     }
 }

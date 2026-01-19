@@ -80,16 +80,16 @@ public class UserRepository : IUserRepository
         return true;
     }
 
-    public async Task<User?> GetByCredentialsAsync(string userId, string password)
+    public async Task<User?> GetByCredentialsAsync(string userIdOrName, string password)
     {
         // 先尝试通过工号查找
-        var user = await GetByIdAsync(userId);
+        var user = await GetByIdAsync(userIdOrName);
 
-        // 如果工号找不到，尝试通过姓名查找
+        // 如果工号找不到，尝试通过姓名模糊查找
         if (user == null)
         {
             user = await _context.Users
-                .Where(u => u.Name == userId && !u.IsDeleted)
+                .Where(u => EF.Functions.Like(u.Name, $"%{userIdOrName}%") && !u.IsDeleted)
                 .FirstOrDefaultAsync();
         }
 

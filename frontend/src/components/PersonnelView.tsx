@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, SystemRole, OfficeLocation, PersonnelStatus } from '../types';
 import { Plus, Download, Search, Edit2, Trash2, Lock, Key } from 'lucide-react';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 
 interface PersonnelViewProps {
   currentUser: User;
@@ -77,18 +77,26 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
     setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isNew = !editingUser;
-    
-    const userToSave: User = {
+
+    const userToSave: any = {
       ...(editingUser || {}),
-      ...formData as User,
-      UserID: isNew ? dataService.generateId('EMP') : (editingUser?.UserID || ''),
-      Password: isNew ? '123' : (editingUser?.Password || '123'), // Default password
+      ...formData,
+      userID: isNew ? undefined : (editingUser?.UserID || ''),
+      password: isNew ? '123456' : undefined, // Default password for new users
+      status: formData.Status || PersonnelStatus.ACTIVE,
+      officeLocation: formData.OfficeLocation === 'Chengdu' ? 'Chengdu' : formData.OfficeLocation === 'Deyang' ? 'Deyang' : 'Chengdu',
+      systemRole: formData.SystemRole || SystemRole.MEMBER,
     };
-    
-    dataService.saveUser(userToSave);
+
+    // Remove undefined values
+    Object.keys(userToSave).forEach(key => {
+      if (userToSave[key] === undefined) delete userToSave[key];
+    });
+
+    await apiDataService.saveUser(userToSave);
     setIsModalOpen(false);
     onRefresh();
   };
@@ -214,11 +222,16 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                     {canEdit && (currentUser.UserID !== user.UserID) && (
                       <button
                         onClick={() => {
-                          const tempPassword = dataService.generateTemporaryPassword();
+                          const tempPassword = apiDataService.generateTemporaryPassword();
                           if (confirm(`确定要重置 ${user.Name} 的密码吗？\n\n新密码将显示在下一步中。`)) {
-                            dataService.resetPassword(user.UserID, tempPassword);
-                            alert(`密码重置成功！\n\n用户：${user.Name}\n新密码：${tempPassword}\n\n请将此密码告知用户。`);
-                            onRefresh();
+                            apiDataService.resetPassword(user.UserID, tempPassword).then(success => {
+                              if (success) {
+                                alert(`密码重置成功！\n\n用户：${user.Name}\n新密码：${tempPassword}\n\n请将此密码告知用户。`);
+                                onRefresh();
+                              } else {
+                                alert('密码重置失败，请稍后重试。');
+                              }
+                            });
                           }
                         }}
                         className="text-orange-600 hover:text-orange-800 mr-3"
@@ -230,7 +243,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                     {(currentUser.UserID !== user.UserID) && (
                       <button onClick={() => {
                         if(confirm('确定删除该人员?')) {
-                          dataService.deleteUser(user.UserID);
+                          apiDataService.deleteUser(user.UserID);
                           onRefresh();
                         }
                       }} className="text-red-500 hover:text-red-700">

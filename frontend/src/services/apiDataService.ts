@@ -144,6 +144,20 @@ class ApiDataService {
     await userService.deleteUser(userId);
   }
 
+  async resetPassword(userId: string, newPassword: string): Promise<boolean> {
+    try {
+      await authService.resetPassword(userId, newPassword);
+      return true;
+    } catch (error) {
+      console.error('重置密码失败:', error);
+      return false;
+    }
+  }
+
+  async generateTemporaryPassword(): Promise<string> {
+    return Math.random().toString(36).slice(-8);
+  }
+
   // 项目相关
   async getProjects(): Promise<ProjectDto[]> {
     try {

@@ -8,8 +8,61 @@ import { TaskPoolView } from './components/TaskPoolView';
 import PersonalWorkspaceView from './components/PersonalWorkspaceView';
 import { Settings as SettingsComponent } from './components/Settings';
 import { apiDataService } from './services/apiDataService';
-import { User, Project, Task, SystemRole } from './types';
+import { User, Project, Task, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus } from './types';
 import { Lock, Settings } from 'lucide-react';
+
+// API值到前端值的映射函数
+const mapSystemRole = (apiRole: string): SystemRole => {
+  const map: Record<string, SystemRole> = {
+    'Admin': SystemRole.ADMIN,
+    'Leader': SystemRole.LEADER,
+    'Member': SystemRole.MEMBER,
+  };
+  return map[apiRole] || SystemRole.MEMBER;
+};
+
+const mapOfficeLocation = (apiLoc: string): OfficeLocation => {
+  const map: Record<string, OfficeLocation> = {
+    'Chengdu': OfficeLocation.CHENGDU,
+    'Deyang': OfficeLocation.DEYANG,
+  };
+  return map[apiLoc] || OfficeLocation.CHENGDU;
+};
+
+const mapPersonnelStatus = (apiStatus: string): PersonnelStatus => {
+  const map: Record<string, PersonnelStatus> = {
+    'Active': PersonnelStatus.ACTIVE,
+    'BorrowedIn': PersonnelStatus.BORROWED_IN,
+    'BorrowedOut': PersonnelStatus.BORROWED_OUT,
+    'Intern': PersonnelStatus.INTERN,
+    'Leave': PersonnelStatus.LEAVE,
+  };
+  return map[apiStatus] || PersonnelStatus.ACTIVE;
+};
+
+const mapProjectCategory = (apiCategory: string): ProjectCategory => {
+  const map: Record<string, ProjectCategory> = {
+    'Market': ProjectCategory.MARKET,
+    'Execution': ProjectCategory.EXECUTION,
+    'Nuclear': ProjectCategory.NUCLEAR,
+    'Research': ProjectCategory.RESEARCH,
+    'Renovation': ProjectCategory.RENOVATION,
+    'Other': ProjectCategory.OTHER,
+  };
+  return map[apiCategory] || ProjectCategory.EXECUTION;
+};
+
+const mapTaskStatus = (apiStatus: string): TaskStatus => {
+  const map: Record<string, TaskStatus> = {
+    'NotStarted': TaskStatus.NOT_STARTED,
+    'Drafting': TaskStatus.DRAFTING,
+    'Revising': TaskStatus.REVISING,
+    'Reviewing': TaskStatus.REVIEWING,
+    'Reviewing2': TaskStatus.REVIEWING2,
+    'Completed': TaskStatus.COMPLETED,
+  };
+  return map[apiStatus] || TaskStatus.NOT_STARTED;
+};
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -52,11 +105,11 @@ const App: React.FC = () => {
     const convertedUsers: User[] = apiUsers.map((apiUser: any) => ({
       UserID: apiUser.userID,
       Name: apiUser.name,
-      SystemRole: apiUser.systemRole as SystemRole,
-      OfficeLocation: apiUser.officeLocation as any,
+      SystemRole: mapSystemRole(apiUser.systemRole),
+      OfficeLocation: mapOfficeLocation(apiUser.officeLocation),
       Title: apiUser.title,
       JoinDate: apiUser.joinDate,
-      Status: apiUser.status as any,
+      Status: mapPersonnelStatus(apiUser.status),
       Education: apiUser.education,
       School: apiUser.school,
       Remark: apiUser.remark,
@@ -68,7 +121,7 @@ const App: React.FC = () => {
     const convertedProjects: Project[] = apiProjects.map((apiProject: any) => ({
       id: apiProject.id,
       name: apiProject.name,
-      category: apiProject.category as any,
+      category: mapProjectCategory(apiProject.category),
       workNo: apiProject.workNo,
       capacity: apiProject.capacity,
       model: apiProject.model,
@@ -95,7 +148,7 @@ const App: React.FC = () => {
       StartDate: apiTask.startDate,
       DueDate: apiTask.dueDate,
       CompletedDate: apiTask.completedDate,
-      Status: apiTask.status as any,
+      Status: mapTaskStatus(apiTask.status),
       Workload: apiTask.workload,
       Difficulty: apiTask.difficulty,
       Remark: apiTask.remark,

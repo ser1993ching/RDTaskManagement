@@ -41,7 +41,7 @@ class AuthService {
   async login(userId: string, password: string): Promise<LoginResponse> {
     const response = await apiClient.post<ApiResponse<LoginResponse>>(
       '/api/auth/login',
-      { userId, password }
+      { UserId: userId, Password: password }
     );
 
     if (response.success && response.data) {

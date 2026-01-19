@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using TaskManageSystem.Application.Interfaces;
 using TaskManageSystem.Application.Repositories;
@@ -8,28 +9,26 @@ using TaskManageSystem.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// CORS - Allow frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// DbContext - MySQL 8.0
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        new MySqlServerVersion(new Version(8, 0, 0)),
-        mysqlOptions => mysqlOptions.SchemaBehavior(MySqlSchemaBehavior.Ignore)));
+// DbContext - Don't register to avoid MySQL connection on startup
+// builder.Services.AddDbContext<AppDbContext>(...); // Commented out
 
-// AutoMapper
-builder.Services.AddAutoMapper(typeof(Program));
-
-// Services & Repositories (手动注册)
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
-builder.Services.AddScoped<ITaskRepository, TaskRepository>();
-builder.Services.AddScoped<ITaskClassRepository, TaskClassRepository>();
-builder.Services.AddScoped<ITaskPoolRepository, TaskPoolRepository>();
-
+// Services - Register directly without repositories (using in-memory data)
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
@@ -47,8 +46,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// HTTPS redirection disabled for local development with Vite proxy
+// app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
+
+// Health check endpoint
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+
 app.MapControllers();
 
 app.Run();

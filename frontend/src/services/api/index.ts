@@ -48,8 +48,24 @@ export type {
   TaskPoolListResponse
 } from './taskPool';
 
+// 设置服务
+export { settingsService, SettingsService } from './settings';
+export type {
+  EquipmentModelsResponse,
+  CapacityLevelsResponse,
+  TravelLabelsResponse,
+  UserAvatarResponse,
+  TaskCategoriesResponse,
+  SettingsApiResponse,
+  AddEquipmentModelRequest,
+  AddCapacityLevelRequest,
+  AddTravelLabelRequest,
+  SaveUserAvatarRequest,
+  UpdateTaskCategoriesRequest
+} from './settings';
+
 // API配置
 export const API_CONFIG = {
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5001',
+  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:60110',
   timeout: 10000,
 };

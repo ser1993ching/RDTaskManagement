@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { ChevronDown, ChevronUp, Download, Printer, AlertTriangle, User, FileText } from 'lucide-react';
 import { Task, User as UserType, PersonalStats, SeparatedTasks, Period, TaskClass, RoleStatus, SystemRole } from '../types';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 
 // Colors for charts
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -340,7 +340,7 @@ const TravelTaskPanel: React.FC<{
                   <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLabel || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.TravelDuration ? `${task.TravelDuration}天` : '-'}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLocation || '-'}</td>
                 </tr>
@@ -397,7 +397,7 @@ const MeetingTaskPanel: React.FC<{
                 >
                   <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.Category || getCategoryName(task.TaskClassID)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
                   <td className="px-4 py-2 text-sm text-gray-600">{task.MeetingDuration ? `${task.MeetingDuration}小时` : '-'}</td>
                 </tr>
               ))}
@@ -409,39 +409,78 @@ const MeetingTaskPanel: React.FC<{
   );
 };
 
+// Helper function to get property value regardless of case (PascalCase or camelCase)
+const getTaskProp = (task: Task, pascalKey: string): any => {
+  const camelKey = pascalKey.charAt(0).toLowerCase() + pascalKey.slice(1);
+  return task[pascalKey as keyof Task] || task[camelKey as keyof Task];
+};
+
+// Helper function to format date (ISO format to friendly format)
+const formatDate = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '-';
+  // Handle ISO format: "2024-10-08T00:00:00" or "2024-10-08"
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
 // Helper function to determine user's role in a task
 const getUserRoleInTask = (task: Task, userId: string): string => {
-  if (task.AssigneeID === userId) return '负责人';
-  if (task.CheckerID === userId) return '校核人';
-  if (task.ChiefDesignerID === userId) return '主任设计';
-  if (task.ApproverID === userId) return '审查人';
+  const assigneeId = getTaskProp(task, 'AssigneeID');
+  const checkerId = getTaskProp(task, 'CheckerID');
+  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
+  const approverId = getTaskProp(task, 'ApproverID');
+
+  if (assigneeId === userId) return '负责人';
+  if (checkerId === userId) return '校核人';
+  if (chiefDesignerId === userId) return '主任设计';
+  if (approverId === userId) return '审查人';
   return '-';
 };
 
 // Helper function to get user's role type in a task
 const getUserRoleTypeInTask = (task: Task, userId: string): 'assignee' | 'checker' | 'chiefDesigner' | 'approver' | null => {
-  if (task.AssigneeID === userId) return 'assignee';
-  if (task.CheckerID === userId) return 'checker';
-  if (task.ChiefDesignerID === userId) return 'chiefDesigner';
-  if (task.ApproverID === userId) return 'approver';
+  const assigneeId = getTaskProp(task, 'AssigneeID');
+  const checkerId = getTaskProp(task, 'CheckerID');
+  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
+  const approverId = getTaskProp(task, 'ApproverID');
+
+  if (assigneeId === userId) return 'assignee';
+  if (checkerId === userId) return 'checker';
+  if (chiefDesignerId === userId) return 'chiefDesigner';
+  if (approverId === userId) return 'approver';
   return null;
 };
 
 // Helper function to get role status for a user in a task
 const getRoleStatusInTask = (task: Task, userId: string): string => {
-  if (task.AssigneeID === userId) return task.assigneeStatus || RoleStatus.NOT_STARTED;
-  if (task.CheckerID === userId) return task.checkerStatus || RoleStatus.NOT_STARTED;
-  if (task.ChiefDesignerID === userId) return task.chiefDesignerStatus || RoleStatus.NOT_STARTED;
-  if (task.ApproverID === userId) return task.approverStatus || RoleStatus.NOT_STARTED;
+  const assigneeId = getTaskProp(task, 'AssigneeID');
+  const checkerId = getTaskProp(task, 'CheckerID');
+  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
+  const approverId = getTaskProp(task, 'ApproverID');
+
+  if (assigneeId === userId) return getTaskProp(task, 'AssigneeStatus') || RoleStatus.NOT_STARTED;
+  if (checkerId === userId) return getTaskProp(task, 'CheckerStatus') || RoleStatus.NOT_STARTED;
+  if (chiefDesignerId === userId) return getTaskProp(task, 'ChiefDesignerStatus') || RoleStatus.NOT_STARTED;
+  if (approverId === userId) return getTaskProp(task, 'ApproverStatus') || RoleStatus.NOT_STARTED;
   return '-';
 };
 
 // Helper function to get workload for a user's role in a task
 const getRoleWorkloadInTask = (task: Task, userId: string): number | undefined => {
-  if (task.AssigneeID === userId) return task.Workload;
-  if (task.CheckerID === userId) return task.CheckerWorkload;
-  if (task.ChiefDesignerID === userId) return task.ChiefDesignerWorkload;
-  if (task.ApproverID === userId) return task.ApproverWorkload;
+  const assigneeId = getTaskProp(task, 'AssigneeID');
+  const checkerId = getTaskProp(task, 'CheckerID');
+  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
+  const approverId = getTaskProp(task, 'ApproverID');
+
+  if (assigneeId === userId) return getTaskProp(task, 'Workload');
+  if (checkerId === userId) return getTaskProp(task, 'CheckerWorkload');
+  if (chiefDesignerId === userId) return getTaskProp(task, 'ChiefDesignerWorkload');
+  if (approverId === userId) return getTaskProp(task, 'ApproverWorkload');
   return undefined;
 };
 
@@ -581,6 +620,7 @@ const TaskPanel: React.FC<{
   viewingUserId,
   currentUserRole
 }) => {
+  console.log(`TaskPanel[${title}] rendering with ${tasks.length} tasks`);
   const getCategoryName = (taskClassId: string) => {
     const tc = taskClasses.find(t => t.id === taskClassId);
     return tc?.name || taskClassId;
@@ -627,29 +667,38 @@ const TaskPanel: React.FC<{
               <tbody className="divide-y divide-gray-100">
                 {tasks.map((task) => {
                   // 已完成的任务不显示长任务标记
-                  const isLongRunning = title !== '已完成' && dataService.isTaskLongRunning(task);
+                  const isLongRunning = title !== '已完成' && apiDataService.isTaskLongRunning(task);
                   const userRole = getUserRoleInTask(task, viewingUserId);
                   const userRoleType = getUserRoleTypeInTask(task, viewingUserId);
                   const roleStatus = getRoleStatusInTask(task, viewingUserId);
                   const roleWorkload = getRoleWorkloadInTask(task, viewingUserId);
+
+                  // 支持 PascalCase 和 camelCase
+                  const taskID = task.TaskID || task.taskID;
+                  const taskName = task.TaskName || task.taskName;
+                  const taskClassID = task.TaskClassID || task.taskClassID;
+                  const startDate = task.StartDate || task.startDate;
+                  const dueDate = task.DueDate || task.dueDate;
+                  const isForceAssessment = task.isForceAssessment || task.IsForceAssessment;
+
                   return (
                     <tr
-                      key={task.TaskID}
+                      key={taskID}
                       className={`${isLongRunning ? 'bg-yellow-50' : ''} cursor-pointer hover:bg-gray-50 transition-colors`}
                       onDoubleClick={() => onTaskDoubleClick(task)}
                     >
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
-                          {task.isForceAssessment && task.TaskClassID !== 'TC009' && (
+                          {isForceAssessment && taskClassID !== 'TC009' && (
                             <span className="inline-block w-1 h-4 bg-red-500 mr-1 rounded flex-shrink-0" />
                           )}
                           {isLongRunning && (
                             <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                           )}
-                          <span className={`text-sm ${task.isForceAssessment && task.TaskClassID !== 'TC009' ? 'font-bold text-gray-900' : 'text-gray-900'}`}>{task.TaskName}</span>
+                          <span className={`text-sm ${isForceAssessment && taskClassID !== 'TC009' ? 'font-bold text-gray-900' : 'text-gray-900'}`}>{taskName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(taskClassID)}</td>
                       <td className="px-4 py-2">
                         <span className="text-sm font-medium text-gray-700">{userRole}</span>
                       </td>
@@ -657,7 +706,7 @@ const TaskPanel: React.FC<{
                         {userRoleType ? (
                           <RoleStatusDropdown
                             currentStatus={roleStatus}
-                            onChange={(status) => onStatusChange(task.TaskID, userRoleType, status)}
+                            onChange={(status) => onStatusChange(taskID, userRoleType, status)}
                           />
                         ) : (
                           <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(roleStatus)}`}>
@@ -665,8 +714,8 @@ const TaskPanel: React.FC<{
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{task.StartDate || '-'}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{task.DueDate || '-'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(startDate)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(dueDate)}</td>
                       {canViewWorkload && (
                         <td className="px-4 py-2 text-sm text-gray-600">{roleWorkload ?? '-'}</td>
                       )}
@@ -719,7 +768,7 @@ const PersonalWorkspaceView: React.FC<{
 }> = ({ currentUser, onRefresh, onChangeView }) => {
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
   const [period, setPeriod] = useState<Period>('quarter'); // 默认近三个月
-  const [selectedUserId, setSelectedUserId] = useState(currentUser.UserID);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [expandedPanels, setExpandedPanels] = useState({
     inProgress: true,
     pending: true,
@@ -727,34 +776,132 @@ const PersonalWorkspaceView: React.FC<{
   });
   const [refreshKey, setRefreshKey] = useState(0); // 用于强制刷新
 
-  // Get user being viewed
-  const viewingUserId = currentUser.SystemRole === '组员' ? currentUser.UserID : selectedUserId;
+  // Data states
+  const [teamMembers, setTeamMembers] = useState<UserType[]>([]);
+  const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
+  const [personalTasks, setPersonalTasks] = useState<{ inProgress: Task[]; pending: Task[]; completed: Task[] }>({
+    inProgress: [],
+    pending: [],
+    completed: []
+  });
+  const [travelTasks, setTravelTasks] = useState<Task[]>([]);
+  const [meetingTasks, setMeetingTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Sync selectedUserId when currentUser changes
+  useEffect(() => {
+    if (currentUser?.UserID) {
+      setSelectedUserId(currentUser.UserID);
+    }
+  }, [currentUser?.UserID]);
+
+  // Get user being viewed - ensure it's always defined
+  const viewingUserId = currentUser?.UserID ?
+    (currentUser.SystemRole === SystemRole.MEMBER ? currentUser.UserID : (selectedUserId || currentUser.UserID)) :
+    '';
+
+  // Load data when viewingUserId changes
+  useEffect(() => {
+    const loadData = async () => {
+      if (!viewingUserId) {
+        console.log('Waiting for user data...', { viewingUserId, selectedUserId, currentUserId: currentUser?.UserID });
+        return;
+      }
+
+      console.log('Loading data for user:', viewingUserId, 'role:', currentUser?.SystemRole);
+      setLoading(true);
+      try {
+        // Load team members
+        const members = await apiDataService.getTeamMembers(currentUser.UserID);
+        setTeamMembers(members.map(u => ({
+          UserID: u.userID,
+          Name: u.name,
+          SystemRole: u.systemRole as SystemRole,
+          OfficeLocation: u.officeLocation as any,
+          Title: u.title,
+          JoinDate: u.joinDate,
+          Status: u.status as any,
+          Education: u.education,
+          School: u.school,
+          Remark: u.remark,
+          Gender: u.gender,
+          Password: '',
+        })));
+
+        // Load task classes
+        const classes = await apiDataService.getTaskClasses();
+        setTaskClasses(classes.map((tc: any) => ({
+          id: tc.id,
+          name: tc.name,
+          code: tc.code,
+          description: tc.description,
+          notice: tc.notice,
+          is_deleted: false,
+        })));
+
+        // Load personal tasks
+        const tasks = await apiDataService.getPersonalTasks(viewingUserId);
+        console.log('Personal tasks loaded:', tasks);
+        setPersonalTasks({
+          inProgress: tasks.inProgress || [],
+          pending: tasks.pending || [],
+          completed: tasks.completed || [],
+        });
+
+        // Load travel tasks
+        const travel = await apiDataService.getTravelTasks(viewingUserId);
+        setTravelTasks(travel);
+
+        // Load meeting tasks
+        const meeting = await apiDataService.getMeetingTasks(viewingUserId);
+        setMeetingTasks(meeting);
+      } catch (error) {
+        console.error('加载数据失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [viewingUserId, refreshKey]);
+
+  // Get viewing user info
   const viewingUser = useMemo(() => {
     if (viewingUserId === currentUser.UserID) return currentUser;
-    const teamMembers = dataService.getTeamMembers(currentUser.UserID);
     return teamMembers.find(u => u.UserID === viewingUserId) || currentUser;
-  }, [viewingUserId, currentUser]);
+  }, [viewingUserId, currentUser, teamMembers]);
 
-  // Get team members for switcher
-  const teamMembers = useMemo(() => {
-    return dataService.getTeamMembers(currentUser.UserID);
-  }, [currentUser.UserID]);
-
-  // Get all tasks for statistics
+  // Get all tasks (combine from different sources)
   const allTasks = useMemo(() => {
-    return dataService.getPersonalTasks(viewingUserId);
-  }, [viewingUserId, refreshKey]);
+    const tasks = [
+      ...personalTasks.inProgress,
+      ...personalTasks.pending,
+      ...personalTasks.completed,
+    ];
+    console.log('allTasks count:', tasks.length, 'first task startDate:', tasks[0]?.startDate);
+    return tasks;
+  }, [personalTasks]);
 
   // Filter tasks by period based on StartDate (only for completed tasks)
   const periodFilteredTasks = useMemo(() => {
-    return dataService.filterTasksByStartDate(allTasks, period);
+    const filtered = apiDataService.filterTasksByStartDate(allTasks, period);
+    console.log('periodFilteredTasks count:', filtered.length, 'period:', period);
+    if (allTasks.length > 0) {
+      console.log('sample startDates:', allTasks.slice(0, 3).map(t => t.startDate));
+    }
+    return filtered;
   }, [allTasks, period]);
 
   // Separate tasks by user's role status (not task status)
   // 进行中和未开始的任务显示所有任务，已完成的任务根据时间段筛选
   const separatedTasks = useMemo(() => {
-    const allSeparated = dataService.separateTasksByRoleStatus(allTasks, viewingUserId);
-    const completedSeparated = dataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
+    const allSeparated = apiDataService.separateTasksByRoleStatus(allTasks, viewingUserId);
+    const completedSeparated = apiDataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
+    console.log('separatedTasks:', {
+      inProgress: allSeparated.inProgress.length,
+      pending: allSeparated.pending.length,
+      completed: completedSeparated.completed.length
+    });
     return {
       inProgress: allSeparated.inProgress,      // 进行中：显示所有
       pending: allSeparated.pending,            // 未开始：显示所有
@@ -763,26 +910,66 @@ const PersonalWorkspaceView: React.FC<{
   }, [allTasks, periodFilteredTasks, viewingUserId]);
 
   // Get travel tasks filtered by StartDate (shown separately)
-  const travelTasks = useMemo(() => {
-    const allTravelTasks = dataService.getTravelTasks(viewingUserId);
-    return dataService.filterTasksByStartDate(allTravelTasks, period);
-  }, [viewingUserId, period, refreshKey]);
+  const filteredTravelTasks = useMemo(() => {
+    return apiDataService.filterTasksByStartDate(travelTasks, period);
+  }, [travelTasks, period]);
 
   // Get meeting tasks filtered by StartDate (shown separately)
-  const meetingTasks = useMemo(() => {
-    const allMeetingTasks = dataService.getMeetingTasks(viewingUserId);
-    return dataService.filterTasksByStartDate(allMeetingTasks, period);
-  }, [viewingUserId, period, refreshKey]);
+  const filteredMeetingTasks = useMemo(() => {
+    return apiDataService.filterTasksByStartDate(meetingTasks, period);
+  }, [meetingTasks, period]);
 
   // Calculate stats based on role status
   const stats = useMemo(() => {
-    const baseStats = dataService.calculatePersonalStats(allTasks, period, viewingUserId);
+    // Convert API tasks to expected format
+    const apiTasks = allTasks.map(t => ({
+      taskID: t.TaskID,
+      taskName: t.TaskName,
+      taskClassID: t.TaskClassID,
+      category: t.Category,
+      projectID: t.ProjectID,
+      assigneeID: t.AssigneeID,
+      assigneeName: t.AssigneeName,
+      startDate: t.StartDate,
+      dueDate: t.DueDate,
+      completedDate: t.CompletedDate,
+      status: t.Status,
+      workload: t.Workload,
+      difficulty: t.Difficulty,
+      remark: t.Remark,
+      createdDate: t.CreatedDate,
+      createdBy: t.CreatedBy,
+      travelLocation: t.TravelLocation,
+      travelDuration: t.TravelDuration,
+      travelLabel: t.TravelLabel,
+      meetingDuration: t.MeetingDuration,
+      participants: t.Participants,
+      participantNames: t.ParticipantNames,
+      capacityLevel: t.CapacityLevel,
+      checkerID: t.CheckerID,
+      checkerName: t.CheckerName,
+      checkerWorkload: t.CheckerWorkload,
+      checkerStatus: t.checkerStatus,
+      chiefDesignerID: t.ChiefDesignerID,
+      chiefDesignerName: t.ChiefDesignerName,
+      chiefDesignerWorkload: t.ChiefDesignerWorkload,
+      chiefDesignerStatus: t.chiefDesignerStatus,
+      approverID: t.ApproverID,
+      approverName: t.ApproverName,
+      approverWorkload: t.ApproverWorkload,
+      approverStatus: t.approverStatus,
+      assigneeStatus: t.assigneeStatus,
+      isForceAssessment: t.isForceAssessment,
+      isInPool: t.is_in_pool,
+    }));
+
+    const baseStats = apiDataService.calculatePersonalStats(apiTasks, period, viewingUserId);
     // Calculate trend - daily for week/month, monthly for others
     let monthlyTrend;
     if (period === 'week' || period === 'month') {
       // 按天统计（本周显示7天，本月显示约30天）
       const days = period === 'week' ? 7 : 30;
-      monthlyTrend = dataService.calculateDailyTrend(allTasks, days, viewingUserId);
+      monthlyTrend = apiDataService.calculateDailyTrend(apiTasks, days, viewingUserId);
     } else {
       // 按月统计，根据时间段确定月份数
       let months: number;
@@ -793,14 +980,10 @@ const PersonalWorkspaceView: React.FC<{
         case 'yearAndHalf': months = 12; break;  // 近一年
         default: months = 6;
       }
-      monthlyTrend = dataService.calculateMonthlyTrend(allTasks, months, viewingUserId);
+      monthlyTrend = apiDataService.calculateMonthlyTrend(apiTasks, months, viewingUserId);
     }
     return { ...baseStats, monthlyTrend };
   }, [allTasks, period, viewingUserId]);
-
-  const taskClasses = useMemo(() => {
-    return dataService.getTaskClasses();
-  }, []);
 
   // Toggle panel expansion
   const togglePanel = (panel: 'inProgress' | 'pending' | 'completed') => {
@@ -808,8 +991,8 @@ const PersonalWorkspaceView: React.FC<{
   };
 
   // Handle role status change
-  const handleStatusChange = (taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus) => {
-    dataService.updateTaskRoleStatus(taskId, role, status);
+  const handleStatusChange = async (taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus) => {
+    await apiDataService.updateTaskRoleStatus(taskId, role, status);
     setRefreshKey(prev => prev + 1); // 强制刷新数据
     onRefresh();
   };
@@ -823,9 +1006,9 @@ const PersonalWorkspaceView: React.FC<{
 
   // Handle CSV export
   const handleExportCSV = () => {
-    const csvContent = dataService.generateStatsCSV(stats, separatedTasks, viewingUser.Name);
+    const csvContent = apiDataService.generateStatsCSV(stats, separatedTasks, viewingUser.Name);
     const fileName = `个人工作台_${viewingUser.Name}_${new Date().toISOString().split('T')[0]}.csv`;
-    dataService.downloadStatsCSV(csvContent, fileName);
+    apiDataService.downloadStatsCSV(csvContent, fileName);
   };
 
   // Handle print
@@ -916,14 +1099,14 @@ const PersonalWorkspaceView: React.FC<{
 
           {/* Travel Task Panel */}
           <TravelTaskPanel
-            tasks={travelTasks}
+            tasks={filteredTravelTasks}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
           />
 
           {/* Meeting Task Panel */}
           <MeetingTaskPanel
-            tasks={meetingTasks}
+            tasks={filteredMeetingTasks}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
           />

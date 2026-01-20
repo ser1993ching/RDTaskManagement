@@ -85,7 +85,7 @@ export class SettingsService {
         '/api/settings/equipment-models',
         { model }
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('添加设备型号失败:', error);
       return false;
@@ -100,7 +100,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/equipment-models/${encodeURIComponent(model)}`
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('删除设备型号失败:', error);
       return false;
@@ -131,7 +131,7 @@ export class SettingsService {
         '/api/settings/capacity-levels',
         { level }
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('添加容量等级失败:', error);
       return false;
@@ -146,7 +146,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/capacity-levels/${encodeURIComponent(level)}`
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('删除容量等级失败:', error);
       return false;
@@ -177,7 +177,7 @@ export class SettingsService {
         '/api/settings/travel-labels',
         { label }
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('添加差旅标签失败:', error);
       return false;
@@ -192,7 +192,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/travel-labels/${encodeURIComponent(label)}`
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('删除差旅标签失败:', error);
       return false;
@@ -223,7 +223,7 @@ export class SettingsService {
         `/api/settings/avatars/${encodeURIComponent(userId)}`,
         { avatar }
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('保存用户头像失败:', error);
       return false;
@@ -238,7 +238,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/avatars/${encodeURIComponent(userId)}`
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('删除用户头像失败:', error);
       return false;
@@ -269,7 +269,7 @@ export class SettingsService {
         `/api/settings/task-categories/${code}`,
         { categories }
       );
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('更新任务分类失败:', error);
       return false;
@@ -284,7 +284,7 @@ export class SettingsService {
   async resetAllData(): Promise<boolean> {
     try {
       const response = await this.client.post<SettingsApiResponse>('/api/settings/reset-all-data');
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('重置数据失败:', error);
       return false;
@@ -297,7 +297,7 @@ export class SettingsService {
   async refreshTasks(): Promise<boolean> {
     try {
       const response = await this.client.post<SettingsApiResponse>('/api/settings/refresh-tasks');
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('刷新任务失败:', error);
       return false;
@@ -310,7 +310,7 @@ export class SettingsService {
   async migrateData(): Promise<boolean> {
     try {
       const response = await this.client.post<SettingsApiResponse>('/api/settings/migrate');
-      return response.data?.success || false;
+      return response.Success || false;
     } catch (error) {
       console.error('数据迁移失败:', error);
       return false;

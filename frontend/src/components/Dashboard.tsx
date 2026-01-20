@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Task, Project, TaskStatus, TaskClass, SystemRole, ProjectCategory } from '../types';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
@@ -12,9 +12,22 @@ interface DashboardProps {
   users: User[];
   projects: Project[];
   tasks: Task[];
+  taskClasses: TaskClass[];
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+
+// Helper function to format date
+const formatDate = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
 
 type Period = 'week' | 'month' | 'quarter' | 'halfYear' | 'year' | 'lastYear';
 type DeadlineFilter = 'all' | 'overdue' | 'thisMonth' | 'pastThreeMonths' | 'thisYear';
@@ -271,9 +284,9 @@ const ForceAssessmentPanel: React.FC<{
                             {task.Status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{task.StartDate || '-'}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.StartDate)}</td>
                         <td className={`px-3 py-2 w-24 text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
-                          {task.DueDate || '-'}
+                          {formatDate(task.DueDate)}
                         </td>
                       </tr>
                     );
@@ -410,7 +423,7 @@ const DelayedTaskPanel: React.FC<{
                             {task.Status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{task.StartDate || '-'}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.StartDate)}</td>
                         <td className="px-3 py-2 w-24 text-sm text-amber-600 font-medium">{daysSinceStart}天</td>
                       </tr>
                     );
@@ -425,7 +438,7 @@ const DelayedTaskPanel: React.FC<{
   );
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projects, tasks }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projects, tasks, taskClasses }) => {
   const [period, setPeriod] = useState<Period>('year');
   const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'nuclear' | 'conventional' | 'research' | 'renovation' | 'other'>('all');
 
@@ -592,9 +605,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     const completed = filteredVisibleTasks.filter(t => t.Status === TaskStatus.COMPLETED).length;
     const total = filteredVisibleTasks.length;
 
-    // Get TaskClasses
-    const taskClasses = dataService.getTaskClasses();
-
     // Distribution by TaskClass (excluding TC009 travel and TC007 meeting for main stats)
     const typeDist = taskClasses.map(tc => ({
       name: tc.name,
@@ -759,12 +769,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       meetingTrend,
       projectTypeFilter
     };
-  }, [getFilteredTasks, currentUser, users, projects, projectTypeFilter]);
-
-  // Get task classes
-  const taskClasses = useMemo(() => {
-    return dataService.getTaskClasses();
-  }, []);
+  }, [getFilteredTasks, currentUser, users, projects, projectTypeFilter, taskClasses]);
 
   // Filter force assessment tasks
   const forceAssessmentTasks = useMemo(() => {

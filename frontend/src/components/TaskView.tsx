@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskClass, User, Project, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info, CheckCircle } from 'lucide-react';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 import AutocompleteInput from './AutocompleteInput';
 
 interface TaskViewProps {
@@ -26,12 +26,24 @@ const CAPACITY_LEVEL_OPTIONS = [
   '调相机'
 ];
 
+// Helper function to format date
+const formatDate = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
 export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh, targetTaskName, onClearTargetTaskName }) => {
-  const [taskClasses, setTaskClasses] = useState<TaskClass[]>(dataService.getTaskClasses());
+  const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
   const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [capacityLevels, setCapacityLevels] = useState<string[]>(dataService.getCapacityLevels());
+  const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState<Partial<Task>>({});
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -40,22 +52,38 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [projectFormData, setProjectFormData] = useState<Partial<Project>>({});
   const [equipmentModels, setEquipmentModels] = useState<string[]>([]);
 
-  // Set default active task class
+  // Load task classes
   useEffect(() => {
-    if (taskClasses.length > 0 && !activeTaskClassId) {
-      setActiveTaskClassId(taskClasses[0].id);
-    }
-  }, [taskClasses, activeTaskClassId]);
+    const loadTaskClasses = async () => {
+      const classes = await apiDataService.getTaskClasses();
+      setTaskClasses(classes);
+      if (classes.length > 0 && !activeTaskClassId) {
+        setActiveTaskClassId(classes[0].id);
+      }
+    };
+    loadTaskClasses();
+  }, []);
 
   // Load task categories
   useEffect(() => {
-    const categories = dataService.getTaskCategories();
-    setTaskCategories(categories);
+    const loadCategories = async () => {
+      const categories = await apiDataService.getTaskCategories();
+      setTaskCategories(categories);
+    };
+    loadCategories();
   }, []);
 
-  // Load equipment models
+  // Load equipment models and capacity levels
   useEffect(() => {
-    setEquipmentModels(dataService.getEquipmentModels());
+    const loadSettings = async () => {
+      const [models, levels] = await Promise.all([
+        apiDataService.getEquipmentModels(),
+        apiDataService.getCapacityLevels(),
+      ]);
+      setEquipmentModels(models);
+      setCapacityLevels(levels);
+    };
+    loadSettings();
   }, []);
 
   // Handle targetTaskName - filter tasks by name and switch to the task's category
@@ -294,7 +322,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           t.TaskName,
           assigneeName,
           t.CapacityLevel || '-',
-          t.StartDate || '-',
+          t.StartDate ? formatDate(t.StartDate) : '-',
           t.MeetingDuration ? `${t.MeetingDuration}h` : '-',
           `${t.Participants?.length || 0}人`
         ];
@@ -430,7 +458,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     setIsProjectModalOpen(true);
   };
 
-  const handleCreateProject = (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!projectFormData.name?.trim()) {
@@ -446,7 +474,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
 
     const newProject: Project = {
-      id: dataService.generateId('PROJ'),
+      id: `PROJ-${Date.now()}`,
       name: projectFormData.name,
       category: projectFormData.category || ProjectCategory.OTHER,
       workNo: projectFormData.workNo,
@@ -460,7 +488,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       isCompleted: projectFormData.isCompleted
     };
 
-    dataService.saveProject(newProject);
+    await apiDataService.saveProject(newProject);
 
     // If creating from task view, auto-associate with current task
     if (isModalOpen) {
@@ -472,7 +500,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     onRefresh(); // Refresh projects list
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 验证项目与任务类型的匹配性
@@ -489,7 +517,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     const taskToSave: Task = {
       ...(editingTask || {}),
       ...formData as Task,
-      TaskID: editingTask?.TaskID || dataService.generateId('TSK'),
+      TaskID: editingTask?.TaskID || `TSK-${Date.now()}`,
       CreatedDate: editingTask?.CreatedDate || new Date().toISOString().split('T')[0],
       CreatedBy: editingTask?.CreatedBy || currentUser.UserID
     };
@@ -510,7 +538,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         taskToSave.CapacityLevel = project.capacity;
       }
     }
-    dataService.saveTask(taskToSave);
+    await apiDataService.saveTask(taskToSave);
     setIsModalOpen(false);
     // 关闭弹窗后清除任务名称筛选器（从个人工作台跳转来的情况）
     setFilterTaskName('');
@@ -1526,10 +1554,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       </td>
                     )}
                     {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
-                    <td className="px-6 py-4 text-slate-500">{t.StartDate || '-'}</td>
+                    <td className="px-6 py-4 text-slate-500">{formatDate(t.StartDate)}</td>
                     {/* 会议培训任务和差旅任务不显示截止日 */}
                     {!isMeetingTask && t.TaskClassID !== 'TC009' && (
-                      <td className="px-6 py-4 text-slate-500">{t.DueDate || '-'}</td>
+                      <td className="px-6 py-4 text-slate-500">{formatDate(t.DueDate)}</td>
                     )}
                     {/* 差旅任务显示出差天数 */}
                     {t.TaskClassID === 'TC009' && (
@@ -1544,7 +1572,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     )}
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
-                      <button onClick={() => { if(confirm('删除任务?')) { dataService.deleteTask(t.TaskID); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.TaskID); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                     </td>
                   </tr>
                 );
@@ -1887,7 +1915,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           开始日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.StartDate)}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -1901,7 +1929,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           截止日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.DueDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.DueDate)}</div>
                       </div>
                     </div>
                   </div>
@@ -1943,14 +1971,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           开始日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.StartDate)}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Calendar size={12} className="text-amber-500" />
                           截止日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.DueDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.DueDate)}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">

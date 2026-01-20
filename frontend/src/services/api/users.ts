@@ -73,10 +73,10 @@ class UserService {
    */
   async createUser(data: CreateUserRequest): Promise<User> {
     const response = await apiClient.post<ApiResponse<User>>('/api/users', data);
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '创建用户失败');
+    throw new Error(response.Error?.Message || '创建用户失败');
   }
 
   /**
@@ -84,10 +84,10 @@ class UserService {
    */
   async updateUser(userId: string, data: UpdateUserRequest): Promise<User> {
     const response = await apiClient.put<ApiResponse<User>>(`/api/users/${userId}`, data);
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '更新用户失败');
+    throw new Error(response.Error?.Message || '更新用户失败');
   }
 
   /**

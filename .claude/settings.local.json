@@ -26,7 +26,16 @@
       "Bash(dir:*)",
       "Bash(ls:*)",
       "Bash(powershell -Command:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(dotnet run:*)",
+      "Bash(curl:*)",
+      "Bash(mysql:*)",
+      "Bash(net start:*)",
+      "Bash(where:*)"
     ]
   }
 }

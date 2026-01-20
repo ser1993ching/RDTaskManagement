@@ -141,10 +141,10 @@ class TaskService {
    */
   async createTask(data: CreateTaskRequest): Promise<Task> {
     const response = await apiClient.post<ApiResponse<Task>>('/api/tasks', data);
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '创建任务失败');
+    throw new Error(response.Error?.Message || '创建任务失败');
   }
 
   /**
@@ -152,10 +152,10 @@ class TaskService {
    */
   async updateTask(taskId: string, data: UpdateTaskRequest): Promise<Task> {
     const response = await apiClient.put<ApiResponse<Task>>(`/api/tasks/${taskId}`, data);
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '更新任务失败');
+    throw new Error(response.Error?.Message || '更新任务失败');
   }
 
   /**
@@ -170,10 +170,10 @@ class TaskService {
    */
   async updateTaskStatus(taskId: string, status: string): Promise<Task> {
     const response = await apiClient.put<ApiResponse<Task>>(`/api/tasks/${taskId}/status`, { status });
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '更新任务状态失败');
+    throw new Error(response.Error?.Message || '更新任务状态失败');
   }
 
   /**
@@ -188,10 +188,10 @@ class TaskService {
       `/api/tasks/${taskId}/role-status`,
       { role, status }
     );
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '更新角色状态失败');
+    throw new Error(response.Error?.Message || '更新角色状态失败');
   }
 
   /**
@@ -199,10 +199,10 @@ class TaskService {
    */
   async completeAllRoles(taskId: string): Promise<Task> {
     const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/complete-all`, {});
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '完成所有角色失败');
+    throw new Error(response.Error?.Message || '完成所有角色失败');
   }
 
   /**
@@ -210,10 +210,10 @@ class TaskService {
    */
   async retrieveToPool(taskId: string): Promise<Task> {
     const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/retrieve-to-pool`, {});
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '回收任务到任务库失败');
+    throw new Error(response.Error?.Message || '回收任务到任务库失败');
   }
 
   /**

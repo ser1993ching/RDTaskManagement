@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using TaskManageSystem.Application.Interfaces;
 using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Application.Services;
 using TaskManageSystem.Infrastructure.Data;
 using TaskManageSystem.Infrastructure.Repositories;
+using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +24,14 @@ builder.Services.AddCors(options =>
 });
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // 支持中文和Unicode字符
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // 使用原始属性名
+        options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+        options.JsonSerializerOptions.WriteIndented = false;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -47,6 +57,8 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<ITaskClassRepository, TaskClassRepository>();
 builder.Services.AddScoped<ITaskPoolRepository, TaskPoolRepository>();
+
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 // Services - with repository injection
 builder.Services.AddScoped<IUserService, UserService>();

@@ -73,6 +73,7 @@ const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
 
   // Login Form State
   const [loginId, setLoginId] = useState('');
@@ -84,9 +85,26 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkSession = async () => {
       if (apiDataService.isLoggedIn()) {
-        const user = apiDataService.getCurrentUser();
-        if (user) {
-          setCurrentUser(user);
+        const storedUser = apiDataService.getCurrentUser();
+        if (storedUser) {
+          console.log('Stored user from localStorage:', storedUser);
+          // Convert stored user (camelCase) to frontend format (PascalCase)
+          const convertedUser: User = {
+            UserID: storedUser.userID,
+            Name: storedUser.name,
+            SystemRole: mapSystemRole(storedUser.systemRole),
+            OfficeLocation: storedUser.officeLocation as any,
+            Title: storedUser.title,
+            JoinDate: storedUser.joinDate,
+            Status: mapPersonnelStatus(storedUser.status),
+            Education: storedUser.education,
+            School: storedUser.school,
+            Remark: storedUser.remark,
+            Gender: undefined,
+            Password: '',
+          };
+          console.log('Converted user:', convertedUser);
+          setCurrentUser(convertedUser);
           await refreshData();
         }
       }
@@ -182,6 +200,18 @@ const App: React.FC = () => {
     setUsers(convertedUsers);
     setProjects(convertedProjects);
     setTasks(convertedTasks);
+
+    // Get task classes
+    const apiTaskClasses = await apiDataService.getTaskClasses();
+    const convertedTaskClasses: TaskClass[] = apiTaskClasses.map((tc: any) => ({
+      id: tc.id,
+      name: tc.name,
+      code: tc.code,
+      description: tc.description,
+      notice: tc.notice,
+      is_deleted: false,
+    }));
+    setTaskClasses(convertedTaskClasses);
   };
 
   const handleChangeView = (view: string, taskId?: string) => {
@@ -196,8 +226,9 @@ const App: React.FC = () => {
 
     try {
       const result = await apiDataService.login(loginId, loginPwd);
+      console.log('App.tsx login result:', result);
       if (result) {
-        // Convert API user to frontend format
+        // Convert API user to frontend format (response is already camelCase)
         const convertedUser: User = {
           UserID: result.user.userID,
           Name: result.user.name,
@@ -209,7 +240,7 @@ const App: React.FC = () => {
           Education: result.user.education,
           School: result.user.school,
           Remark: result.user.remark,
-          Gender: result.user.gender,
+          Gender: undefined,
           Password: '',
         };
         setCurrentUser(convertedUser);
@@ -301,7 +332,7 @@ const App: React.FC = () => {
         currentUser.SystemRole === SystemRole.MEMBER ? (
           <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} onChangeView={handleChangeView} />
         ) : (
-          <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} />
+          <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} taskClasses={taskClasses} />
         )
       )}
       {currentView === 'workspace' && <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} onChangeView={handleChangeView} />}

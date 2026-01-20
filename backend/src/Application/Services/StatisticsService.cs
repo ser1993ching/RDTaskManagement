@@ -17,10 +17,10 @@ public class StatisticsService : IStatisticsService
     private readonly ITaskRepository? _taskRepository;
     private readonly IMapper _mapper;
 
-    public StatisticsService(ITaskRepository? taskRepository = null, IMapper? mapper = null)
+    public StatisticsService(ITaskRepository? taskRepository, IMapper mapper)
     {
         _taskRepository = taskRepository;
-        _mapper = mapper ?? new MapperConfiguration(cfg => { }).CreateMapper();
+        _mapper = mapper;
     }
 
     public async Task<PersonalStats> GetPersonalStatsAsync(string userId, string period)

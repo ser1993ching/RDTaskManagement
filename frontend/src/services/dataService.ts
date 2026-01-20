@@ -1,7 +1,8 @@
 /**
  * @deprecated
- * 此服务已不再使用，请使用 apiDataService
- * 保留此文件仅作为参考，不会在生产环境中使用
+ * 此服务已不再使用，请使用 apiDataService 或直接调用 API
+ * 保留此文件仅用于向后兼容
+ * 所有数据现在通过 API 从服务端获取，不再使用示例数据
  */
 import { User, Project, Task, TaskClass, TaskPoolItem, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus, RoleStatus, Period, PersonalStats, SeparatedTasks, WorkDayInfo } from '../types';
 
@@ -1732,29 +1733,8 @@ class DataService {
   }
 
   init() {
-    // Only initialize if data doesn't exist, preserve current user session
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(seedUsers));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.PROJECTS)) {
-      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(seedProjects));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.TASKS)) {
-      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.TASK_CLASSES)) {
-      localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
-    }
-    // Initialize task categories if not exist
-    if (!localStorage.getItem(STORAGE_KEYS.TASK_CATEGORIES)) {
-      localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
-    }
-    // Initialize task pool if not exist
-    if (!localStorage.getItem(STORAGE_KEYS.TASK_POOL)) {
-      localStorage.setItem(STORAGE_KEYS.TASK_POOL, JSON.stringify(seedTaskPoolItems));
-    }
-    // Initialize settings from existing data
-    this.initializeSettings();
+    // 不再初始化示例数据，所有数据通过 API 从服务端获取
+    // 此服务已废弃，仅保留向后兼容
   }
 
   // 重新初始化所有数据（保留当前用户）
@@ -1774,39 +1754,20 @@ class DataService {
     localStorage.removeItem(STORAGE_KEYS.TRAVEL_LABELS);
     localStorage.removeItem(STORAGE_KEYS.USER_AVATARS);
 
-    // 重新初始化所有数据
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(seedUsers));
-    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(seedProjects));
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
-    localStorage.setItem(STORAGE_KEYS.TASK_CLASSES, JSON.stringify(seedTaskClasses));
-    localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
-    localStorage.setItem(STORAGE_KEYS.TASK_POOL, JSON.stringify(seedTaskPoolItems));
-
     // 恢复当前用户会话
     if (currentUser) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser);
     }
 
-    // 重新初始化设置
-    this.initializeSettings();
+    // 注意：所有数据现在通过 API 从服务端获取
   }
 
-  // 强制刷新任务数据（从seed数据重新加载）
+  // 强制刷新任务数据
   refreshTasksData(): void {
-    // 清除任务数据
+    // 清除任务数据 - 实际数据通过 API 刷新
     localStorage.removeItem(STORAGE_KEYS.TASKS);
 
-    // 重新加载seed任务数据
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
-
-    // 重新初始化任务类别设置
-    localStorage.setItem(STORAGE_KEYS.TASK_CATEGORIES, JSON.stringify(DEFAULT_TASK_CATEGORIES));
-
-    // 重新初始化Travel Labels设置
-    const tasks = this.getTasks();
-    const travelTasks = tasks.filter(t => t.TaskClassID === 'TC009'); // Travel tasks
-    const labels = [...new Set(travelTasks.map(t => t.Category))];
-    localStorage.setItem(STORAGE_KEYS.TRAVEL_LABELS, JSON.stringify(labels));
+    // 注意：任务数据现在通过 API 从服务端获取
   }
 
   // Users

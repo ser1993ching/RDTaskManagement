@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TaskPoolItem, TaskClass, User, Project, Task, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Edit2, Trash2, User as UserIcon, Calendar, X, CheckCircle, FolderOpen, Copy } from 'lucide-react';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 import AutocompleteInput from './AutocompleteInput';
 
 interface TaskPoolViewProps {
@@ -13,6 +13,18 @@ interface TaskPoolViewProps {
 
 // Task class IDs allowed for pool creation (excluding MEETING_TRAINING and TRAVEL)
 const ALLOWED_TASK_CLASS_IDS = ['TC001', 'TC002', 'TC003', 'TC004', 'TC005', 'TC006', 'TC008', 'TC010'];
+
+// Helper function to format date
+const formatDate = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
 
 export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, projects, users, onRefresh }) => {
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
@@ -37,15 +49,29 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
 
   // Load task classes on mount
   useEffect(() => {
-    const classes = dataService.getTaskClasses().filter(tc => ALLOWED_TASK_CLASS_IDS.includes(tc.id));
-    setTaskClasses(classes);
-    setTaskCategories(dataService.getTaskCategories());
-    loadPoolItems();
+    const loadData = async () => {
+      const classes = await apiDataService.getTaskClasses();
+      const filteredClasses = classes.filter((tc: any) => ALLOWED_TASK_CLASS_IDS.includes(tc.id));
+      setTaskClasses(filteredClasses.map((tc: any) => ({
+        id: tc.id,
+        name: tc.name,
+        code: tc.code,
+        description: tc.description,
+        notice: tc.notice,
+        is_deleted: false,
+      })));
+
+      const categories = await apiDataService.getTaskCategories();
+      setTaskCategories(categories);
+
+      await loadPoolItems();
+    };
+    loadData();
   }, []);
 
   // Load pool items (sorted by CreatedDate descending - newest first)
-  const loadPoolItems = () => {
-    const items = [...dataService.getTaskPoolItems()];
+  const loadPoolItems = async () => {
+    const items = await apiDataService.getTaskPoolItems();
     items.sort((a, b) =>
       new Date(b.CreatedDate).getTime() - new Date(a.CreatedDate).getTime()
     );
@@ -168,7 +194,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     setEditingItem(null);
     setFormData({
       ...item,
-      id: dataService.generateId('TP'),
+      id: apiDataService.generateId('TP'),
       CreatedDate: new Date().toISOString().split('T')[0]
     });
     setIsModalOpen(true);
@@ -236,14 +262,14 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
   }, [formData.ProjectID, formData.Category, isModalOpen, projects]);
 
   // Handle form submit (create/update)
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.TaskName || !formData.TaskClassID) {
       alert('请填写任务名称和任务类别');
       return;
     }
 
-    const item: TaskPoolItem = {
-      id: editingItem?.id || dataService.generateId('TP'),
+    const item: any = {
+      id: editingItem?.id || apiDataService.generateId('TP'),
       TaskName: formData.TaskName,
       TaskClassID: formData.TaskClassID,
       Category: formData.Category || '',
@@ -262,26 +288,31 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       CreatedDate: editingItem?.CreatedDate || new Date().toISOString().split('T')[0],
       isForceAssessment: formData.isForceAssessment || false,
       Remark: formData.Remark,
-      is_deleted: false
     };
 
-    dataService.saveTaskPoolItem(item);
+    if (editingItem?.id) {
+      await apiDataService.updateTaskPoolItem(editingItem.id, item);
+    } else {
+      item.id = apiDataService.generateId('TP');
+      await apiDataService.createTaskPoolItem(item);
+    }
+
     setIsModalOpen(false);
-    loadPoolItems();
+    await loadPoolItems();
     onRefresh();
   };
 
   // Handle delete
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('确定要删除该任务计划吗？')) {
-      dataService.deleteTaskPoolItem(id);
-      loadPoolItems();
+      await apiDataService.deleteTaskPoolItem(id);
+      await loadPoolItems();
       onRefresh();
     }
   };
 
   // Handle assign
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (!assigningItem) return;
 
     if (!assignFormData.AssigneeID && !assignFormData.AssigneeName) {
@@ -295,9 +326,9 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     }
 
     try {
-      dataService.assignPoolItemToTask(assigningItem.id, assignFormData);
+      await apiDataService.assignPoolItemToTask(assigningItem.id, assignFormData);
       setIsAssignModalOpen(false);
-      loadPoolItems();
+      await loadPoolItems();
       onRefresh();
       // Show toast notification
       showToast('任务分配成功！');
@@ -523,8 +554,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <td className="px-4 py-3 text-sm text-gray-600">{item.ProjectName || '-'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{item.PersonInChargeName || '-'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{item.ReviewerName || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{item.StartDate || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{item.DueDate || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.StartDate)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.DueDate)}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{item.CreatedByName || '-'}</td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">

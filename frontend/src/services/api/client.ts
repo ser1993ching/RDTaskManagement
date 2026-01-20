@@ -1,15 +1,56 @@
 /**
  * API客户端配置
  */
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { API_CONFIG } from './config';
+
 const TIMEOUT = 10000; // 10秒超时
 
+// 辅助函数：将PascalCase转换为camelCase
+function convertToCamelCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(convertToCamelCase);
+  }
+  if (typeof obj === 'object') {
+    const converted: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+        .replace(/^[A-Z]/, letter => letter.toLowerCase());
+      converted[camelKey] = convertToCamelCase(obj[key]);
+    }
+    return converted;
+  }
+  return obj;
+}
+
+// 辅助函数：处理API响应（提取Data，处理PascalCase）
+function processApiResponse(data: any): any {
+  if (!data) return data;
+
+  // 如果有Success属性，说明是包装的响应
+  if ('Success' in data || 'success' in data) {
+    const success = data.Success || data.success;
+    const responseData = data.Data || data.data;
+
+    if (!success || !responseData) {
+      throw new Error(data.Error?.Message || data.message || '请求失败');
+    }
+
+    // 转换Data中的PascalCase为camelCase
+    return convertToCamelCase(responseData);
+  }
+
+  // 如果没有Success属性，直接转换整个响应（处理PascalCase）
+  return convertToCamelCase(data);
+}
+
 export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
+  Success: boolean;
+  Data?: T;
+  Message?: string;
+  Error?: {
+    Code: string;
+    Message: string;
   };
 }
 
@@ -72,12 +113,18 @@ class ApiClient {
       });
       clearTimeout(timeoutId);
 
+      // Log raw response for debugging
+      const rawText = await response.text();
+      console.log(`API [${endpoint}] raw response:`, rawText.substring(0, 500));
+      const data = rawText ? JSON.parse(rawText) : null;
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+        const errorData = data || ({});
+        throw new Error(errorData.Error?.Message || errorData.Message || `HTTP ${response.status}`);
       }
 
-      return await response.json();
+      // 处理响应：提取Data（如果存在）并转换PascalCase为camelCase
+      return processApiResponse(data);
     } catch (error) {
       clearTimeout(timeoutId);
       console.error(`API Error [${endpoint}]:`, error);
@@ -116,7 +163,7 @@ class ApiClient {
 }
 
 // 导出单例实例
-export const apiClient = new ApiClient(API_BASE_URL);
+export const apiClient = new ApiClient(API_CONFIG.baseUrl);
 
 // 导出类以便自定义使用
 export { ApiClient };

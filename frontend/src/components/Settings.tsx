@@ -16,7 +16,7 @@ import {
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 
 interface SettingsProps {
   currentUser: User;
@@ -59,14 +59,30 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    setTaskClasses(dataService.getTaskClasses());
-    setTaskCategories(dataService.getTaskCategories());
-    setModels(dataService.getEquipmentModels());
-    setCapacityLevels(dataService.getCapacityLevels());
-    setTravelLabels(dataService.getTravelLabels());
+  const loadData = async () => {
+    const [classes, categories, models, levels, labels] = await Promise.all([
+      apiDataService.getTaskClasses(),
+      apiDataService.getTaskCategories(),
+      apiDataService.getEquipmentModels(),
+      apiDataService.getCapacityLevels(),
+      apiDataService.getTravelLabels(),
+    ]);
+
+    setTaskClasses(classes.map((tc: any) => ({
+      id: tc.id,
+      name: tc.name,
+      code: tc.code,
+      description: tc.description,
+      notice: tc.notice,
+      is_deleted: false,
+    })));
+    setTaskCategories(categories);
+    setModels(models);
+    setCapacityLevels(levels);
+    setTravelLabels(labels);
+
     if (currentUser) {
-      const userAvatar = dataService.getAvatar(currentUser.UserID);
+      const userAvatar = await apiDataService.getUserAvatar(currentUser.UserID);
       setAvatar(userAvatar);
     }
   };
@@ -77,37 +93,37 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   };
 
   // Task Class Management
-  const handleSaveTaskClass = (taskClass: TaskClass) => {
-    dataService.saveTaskClass(taskClass);
-    loadData();
+  const handleSaveTaskClass = async (taskClass: TaskClass) => {
+    await apiDataService.saveTaskClass(taskClass);
+    await loadData();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '任务类别保存成功');
   };
 
-  const handleAddTaskClass = () => {
+  const handleAddTaskClass = async () => {
     if (!editingValue.trim()) return;
     const [name, code] = editingValue.split('|');
     if (!name || !code) {
       showMessage('error', '请按格式输入：名称|编码');
       return;
     }
-    const newTaskClass: TaskClass = {
-      id: dataService.generateId('TC'),
+    const newTaskClass = {
+      id: apiDataService.generateId('TC'),
       name: name.trim(),
       code: code.trim().toUpperCase(),
       description: '',
     };
-    dataService.saveTaskClass(newTaskClass);
-    loadData();
+    await apiDataService.saveTaskClass(newTaskClass);
+    await loadData();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '任务类别添加成功');
   };
 
-  const handleDeleteTaskClass = (id: string) => {
+  const handleDeleteTaskClass = async (id: string) => {
     // 检查是否有任务依赖这个任务类别
-    const usage = dataService.checkTaskClassUsage(id);
+    const usage = apiDataService.checkTaskClassUsage(id);
     const taskClass = taskClasses.find(tc => tc.id === id);
 
     if (!taskClass) {
@@ -141,19 +157,19 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     }
 
     if (confirm(confirmMessage)) {
-      dataService.deleteTaskClass(id);
-      loadData();
+      await apiDataService.deleteTaskClass(id);
+      await loadData();
       showMessage('success', '任务类别删除成功');
     }
   };
 
-  const handlePasswordVerification = () => {
+  const handlePasswordVerification = async () => {
     // 使用管理员密码作为删除验证密码
     // 默认管理员密码是 'admin'
     if (deletePassword === 'admin') {
       if (taskClassToDelete) {
-        dataService.deleteTaskClass(taskClassToDelete.id);
-        loadData();
+        await apiDataService.deleteTaskClass(taskClassToDelete.id);
+        await loadData();
         showMessage('success', '任务类别删除成功');
       }
       setShowDeletePasswordPrompt(false);
@@ -173,14 +189,14 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     setTaskClassToDelete(null);
   };
 
-  const handleUpdateTaskClass = () => {
+  const handleUpdateTaskClass = async () => {
     if (!editingItem || !editingValue.trim()) return;
     const taskClass = taskClasses.find(tc => tc.id === editingItem);
     if (!taskClass) return;
 
     taskClass.name = editingValue.trim();
-    dataService.saveTaskClass(taskClass);
-    loadData();
+    await apiDataService.saveTaskClass(taskClass);
+    await loadData();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '任务类别更新成功');
@@ -200,46 +216,49 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     setEditingNoticeValue('');
   };
 
-  const saveTaskClassNotice = (taskClassId: string) => {
+  const saveTaskClassNotice = async (taskClassId: string) => {
     const taskClass = taskClasses.find(tc => tc.id === taskClassId);
     if (!taskClass) return;
 
     taskClass.notice = editingNoticeValue.trim();
-    dataService.saveTaskClass(taskClass);
-    loadData();
+    await apiDataService.saveTaskClass(taskClass);
+    await loadData();
     setEditingNotice(null);
     setEditingNoticeValue('');
     showMessage('success', '任务类别提示文字保存成功');
   };
 
   // Task Category Management
-  const handleAddTaskCategory = (taskClassCode: string) => {
+  const handleAddTaskCategory = async (taskClassCode: string) => {
     if (!taskClassCode || !editingValue.trim()) {
       showMessage('error', '请输入分类名称');
       return;
     }
-    dataService.addTaskCategory(taskClassCode, editingValue.trim());
-    setTaskCategories(dataService.getTaskCategories());
+    await apiDataService.addTaskCategory(taskClassCode, editingValue.trim());
+    const categories = await apiDataService.getTaskCategories();
+    setTaskCategories(categories);
     setEditingValue('');
     showMessage('success', '任务分类添加成功');
   };
 
-  const handleDeleteTaskCategory = (taskClassCode: string, categoryName: string) => {
+  const handleDeleteTaskCategory = async (taskClassCode: string, categoryName: string) => {
     if (!taskClassCode) return;
     if (confirm(`确定要删除分类"${categoryName}"吗？`)) {
-      dataService.deleteTaskCategory(taskClassCode, categoryName);
-      setTaskCategories(dataService.getTaskCategories());
+      await apiDataService.deleteTaskCategory(taskClassCode, categoryName);
+      const categories = await apiDataService.getTaskCategories();
+      setTaskCategories(categories);
       showMessage('success', '任务分类删除成功');
     }
   };
 
-  const handleUpdateTaskCategory = (taskClassCode: string, oldCategoryName: string, newCategoryName: string) => {
+  const handleUpdateTaskCategory = async (taskClassCode: string, oldCategoryName: string, newCategoryName: string) => {
     if (!taskClassCode || !newCategoryName.trim()) {
       showMessage('error', '分类名称不能为空');
       return;
     }
-    dataService.updateTaskCategory(taskClassCode, oldCategoryName, newCategoryName.trim());
-    setTaskCategories(dataService.getTaskCategories());
+    await apiDataService.updateTaskCategory(taskClassCode, oldCategoryName, newCategoryName.trim());
+    const categories = await apiDataService.getTaskCategories();
+    setTaskCategories(categories);
     setEditingCategory(null);
     setEditingCategoryValue('');
     showMessage('success', '任务分类更新成功');
@@ -273,7 +292,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     setDraggedOverCategory(null);
   };
 
-  const handleDrop = (taskClassCode: string) => (e: React.DragEvent, targetCategoryName: string) => {
+  const handleDrop = (taskClassCode: string) => async (e: React.DragEvent, targetCategoryName: string) => {
     e.preventDefault();
     if (!draggedCategory || draggedCategory === targetCategoryName) {
       setDraggedCategory(null);
@@ -293,8 +312,9 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       newOrder.splice(draggedIndex, 1);
       newOrder.splice(targetIndex, 0, draggedCategory);
 
-      dataService.reorderTaskCategories(taskClassCode, newOrder);
-      setTaskCategories(dataService.getTaskCategories());
+      await apiDataService.reorderTaskCategories(taskClassCode, newOrder);
+      const updatedCategories = await apiDataService.getTaskCategories();
+      setTaskCategories(updatedCategories);
     }
 
     setDraggedCategory(null);
@@ -307,7 +327,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   };
 
   // Move category up
-  const moveCategoryUp = (taskClassCode: string, categoryName: string) => {
+  const moveCategoryUp = async (taskClassCode: string, categoryName: string) => {
     const categories = taskCategories[taskClassCode];
     if (!categories) return;
 
@@ -319,12 +339,13 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     [newOrder[currentIndex], newOrder[currentIndex - 1]] =
     [newOrder[currentIndex - 1], newOrder[currentIndex]];
 
-    dataService.reorderTaskCategories(taskClassCode, newOrder);
-    setTaskCategories(dataService.getTaskCategories());
+    await apiDataService.reorderTaskCategories(taskClassCode, newOrder);
+    const updatedCategories = await apiDataService.getTaskCategories();
+    setTaskCategories(updatedCategories);
   };
 
   // Move category down
-  const moveCategoryDown = (taskClassCode: string, categoryName: string) => {
+  const moveCategoryDown = async (taskClassCode: string, categoryName: string) => {
     const categories = taskCategories[taskClassCode];
     if (!categories) return;
 
@@ -336,60 +357,67 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     [newOrder[currentIndex], newOrder[currentIndex + 1]] =
     [newOrder[currentIndex + 1], newOrder[currentIndex]];
 
-    dataService.reorderTaskCategories(taskClassCode, newOrder);
-    setTaskCategories(dataService.getTaskCategories());
+    await apiDataService.reorderTaskCategories(taskClassCode, newOrder);
+    const updatedCategories = await apiDataService.getTaskCategories();
+    setTaskCategories(updatedCategories);
   };
 
   // Model Management
-  const handleAddModel = () => {
+  const handleAddModel = async () => {
     if (!editingValue.trim()) return;
-    dataService.saveEquipmentModel(editingValue.trim());
-    setModels(dataService.getEquipmentModels());
+    await apiDataService.saveEquipmentModel(editingValue.trim());
+    const models = await apiDataService.getEquipmentModels();
+    setModels(models);
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '机型添加成功');
   };
 
-  const handleDeleteModel = (model: string) => {
+  const handleDeleteModel = async (model: string) => {
     if (confirm('确定要删除此机型吗？')) {
-      dataService.deleteEquipmentModel(model);
-      setModels(dataService.getEquipmentModels());
+      await apiDataService.deleteEquipmentModel(model);
+      const models = await apiDataService.getEquipmentModels();
+      setModels(models);
       showMessage('success', '机型删除成功');
     }
   };
 
   // Capacity Level Management
-  const handleAddCapacityLevel = () => {
+  const handleAddCapacityLevel = async () => {
     if (!editingValue.trim()) return;
-    dataService.saveCapacityLevel(editingValue.trim());
-    setCapacityLevels(dataService.getCapacityLevels());
+    await apiDataService.saveCapacityLevel(editingValue.trim());
+    const levels = await apiDataService.getCapacityLevels();
+    setCapacityLevels(levels);
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '容量等级添加成功');
   };
 
-  const handleDeleteCapacityLevel = (level: string) => {
+  const handleDeleteCapacityLevel = async (level: string) => {
     if (confirm('确定要删除此容量等级吗？')) {
-      dataService.deleteCapacityLevel(level);
-      setCapacityLevels(dataService.getCapacityLevels());
+      await apiDataService.deleteCapacityLevel(level);
+      const levels = await apiDataService.getCapacityLevels();
+      setCapacityLevels(levels);
       showMessage('success', '容量等级删除成功');
     }
   };
 
   // Travel Label Management
-  const handleAddTravelLabel = () => {
+  const handleAddTravelLabel = async () => {
     if (!editingValue.trim()) return;
-    dataService.saveTravelLabel(editingValue.trim());
-    setTravelLabels(dataService.getTravelLabels());
+    await apiDataService.saveTravelLabel(editingValue.trim());
+    const labels = await apiDataService.getTravelLabels();
+    setTravelLabels(labels);
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '差旅标签添加成功');
   };
 
-  const handleDeleteTravelLabel = (label: string) => {
+  const handleDeleteTravelLabel = async (label: string) => {
     if (confirm('确定要删除此差旅标签吗？')) {
-      dataService.deleteTravelLabel(label);
-      setTravelLabels(dataService.getTravelLabels());
+      await apiDataService.deleteTravelLabel(label);
+      const labels = await apiDataService.getTravelLabels();
+      setTravelLabels(labels);
       showMessage('success', '差旅标签删除成功');
     }
   };
@@ -413,16 +441,16 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveAvatar = () => {
+  const handleSaveAvatar = async () => {
     if (!avatar || !currentUser) return;
-    dataService.saveAvatar(currentUser.UserID, avatar);
+    await apiDataService.saveUserAvatar(currentUser.UserID, avatar);
     showMessage('success', '头像保存成功');
   };
 
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
     if (!currentUser) return;
     if (confirm('确定要删除头像吗？')) {
-      dataService.deleteAvatar(currentUser.UserID);
+      await apiDataService.deleteUserAvatar(currentUser.UserID);
       setAvatar(null);
       setAvatarFile(null);
       showMessage('success', '头像删除成功');
@@ -430,7 +458,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   };
 
   // Password Change
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (!currentUser) {
       showMessage('error', '用户信息不存在');
       return;
@@ -446,7 +474,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       return;
     }
 
-    const success = dataService.changePassword(currentUser.UserID, currentPassword, newPassword);
+    const success = await apiDataService.changePassword(currentUser.UserID, currentPassword, newPassword);
     if (success) {
       setCurrentPassword('');
       setNewPassword('');
@@ -557,7 +585,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
               )}
 
               {taskClasses.map(taskClass => {
-                const usage = dataService.checkTaskClassUsage(taskClass.id);
+                const usage = apiDataService.checkTaskClassUsage(taskClass.id);
                 return (
                   <div key={taskClass.id} className="bg-slate-50 rounded-lg">
                     {editingItem === taskClass.id ? (

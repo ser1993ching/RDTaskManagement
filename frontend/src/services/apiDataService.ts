@@ -276,6 +276,29 @@ class ApiDataService {
     }
   }
 
+  async saveTaskClass(taskClass: any): Promise<any> {
+    try {
+      if (taskClass.id) {
+        return await taskClassService.updateTaskClass(taskClass.id, taskClass);
+      } else {
+        return await taskClassService.createTaskClass(taskClass);
+      }
+    } catch (error) {
+      console.error('保存任务分类失败:', error);
+      throw error;
+    }
+  }
+
+  async deleteTaskClass(id: string): Promise<boolean> {
+    try {
+      await taskClassService.deleteTaskClass(id);
+      return true;
+    } catch (error) {
+      console.error('删除任务分类失败:', error);
+      return false;
+    }
+  }
+
   // 任务库相关
   async getTaskPoolItems(): Promise<TaskPoolItemDto[]> {
     try {
@@ -480,6 +503,395 @@ class ApiDataService {
     }
   }
 
+  // ========== 个人工作台辅助方法 ==========
+  // 获取团队成员（同办公地点的非管理员用户）
+  async getTeamMembers(currentUserId: string): Promise<UserDto[]> {
+    try {
+      const users = await this.getUsers();
+      const currentUser = users.find(u => u.userID === currentUserId);
+      if (!currentUser) return [];
+
+      const officeLocation = currentUser.officeLocation;
+      return users.filter(u =>
+        u.userID !== 'admin' &&
+        u.userID !== currentUserId &&
+        u.officeLocation === officeLocation
+      );
+    } catch (error) {
+      console.error('获取团队成员失败:', error);
+      return [];
+    }
+  }
+
+  // 根据开始日期筛选任务
+  filterTasksByStartDate(tasks: TaskDto[], period: string): TaskDto[] {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (period) {
+      case 'week':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case 'quarter':
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 3);
+        break;
+      case 'halfYear':
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 6);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'yearAndHalf':
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 12);
+        break;
+      default:
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 3);
+    }
+
+    return tasks.filter(task => {
+      const taskStartDate = task.startDate || task.StartDate;
+      if (!taskStartDate) return false;
+      const taskDate = new Date(taskStartDate);
+      return taskDate >= startDate && taskDate <= now;
+    });
+  }
+
+  // 按角色状态分离任务
+  separateTasksByRoleStatus(tasks: TaskDto[], userId: string): { inProgress: TaskDto[]; pending: TaskDto[]; completed: TaskDto[] } {
+    const result = {
+      inProgress: [] as TaskDto[],
+      pending: [] as TaskDto[],
+      completed: [] as TaskDto[],
+    };
+
+    const inProgressStatuses = ['IN_PROGRESS', 'REVISING', 'REJECTED'];
+    const completedStatuses = ['COMPLETED'];
+
+    for (const task of tasks) {
+      // 确定用户在任务中的角色状态（支持 PascalCase 和 camelCase）
+      const taskStatus = task.status || task.Status || '';
+      let roleStatus = '';
+      const assigneeId = task.assigneeID || task.AssigneeID;
+      const checkerId = task.checkerID || task.CheckerID;
+      const chiefDesignerId = task.chiefDesignerID || task.ChiefDesignerID;
+      const approverId = task.approverID || task.ApproverID;
+
+      if (assigneeId === userId) roleStatus = task.assigneeStatus || task.AssigneeStatus || '';
+      else if (checkerId === userId) roleStatus = task.checkerStatus || task.CheckerStatus || '';
+      else if (chiefDesignerId === userId) roleStatus = task.chiefDesignerStatus || task.ChiefDesignerStatus || '';
+      else if (approverId === userId) roleStatus = task.approverStatus || task.ApproverStatus || '';
+
+      // 综合判断任务状态
+      const finalStatus = roleStatus || taskStatus;
+
+      if (completedStatuses.includes(finalStatus)) {
+        result.completed.push(task);
+      } else if (inProgressStatuses.includes(finalStatus)) {
+        result.inProgress.push(task);
+      } else {
+        // NOT_STARTED 或其他状态都放入 pending
+        result.pending.push(task);
+      }
+    }
+
+    return result;
+  }
+
+  // 计算个人统计数据
+  calculatePersonalStats(tasks: TaskDto[], period: string, userId: string): any {
+    const allTasks = this.getPersonalTasksSync(tasks);
+    const periodTasks = this.filterTasksByStartDate(allTasks, period);
+    const separated = this.separateTasksByRoleStatus(allTasks, userId);
+    const periodSeparated = this.separateTasksByRoleStatus(periodTasks, userId);
+
+    const totalCount = allTasks.length;
+    const completedCount = separated.completed.length;
+    const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+    // 类别分布
+    const categoryMap = new Map<string, number>();
+    for (const task of allTasks) {
+      const category = task.category || '未分类';
+      categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
+    }
+    const categoryDistribution = Array.from(categoryMap.entries()).map(([name, count]) => ({
+      name,
+      count,
+      percentage: totalCount > 0 ? Math.round((count / totalCount) * 100) : 0,
+    }));
+
+    // 差旅统计
+    const travelTasks = allTasks.filter(t => t.taskClassID === 'TC009');
+    const totalTravelDays = travelTasks.reduce((sum, t) => sum + (t.travelDuration || 0), 0);
+    const travelPercentage = Math.round((totalTravelDays / 22) * 100); // 假设每月22个工作日
+
+    // 会议统计
+    const meetingTasks = allTasks.filter(t => t.taskClassID === 'TC007');
+    const totalMeetingHours = meetingTasks.reduce((sum, t) => sum + (t.meetingDuration || 0), 0);
+    const meetingPercentage = Math.round((totalMeetingHours / 160) * 100); // 假设每月160工作小时
+
+    return {
+      totalCount,
+      completedCount,
+      inProgressCount: separated.inProgress.length,
+      pendingCount: separated.pending.length,
+      completionRate,
+      categoryDistribution,
+      travelStats: {
+        totalDays: totalTravelDays,
+        percentage: Math.min(travelPercentage, 100),
+      },
+      meetingStats: {
+        totalHours: totalMeetingHours,
+        percentage: Math.min(meetingPercentage, 100),
+      },
+      monthlyTrend: [],
+    };
+  }
+
+  // 同步获取个人任务（内部使用）
+  private getPersonalTasksSync(tasks: TaskDto[]): TaskDto[] {
+    return tasks;
+  }
+
+  // 计算每日趋势
+  calculateDailyTrend(tasks: TaskDto[], days: number, userId: string): any[] {
+    const now = new Date();
+    const trend = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(now.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      const dayTasks = tasks.filter(t => t.startDate === dateStr);
+      const separated = this.separateTasksByRoleStatus(dayTasks, userId);
+
+      trend.push({
+        month: dateStr,
+        assigned: dayTasks.length,
+        completed: separated.completed.length,
+      });
+    }
+
+    return trend;
+  }
+
+  // 计算每月趋势
+  calculateMonthlyTrend(tasks: TaskDto[], months: number, userId: string): any[] {
+    const now = new Date();
+    const trend = [];
+
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      const monthTasks = tasks.filter(t => {
+        if (!t.startDate) return false;
+        const taskDate = new Date(t.startDate);
+        return taskDate >= date && taskDate < nextMonth;
+      });
+      const separated = this.separateTasksByRoleStatus(monthTasks, userId);
+
+      trend.push({
+        month: monthStr,
+        assigned: monthTasks.length,
+        completed: separated.completed.length,
+      });
+    }
+
+    return trend;
+  }
+
+  // 更新任务角色状态
+  async updateTaskRoleStatus(taskId: string, role: string, status: string): Promise<boolean> {
+    try {
+      // 将角色名称转换为后端期望的格式
+      const roleMap: Record<string, 'assignee' | 'checker' | 'chiefdesigner' | 'approver'> = {
+        'assignee': 'assignee',
+        'checker': 'checker',
+        'chiefDesigner': 'chiefdesigner',
+        'approver': 'approver',
+      };
+      const apiRole = roleMap[role] || 'assignee';
+      await taskService.updateRoleStatus(taskId, apiRole, status);
+      return true;
+    } catch (error) {
+      console.error('更新任务角色状态失败:', error);
+      return false;
+    }
+  }
+
+  // 检查任务类别使用情况
+  checkTaskClassUsage(taskClassId: string): { hasTasks: boolean; taskCount: number } {
+    // 由于后端没有直接的检查API，返回默认结果
+    // 实际使用时应该调用后端API
+    return { hasTasks: false, taskCount: 0 };
+  }
+
+  // 生成统计CSV
+  generateStatsCSV(stats: any, separatedTasks: any, userName: string): string {
+    const headers = ['任务名称', '任务类别', '项目', '开始日期', '截止日期', '我的角色', '状态', '工作量'];
+    const rows: string[][] = [];
+
+    for (const task of separatedTasks.inProgress) {
+      rows.push([
+        task.TaskName || '',
+        task.Category || '',
+        task.ProjectName || '',
+        task.StartDate || '',
+        task.DueDate || '',
+        '进行中',
+        task.Status || '',
+        String(task.Workload || ''),
+      ]);
+    }
+
+    for (const task of separatedTasks.pending) {
+      rows.push([
+        task.TaskName || '',
+        task.Category || '',
+        task.ProjectName || '',
+        task.StartDate || '',
+        task.DueDate || '',
+        '未开始',
+        task.Status || '',
+        String(task.Workload || ''),
+      ]);
+    }
+
+    for (const task of separatedTasks.completed) {
+      rows.push([
+        task.TaskName || '',
+        task.Category || '',
+        task.ProjectName || '',
+        task.StartDate || '',
+        task.DueDate || '',
+        '已完成',
+        task.Status || '',
+        String(task.Workload || ''),
+      ]);
+    }
+
+    const csvContent = [
+      `个人工作统计 - ${userName}`,
+      `导出时间：${new Date().toLocaleString()}`,
+      '',
+      `总任务数：${stats.totalCount}`,
+      `已完成：${stats.completedCount}`,
+      `进行中：${stats.inProgressCount}`,
+      `未开始：${stats.pendingCount}`,
+      `完成率：${stats.completionRate}%`,
+      '',
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+    ].join('\n');
+
+    return csvContent;
+  }
+
+  // 下载CSV
+  downloadStatsCSV(csvContent: string, fileName: string): void {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // 判断任务是否为长期任务（超过30天）
+  isTaskLongRunning(task: any): boolean {
+    if (!task.StartDate || !task.DueDate) return false;
+    const startDate = new Date(task.StartDate);
+    const dueDate = new Date(task.DueDate);
+    const diffDays = Math.ceil((dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 30;
+  }
+
+  // 生成ID
+  generateId(prefix: string): string {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}-${timestamp}${random}`;
+  }
+
+  // 添加任务分类
+  async addTaskCategory(taskClassCode: string, categoryName: string): Promise<boolean> {
+    try {
+      const categories = await this.getTaskCategories();
+      const currentCategories = categories[taskClassCode] || [];
+      if (!currentCategories.includes(categoryName)) {
+        const newCategories = [...currentCategories, categoryName];
+        return await this.saveTaskCategories(taskClassCode, newCategories);
+      }
+      return true;
+    } catch (error) {
+      console.error('添加任务分类失败:', error);
+      return false;
+    }
+  }
+
+  // 删除任务分类
+  async deleteTaskCategory(taskClassCode: string, categoryName: string): Promise<boolean> {
+    try {
+      const categories = await this.getTaskCategories();
+      const currentCategories = categories[taskClassCode] || [];
+      const newCategories = currentCategories.filter(c => c !== categoryName);
+      return await this.saveTaskCategories(taskClassCode, newCategories);
+    } catch (error) {
+      console.error('删除任务分类失败:', error);
+      return false;
+    }
+  }
+
+  // 更新任务分类
+  async updateTaskCategory(taskClassCode: string, oldCategoryName: string, newCategoryName: string): Promise<boolean> {
+    try {
+      const categories = await this.getTaskCategories();
+      const currentCategories = categories[taskClassCode] || [];
+      const newCategories = currentCategories.map(c => c === oldCategoryName ? newCategoryName : c);
+      return await this.saveTaskCategories(taskClassCode, newCategories);
+    } catch (error) {
+      console.error('更新任务分类失败:', error);
+      return false;
+    }
+  }
+
+  // 重新排序任务分类
+  async reorderTaskCategories(taskClassCode: string, newOrder: string[]): Promise<boolean> {
+    try {
+      return await this.saveTaskCategories(taskClassCode, newOrder);
+    } catch (error) {
+      console.error('重新排序任务分类失败:', error);
+      return false;
+    }
+  }
+
+  // 修改密码
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+    try {
+      await authService.changePassword(userId, currentPassword, newPassword);
+      return true;
+    } catch (error) {
+      console.error('修改密码失败:', error);
+      return false;
+    }
+  }
+
   // 健康检查 - 专门用于检测后端是否可用
   async healthCheck(): Promise<boolean> {
     try {
@@ -496,10 +908,11 @@ class ApiDataService {
   }
 
   // 认证相关
-  async login(userId: string, password: string): Promise<{ user: UserDto; token: string } | null> {
+  async login(userId: string, password: string): Promise<{ user: any; token: string } | null> {
     try {
       const response = await authService.login(userId, password);
-      return { user: response.user as UserDto, token: response.token };
+      console.log('apiDataService.login response:', response);
+      return response;
     } catch (error) {
       console.error('登录失败:', error);
       return null;

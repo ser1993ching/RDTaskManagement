@@ -8,8 +8,8 @@ export interface LoginRequest {
   password: string;
 }
 
+// 登录响应（客户端处理后的格式，camelCase）
 export interface LoginResponse {
-  success: boolean;
   user: {
     userID: string;
     name: string;
@@ -17,6 +17,10 @@ export interface LoginResponse {
     officeLocation: string;
     title?: string;
     status: string;
+    joinDate?: string;
+    education?: string;
+    school?: string;
+    remark?: string;
   };
   token: string;
 }
@@ -43,13 +47,17 @@ class AuthService {
       '/api/auth/login',
       { UserId: userId, Password: password }
     );
+    console.log('authService.login response:', response);
 
-    if (response.success && response.data) {
-      apiClient.setToken(response.data.token);
-      return response.data;
+    // 客户端已提取Data并转换为camelCase，response直接是{ user, token }
+    if (response.user && response.token) {
+      apiClient.setToken(response.token);
+      // 保存用户信息到localStorage
+      this.setStoredUser(response.user);
+      return response;
     }
 
-    throw new Error(response.error?.message || '登录失败');
+    throw new Error('登录失败');
   }
 
   /**

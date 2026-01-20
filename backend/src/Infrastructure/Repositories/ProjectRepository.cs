@@ -93,4 +93,13 @@ public class ProjectRepository : IProjectRepository
 
         return (total, byCategory, keyProjects, completed);
     }
+
+    public async Task<string?> GetMaxProjectIdAsync()
+    {
+        return await _context.Projects
+            .Where(p => !p.IsDeleted && p.Id.StartsWith("PRJ"))
+            .OrderByDescending(p => p.Id)
+            .Select(p => p.Id)
+            .FirstOrDefaultAsync();
+    }
 }

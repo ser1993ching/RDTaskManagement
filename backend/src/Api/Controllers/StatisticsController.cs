@@ -24,7 +24,7 @@ public class StatisticsController : ControllerBase
     /// 获取个人统计
     /// </summary>
     [HttpGet("personal")]
-    public async Task<IActionResult> GetPersonalStats([FromQuery] string userId, [FromQuery] string period)
+    public async Task<IActionResult> GetPersonalStats([FromQuery] string userId, [FromQuery] string period = "month")
     {
         var stats = await _statisticsService.GetPersonalStatsAsync(userId, period);
         return Ok(stats);
@@ -34,7 +34,7 @@ public class StatisticsController : ControllerBase
     /// 获取个人任务（按状态分类）
     /// </summary>
     [HttpGet("personal/tasks")]
-    public async Task<IActionResult> GetPersonalTasks([FromQuery] string userId, [FromQuery] string period, [FromQuery] string? status)
+    public async Task<IActionResult> GetPersonalTasks([FromQuery] string userId, [FromQuery] string period = "month", [FromQuery] string? status = null)
     {
         var tasks = await _statisticsService.GetPersonalTasksByStatusAsync(userId, period, status);
         return Ok(tasks);
@@ -44,7 +44,7 @@ public class StatisticsController : ControllerBase
     /// 获取团队统计
     /// </summary>
     [HttpGet("team")]
-    public async Task<IActionResult> GetTeamStats([FromQuery] string period, [FromQuery] string? officeLocation)
+    public async Task<IActionResult> GetTeamStats([FromQuery] string period = "month", [FromQuery] string? officeLocation = null)
     {
         var stats = await _statisticsService.GetTeamStatsAsync(period, officeLocation);
         return Ok(stats);
@@ -54,7 +54,7 @@ public class StatisticsController : ControllerBase
     /// 获取工作量分布
     /// </summary>
     [HttpGet("workload")]
-    public async Task<IActionResult> GetWorkload([FromQuery] string period)
+    public async Task<IActionResult> GetWorkload([FromQuery] string period = "month")
     {
         var workload = await _statisticsService.GetWorkloadDistributionAsync(period);
         return Ok(workload);
@@ -74,8 +74,12 @@ public class StatisticsController : ControllerBase
     /// 获取日趋势
     /// </summary>
     [HttpGet("trend/daily")]
-    public async Task<IActionResult> GetDailyTrend([FromQuery] string userId, [FromQuery] int days = 7)
+    public async Task<IActionResult> GetDailyTrend([FromQuery] string? userId, [FromQuery] int days = 7)
     {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Ok(new List<object>());
+        }
         var trend = await _statisticsService.GetDailyTrendAsync(userId, days);
         return Ok(trend);
     }
@@ -104,7 +108,7 @@ public class StatisticsController : ControllerBase
     /// 获取差旅统计
     /// </summary>
     [HttpGet("travel")]
-    public async Task<IActionResult> GetTravelStatistics([FromQuery] string? userId, [FromQuery] string period, [FromQuery] string? projectId)
+    public async Task<IActionResult> GetTravelStatistics([FromQuery] string? userId, [FromQuery] string period = "month", [FromQuery] string? projectId = null)
     {
         var stats = await _statisticsService.GetTravelStatisticsAsync(userId, period, projectId);
         return Ok(stats);
@@ -114,7 +118,7 @@ public class StatisticsController : ControllerBase
     /// 获取会议统计
     /// </summary>
     [HttpGet("meeting")]
-    public async Task<IActionResult> GetMeetingStatistics([FromQuery] string? userId, [FromQuery] string period)
+    public async Task<IActionResult> GetMeetingStatistics([FromQuery] string? userId, [FromQuery] string period = "month")
     {
         var stats = await _statisticsService.GetMeetingStatisticsAsync(userId, period);
         return Ok(stats);
@@ -124,7 +128,7 @@ public class StatisticsController : ControllerBase
     /// 获取工作日信息
     /// </summary>
     [HttpGet("workdays")]
-    public async Task<IActionResult> GetWorkDays([FromQuery] string period)
+    public async Task<IActionResult> GetWorkDays([FromQuery] string period = "month")
     {
         var workDays = await _statisticsService.GetWorkDaysAsync(period);
         return Ok(workDays);

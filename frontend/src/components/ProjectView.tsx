@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Project, ProjectCategory, User, SystemRole } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, X, RefreshCw } from 'lucide-react';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 import AutocompleteInput from './AutocompleteInput';
 
 interface ProjectViewProps {
@@ -45,8 +45,15 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
 
   // 加载设置数据
   useEffect(() => {
-    setEquipmentModels(dataService.getEquipmentModels());
-    setCapacityLevels(dataService.getCapacityLevels());
+    const loadSettings = async () => {
+      const [models, levels] = await Promise.all([
+        apiDataService.getEquipmentModels(),
+        apiDataService.getCapacityLevels(),
+      ]);
+      setEquipmentModels(models);
+      setCapacityLevels(levels);
+    };
+    loadSettings();
   }, []);
 
   // 筛选项目列表
@@ -163,14 +170,14 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const projectToSave: Project = {
       ...(editingProject || {}),
       ...formData as Project,
-      id: editingProject?.id || dataService.generateId('PRJ'),
+      id: editingProject?.id || `PRJ-${Date.now()}`,
     };
-    dataService.saveProject(projectToSave);
+    await apiDataService.saveProject(projectToSave);
     setIsModalOpen(false);
     onRefresh();
   };
@@ -219,14 +226,11 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
             </button>
             <button
               onClick={() => {
-                if (confirm('将重新加载所有示例数据（保留当前登录状态），是否继续？')) {
-                  dataService.reinitializeData();
-                  onRefresh();
-                  alert('数据已刷新！');
-                }
+                onRefresh();
+                alert('数据已刷新！');
               }}
               className="flex items-center gap-2 border border-orange-300 bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 focus:outline-none"
-              title="重新加载示例数据"
+              title="刷新数据"
             >
               <RefreshCw size={16} /> 刷新数据
             </button>
@@ -478,7 +482,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                   {canEdit && (
                     <td className="px-6 py-4 text-right">
                       <button onClick={() => openModal(p)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16} /></button>
-                      <button onClick={() => { if(confirm('删除项目?')) { dataService.deleteProject(p.id); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                      <button onClick={() => { if(confirm('删除项目?')) { apiDataService.deleteProject(p.id); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
                     </td>
                   )}
                 </tr>

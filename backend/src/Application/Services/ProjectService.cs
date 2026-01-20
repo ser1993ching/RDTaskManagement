@@ -124,6 +124,18 @@ public class ProjectService : IProjectService
         }
 
         var dbProject = _mapper.Map<Project>(request);
+        // 手动分配ID，确保与数据库中的种子数据不冲突
+        var maxId = await _projectRepository.GetMaxProjectIdAsync();
+        var counter = 1;
+        if (!string.IsNullOrEmpty(maxId) && maxId.StartsWith("PRJ"))
+        {
+            var numPart = maxId.Substring(3);
+            if (int.TryParse(numPart, out var num))
+            {
+                counter = num + 1;
+            }
+        }
+        dbProject.Id = $"PRJ{counter:D3}";
         dbProject = await _projectRepository.CreateAsync(dbProject);
         return _mapper.Map<ProjectDto>(dbProject);
     }

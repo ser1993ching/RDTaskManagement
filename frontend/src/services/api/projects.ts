@@ -83,10 +83,10 @@ class ProjectService {
    */
   async createProject(data: CreateProjectRequest): Promise<Project> {
     const response = await apiClient.post<ApiResponse<Project>>('/api/projects', data);
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '创建项目失败');
+    throw new Error(response.Error?.Message || '创建项目失败');
   }
 
   /**
@@ -94,10 +94,10 @@ class ProjectService {
    */
   async updateProject(projectId: string, data: UpdateProjectRequest): Promise<Project> {
     const response = await apiClient.put<ApiResponse<Project>>(`/api/projects/${projectId}`, data);
-    if (response.success && response.data) {
-      return response.data;
+    if (response.Success && response.Data) {
+      return response.Data;
     }
-    throw new Error(response.error?.message || '更新项目失败');
+    throw new Error(response.Error?.Message || '更新项目失败');
   }
 
   /**

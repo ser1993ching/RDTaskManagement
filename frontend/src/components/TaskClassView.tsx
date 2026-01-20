@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TaskClass } from '../types';
-import { dataService } from '../services/dataService';
+import { apiDataService } from '../services/apiDataService';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
 
 interface TaskClassViewProps {
@@ -8,27 +8,32 @@ interface TaskClassViewProps {
 }
 
 export const TaskClassView: React.FC<TaskClassViewProps> = ({ currentUser }) => {
-  const [taskClasses, setTaskClasses] = useState<TaskClass[]>(dataService.getTaskClasses());
+  const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<TaskClass>>({});
   const [showForm, setShowForm] = useState(false);
 
-  const handleRefresh = () => {
-    setTaskClasses(dataService.getTaskClasses());
+  useEffect(() => {
+    handleRefresh();
+  }, []);
+
+  const handleRefresh = async () => {
+    const classes = await apiDataService.getTaskClasses();
+    setTaskClasses(classes);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.code) return;
 
     const newTaskClass: TaskClass = {
-      id: editingId || dataService.generateId('TC'),
+      id: editingId || `TC-${Date.now()}`,
       name: formData.name,
       code: formData.code,
       description: formData.description || '',
     };
 
-    dataService.saveTaskClass(newTaskClass);
+    await apiDataService.saveTaskClass(newTaskClass);
     handleRefresh();
     setShowForm(false);
     setEditingId(null);
@@ -41,9 +46,9 @@ export const TaskClassView: React.FC<TaskClassViewProps> = ({ currentUser }) => 
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('确定要删除这个任务类吗？此操作不可撤销。')) {
-      dataService.deleteTaskClass(id);
+      await apiDataService.deleteTaskClass(id);
       handleRefresh();
     }
   };

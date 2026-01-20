@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
   timeout: 30000,
 };
 
@@ -57,8 +57,15 @@ export const API_ENDPOINTS = {
   },
   statistics: {
     dashboard: '/api/statistics/dashboard',
-    personal: (userId: string) => `/api/statistics/personal/${userId}`,
-    team: (userId: string) => `/api/statistics/team/${userId}`,
+    personal: (userId: string) => `/api/statistics/personal?userId=${userId}`,
+    personalTasks: (userId: string) => `/api/statistics/personal/tasks?userId=${userId}`,
+    team: '/api/statistics/team',
+    workload: '/api/statistics/workload',
+    monthlyTrend: '/api/statistics/trend/monthly',
+    delayed: '/api/statistics/delayed',
+    overdue: '/api/statistics/overdue',
+    travel: '/api/statistics/travel',
+    meeting: '/api/statistics/meeting',
   },
   settings: {
     equipmentModels: '/api/settings/equipment-models',

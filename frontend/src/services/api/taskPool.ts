@@ -144,6 +144,35 @@ const taskPoolService = {
     const response = await apiClient.post<TaskPoolItemDto>(url, {});
     return response.data;
   },
+
+  // 获取任务库统计
+  async getStatistics(): Promise<{
+    totalItems: number;
+    byTaskClass: Record<string, number>;
+    recentlyUsed: number;
+  }> {
+    const response = await apiClient.get<{
+      totalItems: number;
+      byTaskClass: Record<string, number>;
+      recentlyUsed: number;
+    }>('/api/taskpool/statistics');
+    return response;
+  },
+
+  // 批量分配任务
+  async batchAssign(poolItemIds: string[], data: AssignTaskRequest): Promise<any> {
+    const response = await apiClient.post<any>('/api/taskpool/batch-assign', {
+      poolItemIds,
+      taskData: data,
+    });
+    return response;
+  },
+
+  // 从任务回收
+  async retrieveFromTask(taskId: string): Promise<TaskPoolItemDto> {
+    const response = await apiClient.post<TaskPoolItemDto>(`/api/taskpool/retrieve/${taskId}`, {});
+    return response.data;
+  },
 };
 
 export { taskPoolService };

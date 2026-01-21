@@ -136,6 +136,24 @@ class StatisticsService {
     }
     return apiClient.get(url);
   }
+
+  /**
+   * 获取工作日信息
+   */
+  async getWorkDays(year?: number, month?: number): Promise<{
+    year: number;
+    month: number;
+    totalDays: number;
+    workDays: number;
+    holidays: number[];
+    workDateList: string[];
+  }> {
+    let url = API_ENDPOINTS.statistics.workdays;
+    if (year && month) {
+      url += `?year=${year}&month=${month}`;
+    }
+    return apiClient.get(url);
+  }
 }
 
 export const statisticsService = new StatisticsService();

@@ -106,6 +106,25 @@ class ProjectService {
   async deleteProject(projectId: string): Promise<void> {
     await apiClient.delete(`/api/projects/${projectId}`);
   }
+
+  /**
+   * 获取项目统计
+   */
+  async getStatistics(): Promise<{
+    totalProjects: number;
+    completedProjects: number;
+    inProgressProjects: number;
+    byCategory: Record<string, number>;
+  }> {
+    return apiClient.get('/api/projects/statistics');
+  }
+
+  /**
+   * 检查项目是否在使用中
+   */
+  async checkInUse(projectId: string): Promise<{ inUse: boolean; taskCount: number }> {
+    return apiClient.get(`/api/projects/${projectId}/in-use`);
+  }
 }
 
 export const projectService = new ProjectService();

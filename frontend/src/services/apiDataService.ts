@@ -144,6 +144,16 @@ class ApiDataService {
     await userService.deleteUser(userId);
   }
 
+  async restoreUser(userId: string): Promise<boolean> {
+    try {
+      await userService.restoreUser(userId);
+      return true;
+    } catch (error) {
+      console.error('恢复用户失败:', error);
+      return false;
+    }
+  }
+
   async resetPassword(userId: string, newPassword: string): Promise<boolean> {
     try {
       await authService.resetPassword(userId, newPassword);
@@ -191,6 +201,25 @@ class ApiDataService {
 
   async deleteProject(projectId: string): Promise<void> {
     await projectService.deleteProject(projectId);
+  }
+
+  async getProjectStatistics(): Promise<any> {
+    try {
+      return await projectService.getStatistics();
+    } catch (error) {
+      console.error('获取项目统计失败:', error);
+      return null;
+    }
+  }
+
+  async isProjectInUse(projectId: string): Promise<boolean> {
+    try {
+      const response = await projectService.checkInUse(projectId);
+      return response.inUse || false;
+    } catch (error) {
+      console.error('检查项目使用状态失败:', error);
+      return false;
+    }
   }
 
   // 任务相关
@@ -266,6 +295,36 @@ class ApiDataService {
     await taskService.updateTaskStatus(taskId, status);
   }
 
+  async completeAllRoles(taskId: string): Promise<boolean> {
+    try {
+      await taskService.completeAllRoles(taskId);
+      return true;
+    } catch (error) {
+      console.error('完成所有角色失败:', error);
+      return false;
+    }
+  }
+
+  async retrieveTaskToPool(taskId: string): Promise<boolean> {
+    try {
+      await taskService.retrieveToPool(taskId);
+      return true;
+    } catch (error) {
+      console.error('回收任务到任务库失败:', error);
+      return false;
+    }
+  }
+
+  async batchOperation(operation: string, taskIds: string[]): Promise<boolean> {
+    try {
+      await taskService.batchOperation(operation, taskIds);
+      return true;
+    } catch (error) {
+      console.error('批量操作任务失败:', error);
+      return false;
+    }
+  }
+
   // 任务分类
   async getTaskClasses(): Promise<any[]> {
     try {
@@ -338,12 +397,121 @@ class ApiDataService {
     return await taskPoolService.assignTask(poolItemId, taskData);
   }
 
+  async getTaskPoolStatistics(): Promise<any> {
+    try {
+      return await taskPoolService.getStatistics();
+    } catch (error) {
+      console.error('获取任务库统计失败:', error);
+      return null;
+    }
+  }
+
+  async batchAssignPoolItem(poolItemIds: string[], taskData: any): Promise<any> {
+    try {
+      return await taskPoolService.batchAssign(poolItemIds, taskData);
+    } catch (error) {
+      console.error('批量分配任务库项失败:', error);
+      return null;
+    }
+  }
+
+  async duplicatePoolItem(poolItemId: string): Promise<any> {
+    try {
+      return await taskPoolService.duplicate(poolItemId);
+    } catch (error) {
+      console.error('复制任务库项失败:', error);
+      return null;
+    }
+  }
+
+  async retrieveFromTask(taskId: string): Promise<boolean> {
+    try {
+      await taskPoolService.retrieveFromTask(taskId);
+      return true;
+    } catch (error) {
+      console.error('从任务回收失败:', error);
+      return false;
+    }
+  }
+
   // 统计
   async getDashboardStatistics(): Promise<any> {
     try {
       return await statisticsService.getDashboardStats();
     } catch (error) {
       console.error('获取统计失败:', error);
+      return null;
+    }
+  }
+
+  async getPersonalStats(userId: string, period?: string): Promise<any> {
+    try {
+      return await statisticsService.getPersonalStats(userId, period);
+    } catch (error) {
+      console.error('获取个人统计失败:', error);
+      return null;
+    }
+  }
+
+  async getTeamStats(currentUserId: string): Promise<any> {
+    try {
+      return await statisticsService.getTeamStats(currentUserId);
+    } catch (error) {
+      console.error('获取团队统计失败:', error);
+      return null;
+    }
+  }
+
+  async getWorkloadDistribution(userId: string): Promise<any> {
+    try {
+      return await statisticsService.getWorkloadDistribution(userId);
+    } catch (error) {
+      console.error('获取工作量分布失败:', error);
+      return null;
+    }
+  }
+
+  async getDelayedTasks(userId: string): Promise<any[]> {
+    try {
+      return await statisticsService.getDelayedTasks(userId);
+    } catch (error) {
+      console.error('获取拖延任务失败:', error);
+      return [];
+    }
+  }
+
+  async getOverdueTasks(userId: string): Promise<any[]> {
+    try {
+      return await statisticsService.getOverdueTasks(userId);
+    } catch (error) {
+      console.error('获取逾期任务失败:', error);
+      return [];
+    }
+  }
+
+  async getTravelStatistics(userId: string): Promise<any> {
+    try {
+      return await statisticsService.getTravelStatistics(userId);
+    } catch (error) {
+      console.error('获取差旅统计失败:', error);
+      return null;
+    }
+  }
+
+  async getMeetingStatistics(userId: string): Promise<any> {
+    try {
+      return await statisticsService.getMeetingStatistics(userId);
+    } catch (error) {
+      console.error('获取会议统计失败:', error);
+      return null;
+    }
+  }
+
+  async getWorkDays(year: number, month: number): Promise<any> {
+    try {
+      return await statisticsService.getWorkDays(year, month);
+    } catch (error) {
+      console.error('获取工作日信息失败:', error);
       return null;
     }
   }

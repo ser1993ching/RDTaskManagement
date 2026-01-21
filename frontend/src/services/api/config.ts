@@ -33,6 +33,8 @@ export const API_ENDPOINTS = {
     personal: (userId: string) => `/api/tasks/personal/${userId}`,
     travel: (userId: string) => `/api/tasks/travel/${userId}`,
     meeting: (userId: string) => `/api/tasks/meeting/${userId}`,
+    isLongRunning: (id: string) => `/api/tasks/${id}/is-long-running`,
+    batch: '/api/tasks/batch',
   },
   projects: {
     list: '/api/projects',
@@ -54,6 +56,10 @@ export const API_ENDPOINTS = {
     update: (id: string) => `/api/taskpool/${id}`,
     delete: (id: string) => `/api/taskpool/${id}`,
     assign: (id: string) => `/api/taskpool/${id}/assign`,
+    statistics: '/api/taskpool/statistics',
+    batchAssign: '/api/taskpool/batch-assign',
+    duplicate: (id: string) => `/api/taskpool/${id}/duplicate`,
+    retrieveFromTask: (taskId: string) => `/api/taskpool/retrieve/${taskId}`,
   },
   statistics: {
     dashboard: '/api/statistics/dashboard',
@@ -62,10 +68,12 @@ export const API_ENDPOINTS = {
     team: '/api/statistics/team',
     workload: '/api/statistics/workload',
     monthlyTrend: '/api/statistics/trend/monthly',
+    dailyTrend: '/api/statistics/trend/daily',
     delayed: '/api/statistics/delayed',
     overdue: '/api/statistics/overdue',
     travel: '/api/statistics/travel',
     meeting: '/api/statistics/meeting',
+    workdays: '/api/statistics/workdays',
   },
   settings: {
     equipmentModels: '/api/settings/equipment-models',

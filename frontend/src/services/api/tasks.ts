@@ -209,11 +209,18 @@ class TaskService {
    * 回收任务到任务库
    */
   async retrieveToPool(taskId: string): Promise<Task> {
-    const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/retrieve-to-pool`, {});
+    const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/retrieve`, {});
     if (response.Success && response.Data) {
       return response.Data;
     }
     throw new Error(response.Error?.Message || '回收任务到任务库失败');
+  }
+
+  /**
+   * 批量操作任务
+   */
+  async batchOperation(operation: string, taskIds: string[]): Promise<ApiResponse<void>> {
+    return apiClient.post<ApiResponse<void>>('/api/tasks/batch', { operation, taskIds });
   }
 
   /**
@@ -237,6 +244,14 @@ class TaskService {
   async getMeetingTasks(userId: string, period?: string): Promise<MeetingTasksResponse> {
     const params = period ? `?period=${period}` : '';
     return apiClient.get<MeetingTasksResponse>(`/api/tasks/meeting/${userId}${params}`);
+  }
+
+  /**
+   * 检查任务是否为长期任务
+   */
+  async checkIsLongRunning(taskId: string): Promise<boolean> {
+    const response = await apiClient.get<{ isLongRunning: boolean }>(`/api/tasks/${taskId}/is-long-running`);
+    return response.isLongRunning || false;
   }
 }
 

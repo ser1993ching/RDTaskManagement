@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using TaskManageSystem.Application.DTOs.Settings;
 using TaskManageSystem.Application.Interfaces;
 using TaskManageSystem.Domain.Entities;
@@ -5,36 +7,39 @@ using TaskManageSystem.Domain.Entities;
 namespace TaskManageSystem.Application.Services;
 
 /// <summary>
-/// 系统配置服务实现
+/// 系统配置服务实现 - 使用数据库持久化存储
 /// </summary>
 public class SettingsService : ISettingsService
 {
-    // 内存存储 - 实际项目中应使用数据库
-    private static readonly List<string> EquipmentModels = new()
+    private readonly ISystemConfigRepository _configRepository;
+    private readonly ILogger<SettingsService> _logger;
+
+    // 内存缓存 - 避免频繁数据库查询
+    private static readonly Dictionary<string, object> _memoryCache = new();
+    private static readonly object _cacheLock = new();
+
+    // 默认配置值
+    private static readonly List<string> DefaultEquipmentModels = new()
     {
-        "H300", "H380", "H420", "H480", "H550",
-        "H620", "H700", "H800", "H900", "H1000"
+        "H300", "H380", "H420", "H480", "H550", "H620", "H700", "H800", "H900", "H1000"
     };
 
-    private static readonly List<string> CapacityLevels = new()
+    private static readonly List<string> DefaultCapacityLevels = new()
     {
-        "100MW", "150MW", "200MW", "250MW", "300MW",
-        "350MW", "400MW", "500MW", "600MW", "700MW"
+        "100MW", "150MW", "200MW", "250MW", "300MW", "350MW", "400MW", "500MW", "600MW", "700MW"
     };
 
-    private static readonly List<string> TravelLabels = new()
+    private static readonly List<string> DefaultTravelLabels = new()
     {
-        "市场配合出差", "常规项目执行出差", "核电项目执行出差",
-        "科研出差", "改造服务出差", "其他任务出差"
+        "市场配合出差", "常规项目执行出差", "核电项目执行出差", "科研出差", "改造服务出差", "其他任务出差"
     };
 
-    private static readonly Dictionary<string, List<string>> TaskCategories = new()
+    private static readonly Dictionary<string, List<string>> DefaultTaskCategories = new()
     {
-        // key 与 taskClass.code 保持一致（驼峰命名）
-        ["Market"] = new List<string> { "标书", "复询", "技术支持", "其他" },
+        ["Market"] = new List<string> { "标书", "复询", "技术方案", "其他" },
         ["Execution"] = new List<string> { "搭建生产资料", "设计院提资", "CT配合与提资", "随机资料", "项目特殊项处理", "用户配合", "图纸会签", "传真回复", "其他" },
-        ["Nuclear"] = new List<string> { "核电设计", "核安全审评", "设备调试", "常规岛配合", "核岛接口", "技术支持", "其他" },
-        ["ProductDev"] = new List<string> { "技术支持", "设计流程", "方案评审", "专利申请", "出图", "图纸改版", "设计总结" },
+        ["Nuclear"] = new List<string> { "核电设计", "核安全审查", "设备调试", "常规岛配合", "核岛接口", "技术方案", "其他" },
+        ["ProductDev"] = new List<string> { "技术方案", "设计流程", "方案评审", "专利申请", "出图", "图纸改版", "设计总结" },
         ["Research"] = new List<string> { "开题报告", "专利申请", "结题报告", "其他" },
         ["Renovation"] = new List<string> { "前期项目配合", "方案编制", "其他" },
         ["MeetingTraining"] = new List<string> { "学习与培训", "党建会议", "班务会", "设计评审会", "资料讨论会", "其他" },
@@ -43,267 +48,477 @@ public class SettingsService : ISettingsService
         ["Other"] = new List<string> { "通用任务" }
     };
 
-    private static readonly Dictionary<string, string> UserAvatars = new();
-
-    public Task<EquipmentModelsResponse> GetEquipmentModelsAsync()
+    public SettingsService(ISystemConfigRepository configRepository, ILogger<SettingsService> logger)
     {
-        return Task.FromResult(new EquipmentModelsResponse { Models = EquipmentModels });
+        _configRepository = configRepository;
+        _logger = logger;
     }
 
-    public Task<SettingsApiResponse<object>> AddEquipmentModelAsync(AddEquipmentModelRequest request)
+    /// <summary>
+    /// 初始化默认配置值（首次运行时）
+    /// </summary>
+    public async Task InitializeDefaultValuesAsync()
     {
-        if (EquipmentModels.Contains(request.Model))
+        try
         {
-            return Task.FromResult(new SettingsApiResponse<object>
+            // 初始化机型配置
+            await InitializeConfigCategoryAsync("EquipmentModels", JsonSerializer.Serialize(DefaultEquipmentModels));
+
+            // 初始化容量等级配置
+            await InitializeConfigCategoryAsync("CapacityLevels", JsonSerializer.Serialize(DefaultCapacityLevels));
+
+            // 初始化差旅标签配置
+            await InitializeConfigCategoryAsync("TravelLabels", JsonSerializer.Serialize(DefaultTravelLabels));
+
+            // 初始化任务分类配置
+            await InitializeTaskCategoriesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "初始化默认配置值失败");
+        }
+    }
+
+    private async Task InitializeConfigCategoryAsync(string category, string defaultValue)
+    {
+        var exists = await _configRepository.ConfigExistsAsync(category, category);
+        if (!exists)
+        {
+            await _configRepository.SaveConfigValueAsync(category, category, defaultValue);
+        }
+    }
+
+    private async Task InitializeTaskCategoriesAsync()
+    {
+        var exists = await _configRepository.ConfigExistsAsync("TaskCategories", "All");
+        if (!exists)
+        {
+            await _configRepository.SaveConfigValueAsync("TaskCategories", "All", JsonSerializer.Serialize(DefaultTaskCategories));
+        }
+    }
+
+    /// <summary>
+    /// 从数据库或缓存获取配置
+    /// </summary>
+    private async Task<List<T>> GetListConfigAsync<T>(string category)
+    {
+        var cacheKey = $"List_{category}";
+
+        // 先从缓存获取
+        lock (_cacheLock)
+        {
+            if (_memoryCache.TryGetValue(cacheKey, out var cached) && cached is List<T> cachedList)
+            {
+                return cachedList;
+            }
+        }
+
+        // 从数据库获取
+        var configValue = await _configRepository.GetConfigValueAsync(category, category);
+
+        List<T> result;
+        if (configValue != null)
+        {
+            result = JsonSerializer.Deserialize<List<T>>(configValue) ?? new List<T>();
+        }
+        else
+        {
+            result = new List<T>();
+        }
+
+        // 更新缓存
+        lock (_cacheLock)
+        {
+            _memoryCache[cacheKey] = result;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 从数据库或缓存获取字典配置
+    /// </summary>
+    private async Task<Dictionary<string, List<T>>> GetDictConfigAsync<T>(string category)
+    {
+        var cacheKey = $"Dict_{category}";
+
+        // 先从缓存获取
+        lock (_cacheLock)
+        {
+            if (_memoryCache.TryGetValue(cacheKey, out var cached) && cached is Dictionary<string, List<T>> cachedDict)
+            {
+                return cachedDict;
+            }
+        }
+
+        // 从数据库获取
+        var configValue = category == "TaskCategories"
+            ? await _configRepository.GetConfigValueAsync(category, "All")
+            : await _configRepository.GetConfigValueAsync(category, category);
+
+        Dictionary<string, List<T>> result;
+        if (configValue != null)
+        {
+            result = JsonSerializer.Deserialize<Dictionary<string, List<T>>>(configValue)
+                     ?? new Dictionary<string, List<T>>();
+        }
+        else
+        {
+            result = new Dictionary<string, List<T>>();
+        }
+
+        // 更新缓存
+        lock (_cacheLock)
+        {
+            _memoryCache[cacheKey] = result;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 保存配置到数据库
+    /// </summary>
+    private async Task SaveConfigAsync<T>(string category, string key, T value)
+    {
+        var configKey = category == "TaskCategories" ? "All" : key;
+        await _configRepository.SaveConfigValueAsync(category, configKey, JsonSerializer.Serialize(value));
+
+        // 更新缓存
+        var cacheKey = category.StartsWith("TaskCategories") ? $"Dict_{category}" : $"List_{category}";
+        lock (_cacheLock)
+        {
+            _memoryCache.Remove(cacheKey);
+        }
+    }
+
+    #region 机型管理
+
+    public async Task<EquipmentModelsResponse> GetEquipmentModelsAsync()
+    {
+        var models = await GetListConfigAsync<string>("EquipmentModels");
+        return new EquipmentModelsResponse { Models = models };
+    }
+
+    public async Task<SettingsApiResponse<object>> AddEquipmentModelAsync(AddEquipmentModelRequest request)
+    {
+        var models = await GetListConfigAsync<string>("EquipmentModels");
+        if (models.Contains(request.Model))
+        {
+            return new SettingsApiResponse<object>
             {
                 Success = false,
                 Error = "机型已存在"
-            });
+            };
         }
 
-        EquipmentModels.Add(request.Model);
-        EquipmentModels.Sort();
+        models.Add(request.Model);
+        models.Sort();
+        await SaveConfigAsync("EquipmentModels", "EquipmentModels", models);
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "添加成功"
-        });
+        };
     }
 
-    public Task<SettingsApiResponse<object>> DeleteEquipmentModelAsync(string model)
+    public async Task<SettingsApiResponse<object>> DeleteEquipmentModelAsync(string model)
     {
-        if (!EquipmentModels.Remove(model))
+        var models = await GetListConfigAsync<string>("EquipmentModels");
+        if (!models.Remove(model))
         {
-            return Task.FromResult(new SettingsApiResponse<object>
+            return new SettingsApiResponse<object>
             {
                 Success = false,
                 Error = "机型不存在"
-            });
+            };
         }
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        await SaveConfigAsync("EquipmentModels", "EquipmentModels", models);
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "删除成功"
-        });
+        };
     }
 
-    public Task<SettingsApiResponse<object>> BatchAddEquipmentModelsAsync(BatchAddEquipmentModelsRequest request)
+    public async Task<SettingsApiResponse<object>> BatchAddEquipmentModelsAsync(BatchAddEquipmentModelsRequest request)
     {
+        var models = await GetListConfigAsync<string>("EquipmentModels");
         var addedCount = 0;
+
         foreach (var model in request.Models)
         {
-            if (!EquipmentModels.Contains(model))
+            if (!models.Contains(model))
             {
-                EquipmentModels.Add(model);
+                models.Add(model);
                 addedCount++;
             }
         }
-        EquipmentModels.Sort();
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        models.Sort();
+        await SaveConfigAsync("EquipmentModels", "EquipmentModels", models);
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Data = addedCount,
             Message = $"成功添加 {addedCount} 个机型"
-        });
+        };
     }
 
-    public Task<CapacityLevelsResponse> GetCapacityLevelsAsync()
+    #endregion
+
+    #region 容量等级管理
+
+    public async Task<CapacityLevelsResponse> GetCapacityLevelsAsync()
     {
-        return Task.FromResult(new CapacityLevelsResponse { Levels = CapacityLevels });
+        var levels = await GetListConfigAsync<string>("CapacityLevels");
+        return new CapacityLevelsResponse { Levels = levels };
     }
 
-    public Task<SettingsApiResponse<object>> AddCapacityLevelAsync(AddCapacityLevelRequest request)
+    public async Task<SettingsApiResponse<object>> AddCapacityLevelAsync(AddCapacityLevelRequest request)
     {
-        if (CapacityLevels.Contains(request.Level))
+        var levels = await GetListConfigAsync<string>("CapacityLevels");
+        if (levels.Contains(request.Level))
         {
-            return Task.FromResult(new SettingsApiResponse<object>
+            return new SettingsApiResponse<object>
             {
                 Success = false,
                 Error = "容量等级已存在"
-            });
+            };
         }
 
-        CapacityLevels.Add(request.Level);
-        CapacityLevels.Sort();
+        levels.Add(request.Level);
+        levels.Sort();
+        await SaveConfigAsync("CapacityLevels", "CapacityLevels", levels);
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "添加成功"
-        });
+        };
     }
 
-    public Task<SettingsApiResponse<object>> DeleteCapacityLevelAsync(string level)
+    public async Task<SettingsApiResponse<object>> DeleteCapacityLevelAsync(string level)
     {
-        if (!CapacityLevels.Remove(level))
+        var levels = await GetListConfigAsync<string>("CapacityLevels");
+        if (!levels.Remove(level))
         {
-            return Task.FromResult(new SettingsApiResponse<object>
+            return new SettingsApiResponse<object>
             {
                 Success = false,
                 Error = "容量等级不存在"
-            });
+            };
         }
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        await SaveConfigAsync("CapacityLevels", "CapacityLevels", levels);
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "删除成功"
-        });
+        };
     }
 
-    public Task<TravelLabelsResponse> GetTravelLabelsAsync()
+    #endregion
+
+    #region 差旅标签管理
+
+    public async Task<TravelLabelsResponse> GetTravelLabelsAsync()
     {
-        return Task.FromResult(new TravelLabelsResponse { Labels = TravelLabels });
+        var labels = await GetListConfigAsync<string>("TravelLabels");
+        return new TravelLabelsResponse { Labels = labels };
     }
 
-    public Task<SettingsApiResponse<object>> AddTravelLabelAsync(AddTravelLabelRequest request)
+    public async Task<SettingsApiResponse<object>> AddTravelLabelAsync(AddTravelLabelRequest request)
     {
-        if (TravelLabels.Contains(request.Label))
+        var labels = await GetListConfigAsync<string>("TravelLabels");
+        if (labels.Contains(request.Label))
         {
-            return Task.FromResult(new SettingsApiResponse<object>
+            return new SettingsApiResponse<object>
             {
                 Success = false,
                 Error = "差旅标签已存在"
-            });
+            };
         }
 
-        TravelLabels.Add(request.Label);
-        TravelLabels.Sort();
+        labels.Add(request.Label);
+        labels.Sort();
+        await SaveConfigAsync("TravelLabels", "TravelLabels", labels);
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "添加成功"
-        });
+        };
     }
 
-    public Task<SettingsApiResponse<object>> DeleteTravelLabelAsync(string label)
+    public async Task<SettingsApiResponse<object>> DeleteTravelLabelAsync(string label)
     {
-        if (!TravelLabels.Remove(label))
+        var labels = await GetListConfigAsync<string>("TravelLabels");
+        if (!labels.Remove(label))
         {
-            return Task.FromResult(new SettingsApiResponse<object>
+            return new SettingsApiResponse<object>
             {
                 Success = false,
                 Error = "差旅标签不存在"
-            });
+            };
         }
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        await SaveConfigAsync("TravelLabels", "TravelLabels", labels);
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "删除成功"
-        });
+        };
     }
 
-    public Task<UserAvatarResponse?> GetUserAvatarAsync(string userId)
+    #endregion
+
+    #region 用户头像管理
+
+    public async Task<UserAvatarResponse?> GetUserAvatarAsync(string userId)
     {
-        if (UserAvatars.TryGetValue(userId, out var avatar))
+        var avatars = await GetDictConfigAsync<string>("UserAvatars");
+        if (avatars.TryGetValue(userId, out var avatar) && avatar.Count > 0)
         {
-            return Task.FromResult<UserAvatarResponse?>(new UserAvatarResponse
+            return new UserAvatarResponse
             {
                 UserId = userId,
-                Avatar = avatar
-            });
+                Avatar = avatar[0]
+            };
         }
 
-        return Task.FromResult<UserAvatarResponse?>(null);
+        return null;
     }
 
-    public Task<SettingsApiResponse<object>> SaveUserAvatarAsync(string userId, SaveUserAvatarRequest request)
+    public async Task<SettingsApiResponse<object>> SaveUserAvatarAsync(string userId, SaveUserAvatarRequest request)
     {
-        UserAvatars[userId] = request.Avatar;
+        var avatars = await GetDictConfigAsync<string>("UserAvatars");
+        if (!avatars.ContainsKey(userId))
+        {
+            avatars[userId] = new List<string>();
+        }
+        avatars[userId][0] = request.Avatar;
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        await SaveConfigAsync("UserAvatars", "UserAvatars", avatars);
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "头像保存成功"
-        });
+        };
     }
 
-    public Task<SettingsApiResponse<object>> DeleteUserAvatarAsync(string userId)
+    public async Task<SettingsApiResponse<object>> DeleteUserAvatarAsync(string userId)
     {
-        if (UserAvatars.Remove(userId))
+        var avatars = await GetDictConfigAsync<string>("UserAvatars");
+        if (!avatars.ContainsKey(userId) || !avatars.Remove(userId))
         {
-            return Task.FromResult(new SettingsApiResponse<object>
-            {
-                Success = true,
-                Message = "头像删除成功"
-            });
-        }
-
-        return Task.FromResult(new SettingsApiResponse<object>
-        {
-            Success = false,
-            Error = "用户头像不存在"
-        });
-    }
-
-    public Task<TaskCategoriesResponse> GetTaskCategoriesAsync()
-    {
-        return Task.FromResult(new TaskCategoriesResponse { Categories = TaskCategories });
-    }
-
-    public Task<SettingsApiResponse<object>> UpdateTaskCategoriesAsync(string code, UpdateTaskCategoriesRequest request)
-    {
-        if (!TaskCategories.ContainsKey(code))
-        {
-            return Task.FromResult(new SettingsApiResponse<object>
+            return new SettingsApiResponse<object>
             {
                 Success = false,
-                Error = "任务分类代码不存在"
-            });
+                Error = "用户头像不存在"
+            };
         }
 
-        TaskCategories[code] = request.Categories;
+        await SaveConfigAsync("UserAvatars", "UserAvatars", avatars);
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        return new SettingsApiResponse<object>
+        {
+            Success = true,
+            Message = "头像删除成功"
+        };
+    }
+
+    #endregion
+
+    #region 任务分类管理
+
+    public async Task<TaskCategoriesResponse> GetTaskCategoriesAsync()
+    {
+        var categories = await GetDictConfigAsync<string>("TaskCategories");
+        return new TaskCategoriesResponse { Categories = categories };
+    }
+
+    public async Task<SettingsApiResponse<object>> UpdateTaskCategoriesAsync(string code, UpdateTaskCategoriesRequest request)
+    {
+        var categories = await GetDictConfigAsync<string>("TaskCategories");
+        categories[code] = request.Categories;
+
+        await SaveConfigAsync("TaskCategories", "All", categories);
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "更新成功"
-        });
+        };
     }
 
-    public Task<SettingsApiResponse<object>> ResetAllDataAsync()
+    #endregion
+
+    #region 数据管理
+
+    public async Task<SettingsApiResponse<object>> ResetAllDataAsync()
     {
-        // 重置所有配置数据
-        EquipmentModels.Clear();
-        EquipmentModels.AddRange(new[] { "H300", "H380", "H420", "H480", "H550", "H620", "H700", "H800", "H900", "H1000" });
+        // 重置机型
+        await SaveConfigAsync("EquipmentModels", "EquipmentModels", DefaultEquipmentModels);
 
-        CapacityLevels.Clear();
-        CapacityLevels.AddRange(new[] { "100MW", "150MW", "200MW", "250MW", "300MW", "350MW", "400MW", "500MW", "600MW", "700MW" });
+        // 重置容量等级
+        await SaveConfigAsync("CapacityLevels", "CapacityLevels", DefaultCapacityLevels);
 
-        TravelLabels.Clear();
-        TravelLabels.AddRange(new[] { "市场配合出差", "常规项目执行出差", "核电项目执行出差", "科研出差", "改造服务出差", "其他任务出差" });
+        // 重置差旅标签
+        await SaveConfigAsync("TravelLabels", "TravelLabels", DefaultTravelLabels);
 
-        UserAvatars.Clear();
+        // 重置任务分类
+        await SaveConfigAsync("TaskCategories", "All", DefaultTaskCategories);
 
-        return Task.FromResult(new SettingsApiResponse<object>
+        // 清除用户头像
+        await SaveConfigAsync("UserAvatars", "UserAvatars", new Dictionary<string, List<string>>());
+
+        // 清除缓存
+        lock (_cacheLock)
+        {
+            _memoryCache.Clear();
+        }
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "所有配置数据已重置"
-        });
+        };
     }
 
-    public Task<SettingsApiResponse<object>> RefreshTasksAsync()
+    public async Task<SettingsApiResponse<object>> RefreshTasksAsync()
     {
-        // 刷新任务数据 - 实际项目中可触发缓存刷新或数据同步
-        return Task.FromResult(new SettingsApiResponse<object>
+        // 清除缓存，触发重新加载
+        lock (_cacheLock)
+        {
+            _memoryCache.Clear();
+        }
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
-            Message = "任务数据已刷新"
-        });
+            Message = "配置数据已刷新"
+        };
     }
 
-    public Task<SettingsApiResponse<object>> MigrateDataAsync()
+    public async Task<SettingsApiResponse<object>> MigrateDataAsync()
     {
-        // 数据迁移 - 实际项目中可执行数据库迁移或数据转换
-        return Task.FromResult(new SettingsApiResponse<object>
+        // 数据迁移 - 确保所有配置都已初始化
+        await InitializeDefaultValuesAsync();
+
+        return new SettingsApiResponse<object>
         {
             Success = true,
             Message = "数据迁移完成"
-        });
+        };
     }
+
+    #endregion
 }

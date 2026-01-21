@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<TaskClass> TaskClasses => Set<TaskClass>();
     public DbSet<TaskPoolItem> TaskPoolItems => Set<TaskPoolItem>();
+    public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +30,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new TaskConfiguration());
         modelBuilder.ApplyConfiguration(new TaskClassConfiguration());
         modelBuilder.ApplyConfiguration(new TaskPoolItemConfiguration());
+        modelBuilder.ApplyConfiguration(new SystemConfigConfiguration());
 
         // 种子数据
         SeedData(modelBuilder);

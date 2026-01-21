@@ -47,6 +47,8 @@ if (!string.IsNullOrEmpty(connectionString))
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(10),
                 errorNumbersToAdd: null);
+            // 指定迁移程序集
+            mysqlOptions.MigrationsAssembly("TaskManageSystem.Infrastructure");
         });
     });
 }
@@ -57,6 +59,7 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<ITaskClassRepository, TaskClassRepository>();
 builder.Services.AddScoped<ITaskPoolRepository, TaskPoolRepository>();
+builder.Services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 

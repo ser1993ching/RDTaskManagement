@@ -31,3 +31,4 @@ dist-ssr
 *.pidb
 *.ipch
 .DS_Store
+nul

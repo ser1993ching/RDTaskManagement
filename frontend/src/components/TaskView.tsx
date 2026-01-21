@@ -26,6 +26,20 @@ const CAPACITY_LEVEL_OPTIONS = [
   '调相机'
 ];
 
+// Default task categories (fallback when API fails) - 修复 Bug 2
+const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
+  'MARKET': ['技术支持', '商务配合', '技术方案', '项目管理', '其他'],
+  'EXECUTION': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
+  'NUCLEAR': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
+  'PRODUCT_DEV': ['研发工作', '测试工作', '设计工作', '技术支持', '其他'],
+  'RESEARCH': ['理论研究', '试验工作', '数据分析', '报告编写', '其他'],
+  'RENOVATION': ['现场服务', '技术支持', '设计工作', '项目管理', '其他'],
+  'ADMIN_PARTY': ['党建活动', '行政事务', '会议组织', '其他'],
+  'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
+  'TRAVEL': ['市场配合出差', '常规项目执行出差', '核电项目执行出差', '科研出差', '改造服务出差', '其他'],
+  'OTHER': ['其他']
+};
+
 // Helper function to format date
 const formatDate = (dateStr: string | undefined | null): string => {
   if (!dateStr) return '-';
@@ -87,8 +101,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   }, []);
 
   // Handle targetTaskName - filter tasks by name and switch to the task's category
+  // 修复Bug 6: 移除 tasks.length > 0 条件，确保任务未加载时也能处理
   useEffect(() => {
-    if (targetTaskName && tasks.length > 0) {
+    if (targetTaskName) {
       // Find the task by name to get its TaskClassID
       const targetTask = tasks.find(t => t.TaskName === targetTaskName);
       if (targetTask) {
@@ -96,12 +111,25 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         setActiveTaskClassId(targetTask.TaskClassID);
       }
       setFilterTaskName(targetTaskName);
+      // Clear targetTaskName after processing
+      if (onClearTargetTaskName) {
+        onClearTargetTaskName();
+      }
     }
-  }, [targetTaskName, tasks]);
+  }, [targetTaskName, tasks, onClearTargetTaskName]);
 
   // Helper function to get categories for a task class
+  // 修复 Bug 2: 使用默认分类作为降级处理
   const getCategoriesForTaskClass = (taskClassCode: string): string[] => {
-    return taskCategories[taskClassCode] || [];
+    // First try API data
+    if (taskCategories[taskClassCode] && taskCategories[taskClassCode].length > 0) {
+      return taskCategories[taskClassCode];
+    }
+    // Fallback to default categories
+    if (DEFAULT_TASK_CATEGORIES[taskClassCode]) {
+      return DEFAULT_TASK_CATEGORIES[taskClassCode];
+    }
+    return [];
   };
 
   // Filtering
@@ -191,18 +219,28 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   };
 
   // Get projects for travel tasks based on category
+  // 修复 Bug 3: 修复类别名称匹配问题
   const getProjectsForTravelTask = (category: string): Project[] => {
     switch (category) {
       case '市场配合出差':
+      case '技术支持':
+      case '商务配合':
         return projects.filter(p => p.category === ProjectCategory.MARKET);
       case '常规项目执行出差':
+      case '设计工作':
+      case '计算工作':
+      case '图纸工作':
         return projects.filter(p => p.category === ProjectCategory.EXECUTION);
       case '核电项目执行出差':
         return projects.filter(p => p.category === ProjectCategory.NUCLEAR);
       case '科研出差':
+      case '理论研究':
+      case '试验工作':
         return projects.filter(p => p.category === ProjectCategory.RESEARCH);
       case '改造服务出差':
+      case '现场服务':
         return projects.filter(p => p.category === ProjectCategory.RENOVATION);
+      case '其他':
       case '其他任务出差':
         return projects.filter(p => p.category === ProjectCategory.OTHER);
       default:
@@ -538,12 +576,18 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         taskToSave.CapacityLevel = project.capacity;
       }
     }
-    await apiDataService.saveTask(taskToSave);
-    setIsModalOpen(false);
-    // 关闭弹窗后清除任务名称筛选器（从个人工作台跳转来的情况）
-    setFilterTaskName('');
-    onClearTargetTaskName?.();
-    onRefresh();
+    // 修复 Bug 4: 添加保存操作的错误处理
+    try {
+      await apiDataService.saveTask(taskToSave);
+      setIsModalOpen(false);
+      // 关闭弹窗后清除任务名称筛选器（从个人工作台跳转来的情况）
+      setFilterTaskName('');
+      onClearTargetTaskName?.();
+      onRefresh();
+    } catch (error) {
+      console.error('保存任务失败:', error);
+      alert('保存任务失败，请稍后重试');
+    }
   };
 
   const openModal = (task?: Task) => {
@@ -717,7 +761,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <select className="w-full border rounded p-2"
                 value={formData.TravelLabel || ''} onChange={e => setFormData({...formData, TravelLabel: e.target.value})}>
                 <option value="">选择标签</option>
-                {formData.Category === '市场配合出差' && (
+                {/* 市场配合出差 */}
+                {(formData.Category === '市场配合出差' || formData.Category === '技术支持' || formData.Category === '商务配合') && (
                   <>
                     <option value="技术交流">技术交流</option>
                     <option value="现场投标">现场投标</option>
@@ -725,14 +770,16 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <option value="其他">其他</option>
                   </>
                 )}
-                {(formData.Category === '常规项目执行出差' || formData.Category === '核电项目执行出差') && (
+                {/* 常规项目/核电项目执行出差 */}
+                {(formData.Category === '常规项目执行出差' || formData.Category === '核电项目执行出差' || formData.Category === '设计工作' || formData.Category === '计算工作' || formData.Category === '图纸工作') && (
                   <>
                     <option value="联络会">联络会</option>
                     <option value="安装现场服务">安装现场服务</option>
                     <option value="其他">其他</option>
                   </>
                 )}
-                {(formData.Category === '科研出差' || formData.Category === '改造服务出差' || formData.Category === '其他任务出差') && (
+                {/* 科研/改造服务/其他 */}
+                {(formData.Category === '科研出差' || formData.Category === '改造服务出差' || formData.Category === '其他' || formData.Category === '理论研究' || formData.Category === '现场服务') && (
                   <>
                     <option value="现场调研">现场调研</option>
                     <option value="技术交流">技术交流</option>

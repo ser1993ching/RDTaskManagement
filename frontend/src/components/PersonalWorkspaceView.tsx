@@ -991,10 +991,19 @@ const PersonalWorkspaceView: React.FC<{
   };
 
   // Handle role status change
+  // 修复 Bug 1: 添加错误处理和用户反馈
   const handleStatusChange = async (taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus) => {
-    await apiDataService.updateTaskRoleStatus(taskId, role, status);
-    setRefreshKey(prev => prev + 1); // 强制刷新数据
-    onRefresh();
+    try {
+      const success = await apiDataService.updateTaskRoleStatus(taskId, role, status);
+      if (success) {
+        setRefreshKey(prev => prev + 1); // 强制刷新数据
+        onRefresh();
+      } else {
+        console.error('更新任务角色状态失败: 返回false');
+      }
+    } catch (error) {
+      console.error('更新任务角色状态失败:', error);
+    }
   };
 
   // Handle task double click - navigate to task view

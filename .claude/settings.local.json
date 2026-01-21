@@ -35,7 +35,9 @@
       "Bash(curl:*)",
       "Bash(mysql:*)",
       "Bash(net start:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(dotnet --list-sdks:*)",
+      "Bash(dotnet tool install:*)"
     ]
   }
 }

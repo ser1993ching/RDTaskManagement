@@ -12,7 +12,11 @@ using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Application.Services;
 using TaskManageSystem.Infrastructure.Data;
 using TaskManageSystem.Infrastructure.Repositories;
+using TaskManageSystem.Infrastructure.Services;
+using TaskManageSystem.Infrastructure.Middleware;
+using TaskManageSystem.Domain.Entities;
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +87,27 @@ if (!string.IsNullOrEmpty(connectionString))
     });
 }
 
+// Log DbContext - API请求日志 (使用工厂模式避免作用域问题)
+builder.Services.AddDbContextFactory<LogDbContext>(options =>
+{
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mysqlOptions =>
+    {
+        mysqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(2),
+            errorNumbersToAdd: null);
+        mysqlOptions.MigrationsAssembly("TaskManageSystem.Infrastructure");
+    });
+});
+
+// Log Service
+builder.Services.AddScoped<ILogService>(sp =>
+{
+    var factory = sp.GetRequiredService<IDbContextFactory<LogDbContext>>();
+    var logger = sp.GetRequiredService<ILogger<LogService>>();
+    return new LogService(factory, logger);
+});
+
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
@@ -122,6 +147,9 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
+// API日志中间件 - 记录所有API请求到数据库
+app.UseApiLogging();
+
 // Health check endpoint - 检测后端服务和数据库连接状态
 app.MapGet("/api/health", (AppDbContext context) => {
     try {
@@ -141,11 +169,91 @@ app.MapGet("/api/health", (AppDbContext context) => {
 
 app.MapControllers();
 
-// Ensure database is created
+// 应用启动关键阶段日志
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var logService = scope.ServiceProvider.GetRequiredService<ILogService>();
+
+    // 记录应用启动日志
+    await LogStartupEventAsync(logger, logService, "Application starting...");
+
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    context.Database.EnsureCreated();
+
+    // 测试数据库连接
+    try
+    {
+        var canConnect = context.Database.CanConnect();
+        if (canConnect)
+        {
+            logger.LogInformation("Database connection successful");
+            await LogDatabaseEventAsync(logService, "Database connection", true, "Connected to MySQL database");
+
+            // Ensure database is created
+            context.Database.EnsureCreated();
+            logger.LogInformation("Database schema verified/created");
+        }
+        else
+        {
+            logger.LogWarning("Database connection failed");
+            await LogDatabaseEventAsync(logService, "Database connection", false, "Cannot connect to database");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Database connection error");
+        await LogDatabaseEventAsync(logService, "Database connection", false, ex.Message);
+    }
 }
 
 app.Run();
+
+// 辅助方法：记录应用启动事件
+async Task LogStartupEventAsync(ILogger<Program> logger, ILogService logService, string message)
+{
+    try
+    {
+        var log = new ApiLog
+        {
+            RequestId = Guid.NewGuid().ToString("N")[..16],
+            UserId = "System",
+            Method = "STARTUP",
+            Path = "/",
+            StatusInfo = "Information",
+            IsSuccess = true,
+            ElapsedMilliseconds = 0,
+            ClientIp = "localhost",
+            UserAgent = "R&DTaskSystem",
+            CreatedAt = DateTime.Now
+        };
+        await logService.LogAsync(log);
+        logger.LogInformation("Startup event logged to database");
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Failed to log startup event");
+    }
+}
+
+// 辅助方法：记录数据库事件
+async Task LogDatabaseEventAsync(ILogService logService, string operation, bool success, string message)
+{
+    try
+    {
+        var log = new ApiLog
+        {
+            RequestId = Guid.NewGuid().ToString("N")[..16],
+            UserId = "System",
+            Method = "DATABASE",
+            Path = $"/api/{operation.ToLower().Replace(" ", "-")}",
+            StatusInfo = success ? "成功" : "失败",
+            IsSuccess = success,
+            ElapsedMilliseconds = 0,
+            ClientIp = "localhost",
+            UserAgent = "R&DTaskSystem",
+            CreatedAt = DateTime.Now
+        };
+        await logService.LogAsync(log);
+    }
+    catch { /* 忽略日志记录错误 */ }
+}

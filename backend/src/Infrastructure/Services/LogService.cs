@@ -11,12 +11,12 @@ namespace TaskManageSystem.Infrastructure.Services;
 /// </summary>
 public class LogService : ILogService
 {
-    private readonly LogDbContext _context;
+    private readonly IDbContextFactory<LogDbContext> _contextFactory;
     private readonly ILogger<LogService> _logger;
 
-    public LogService(LogDbContext context, ILogger<LogService> logger)
+    public LogService(IDbContextFactory<LogDbContext> contextFactory, ILogger<LogService> logger)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         _logger = logger;
     }
 
@@ -24,8 +24,9 @@ public class LogService : ILogService
     {
         try
         {
-            _context.ApiLogs.Add(log);
-            await _context.SaveChangesAsync();
+            using var context = await _contextFactory.CreateDbContextAsync();
+            context.ApiLogs.Add(log);
+            await context.SaveChangesAsync();
             _logger.LogDebug("API日志已保存: {RequestId}", log.RequestId);
         }
         catch (Exception ex)
@@ -43,7 +44,8 @@ public class LogService : ILogService
         int page = 1,
         int pageSize = 50)
     {
-        var query = _context.ApiLogs.AsQueryable();
+        using var context = await _contextFactory.CreateDbContextAsync();
+        var query = context.ApiLogs.AsQueryable();
 
         // 日期范围筛选
         if (startDate.HasValue)
@@ -87,20 +89,22 @@ public class LogService : ILogService
 
     public async Task<ApiLog?> GetLogByIdAsync(long id)
     {
-        return await _context.ApiLogs.FirstOrDefaultAsync(l => l.Id == id);
+        using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.ApiLogs.FirstOrDefaultAsync(l => l.Id == id);
     }
 
     public async Task<int> CleanupOldLogsAsync(int daysToKeep = 30)
     {
+        using var context = await _contextFactory.CreateDbContextAsync();
         var cutoffDate = DateTime.Now.AddDays(-daysToKeep);
-        var oldLogs = await _context.ApiLogs
+        var oldLogs = await context.ApiLogs
             .Where(l => l.CreatedAt < cutoffDate)
             .ToListAsync();
 
         if (oldLogs.Any())
         {
-            _context.ApiLogs.RemoveRange(oldLogs);
-            var deletedCount = await _context.SaveChangesAsync();
+            context.ApiLogs.RemoveRange(oldLogs);
+            var deletedCount = await context.SaveChangesAsync();
             _logger.LogInformation("已清理 {Count} 条 {Days} 天前的日志", deletedCount, daysToKeep);
             return deletedCount;
         }

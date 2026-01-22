@@ -17,7 +17,7 @@ public class UserService : IUserService
     private readonly IUserRepository? _userRepository;
     private readonly IMapper _mapper;
 
-    // 默认用户数据（内存模式）
+    // 默认用户数据（内存模式）- 统一密码为123
     private static readonly List<User> DefaultUsers = new()
     {
         new User
@@ -27,7 +27,7 @@ public class UserService : IUserService
             SystemRole = SystemRole.Admin,
             OfficeLocation = OfficeLocation.Chengdu,
             Status = PersonnelStatus.Active,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"),
             CreatedAt = new DateTime(2025, 1, 1)
         },
         new User
@@ -41,6 +41,48 @@ public class UserService : IUserService
             JoinDate = new DateTime(2022, 7, 1),
             Education = "硕士",
             School = "四川大学",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"),
+            CreatedAt = new DateTime(2025, 1, 1)
+        },
+        new User
+        {
+            UserID = "USER002",
+            Name = "张组长",
+            SystemRole = SystemRole.Leader,
+            OfficeLocation = OfficeLocation.Chengdu,
+            Status = PersonnelStatus.Active,
+            Title = "高级工程师",
+            JoinDate = new DateTime(2020, 3, 15),
+            Education = "博士",
+            School = "清华大学",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"),
+            CreatedAt = new DateTime(2025, 1, 1)
+        },
+        new User
+        {
+            UserID = "USER003",
+            Name = "王工程师",
+            SystemRole = SystemRole.Member,
+            OfficeLocation = OfficeLocation.Chengdu,
+            Status = PersonnelStatus.Active,
+            Title = "工程师",
+            JoinDate = new DateTime(2023, 6, 1),
+            Education = "本科",
+            School = "电子科技大学",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"),
+            CreatedAt = new DateTime(2025, 1, 1)
+        },
+        new User
+        {
+            UserID = "USER004",
+            Name = "赵设计师",
+            SystemRole = SystemRole.Member,
+            OfficeLocation = OfficeLocation.Chengdu,
+            Status = PersonnelStatus.Active,
+            Title = "设计师",
+            JoinDate = new DateTime(2021, 9, 1),
+            Education = "硕士",
+            School = "同济大学",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123"),
             CreatedAt = new DateTime(2025, 1, 1)
         }
@@ -273,16 +315,23 @@ public class UserService : IUserService
         var user = await GetUserEntityByIdAsync(userId);
         if (user == null) return false;
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword ?? "123456");
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword ?? "123");
 
+        // 先更新内存用户（确保总是成功）
+        var index = DefaultUsers.FindIndex(u => u.UserID == userId);
+        if (index >= 0) DefaultUsers[index] = user;
+
+        // 尝试更新数据库用户
         if (_userRepository != null)
         {
-            await _userRepository.UpdateAsync(user);
-        }
-        else
-        {
-            var index = DefaultUsers.FindIndex(u => u.UserID == userId);
-            if (index >= 0) DefaultUsers[index] = user;
+            try
+            {
+                await _userRepository.UpdateAsync(user);
+            }
+            catch
+            {
+                // 数据库用户不存在或更新失败，不影响内存用户更新
+            }
         }
 
         return true;

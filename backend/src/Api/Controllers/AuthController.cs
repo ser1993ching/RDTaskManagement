@@ -167,7 +167,7 @@ public class AuthController : ControllerBase
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserID),
             new Claim(ClaimTypes.Name, user.Name),
-            new Claim(ClaimTypes.Role, user.SystemRole),
+            new Claim(ClaimTypes.Role, user.SystemRole.ToUpperInvariant()),
             new Claim("UserID", user.UserID),
             new Claim("OfficeLocation", user.OfficeLocation)
         };

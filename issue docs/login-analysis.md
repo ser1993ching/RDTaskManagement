@@ -672,10 +672,10 @@ app.UseAuthorization();
 | UsersController | LEADER/ADMIN | 仅团队领导和管理员 |
 | ProjectsController | 认证用户 | 所有登录用户可访问 |
 | StatisticsController | 认证用户 | 所有登录用户可访问 |
-| SettingsController | ADMIN | 仅管理员 |
-| LogsController | ADMIN | 仅管理员（已有） |
-| TaskClassesController | ADMIN | 仅管理员 |
-| TaskPoolController | 认证用户 | 所有登录用户可访问 |
+| SettingsController | LEADER/ADMIN | 仅管理员 |
+| LogsController | LEADER/ADMIN | 仅管理员（已有） |
+| TaskClassesController | LEADER/ADMIN | 仅管理员 |
+| TaskPoolController | LEADER/ADMIN | 所有登录用户可访问 |
 
 #### 7.8.3 前端修复 - 401处理
 

@@ -8,8 +8,9 @@ import { TaskPoolView } from './components/TaskPoolView';
 import PersonalWorkspaceView from './components/PersonalWorkspaceView';
 import { Settings as SettingsComponent } from './components/Settings';
 import { apiDataService } from './services/apiDataService';
+import { checkSystemHealth, HealthStatus } from './services/healthService';
 import { User, Project, Task, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus } from './types';
-import { Lock, Settings } from 'lucide-react';
+import { Lock, Settings, Server, Database, AlertCircle } from 'lucide-react';
 
 // API值到前端值的映射函数
 const mapSystemRole = (apiRole: string): SystemRole => {
@@ -81,36 +82,55 @@ const App: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initial Load - check for existing session
+  // System Health Check State
+  const [systemHealth, setSystemHealth] = useState<HealthStatus | null>(null);
+
+  // Initial Load - check system health and session
   useEffect(() => {
-    const checkSession = async () => {
-      if (apiDataService.isLoggedIn()) {
-        const storedUser = apiDataService.getCurrentUser();
-        if (storedUser) {
-          console.log('Stored user from localStorage:', storedUser);
-          // Convert stored user (camelCase) to frontend format (PascalCase)
-          const convertedUser: User = {
-            UserID: storedUser.userID,
-            Name: storedUser.name,
-            SystemRole: mapSystemRole(storedUser.systemRole),
-            OfficeLocation: storedUser.officeLocation as any,
-            Title: storedUser.title,
-            JoinDate: storedUser.joinDate,
-            Status: mapPersonnelStatus(storedUser.status),
-            Education: storedUser.education,
-            School: storedUser.school,
-            Remark: storedUser.remark,
-            Gender: undefined,
-            Password: '',
-          };
-          console.log('Converted user:', convertedUser);
-          setCurrentUser(convertedUser);
-          await refreshData();
-        }
+    const checkHealth = async () => {
+      const health = await checkSystemHealth();
+      setSystemHealth(health);
+
+      // If system is healthy, check for existing session
+      if (health.backend === 'ok' && health.database !== 'error') {
+        checkSession();
       }
     };
-    checkSession();
+    checkHealth();
+
+    // 定期检测系统状态（每30秒）
+    const healthInterval = setInterval(checkHealth, 30000);
+
+    return () => clearInterval(healthInterval);
   }, []);
+
+  // Check for existing session
+  const checkSession = async () => {
+    if (apiDataService.isLoggedIn()) {
+      const storedUser = apiDataService.getCurrentUser();
+      if (storedUser) {
+        console.log('Stored user from localStorage:', storedUser);
+        // Convert stored user (camelCase) to frontend format (PascalCase)
+        const convertedUser: User = {
+          UserID: storedUser.userID,
+          Name: storedUser.name,
+          SystemRole: mapSystemRole(storedUser.systemRole),
+          OfficeLocation: storedUser.officeLocation as any,
+          Title: storedUser.title,
+          JoinDate: storedUser.joinDate,
+          Status: mapPersonnelStatus(storedUser.status),
+          Education: storedUser.education,
+          School: storedUser.school,
+          Remark: storedUser.remark,
+          Gender: undefined,
+          Password: '',
+        };
+        console.log('Converted user:', convertedUser);
+        setCurrentUser(convertedUser);
+        await refreshData();
+      }
+    }
+  };
 
   const refreshData = async () => {
     const [apiUsers, apiProjects, apiTasks] = await Promise.all([
@@ -269,6 +289,67 @@ const App: React.FC = () => {
     setProjects([]);
     setTasks([]);
   };
+
+  // Health check in progress - show placeholder to prevent flash
+  if (systemHealth === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Backend service error screen
+  if (systemHealth.backend === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md text-center">
+          <div className="bg-red-100 p-4 rounded-full inline-flex mb-4">
+            <Server className="text-red-600" size={48} />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">后端服务无法连接</h1>
+          <p className="text-slate-600 mb-4">{systemHealth.error || '无法连接到后端服务'}</p>
+          <div className="bg-slate-50 p-4 rounded-lg text-left">
+            <h3 className="text-sm font-semibold text-slate-700 mb-2">请检查以下项目：</h3>
+            <ul className="text-sm text-slate-600 space-y-1">
+              <li>1. 后端服务是否已启动 (dotnet run)</li>
+              <li>2. 后端服务端口是否正确 (默认5000)</li>
+              <li>3. 网络连接是否正常</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Database connection error screen
+  if (systemHealth.database === 'error') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md text-center">
+          <div className="bg-orange-100 p-4 rounded-full inline-flex mb-4">
+            <Database className="text-orange-600" size={48} />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">数据库连接失败</h1>
+          <p className="text-slate-600 mb-4">{systemHealth.error || '无法连接到数据库'}</p>
+          <div className="bg-slate-50 p-4 rounded-lg text-left">
+            <h3 className="text-sm font-semibold text-slate-700 mb-2">请检查以下项目：</h3>
+            <ul className="text-sm text-slate-600 space-y-1">
+              <li>1. MySQL服务是否已启动</li>
+              <li>2. MySQL端口是否正确 (默认3306)</li>
+              <li>3. 数据库凭据是否正确</li>
+              <li>4. 数据库 TaskManageSystem 是否存在</li>
+            </ul>
+          </div>
+          <p className="text-xs text-slate-400 mt-4">
+            系统将自动定期检测，解决问题后自动恢复
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return (

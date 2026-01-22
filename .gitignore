@@ -32,3 +32,6 @@ dist-ssr
 *.ipch
 .DS_Store
 nul
+.claude/
+**/.idea/
+**.vs/

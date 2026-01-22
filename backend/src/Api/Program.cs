@@ -96,7 +96,12 @@ builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 // Services - with repository injection
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<ITaskService>(sp =>
+{
+    var repo = sp.GetRequiredService<ITaskRepository>();
+    var mapper = sp.GetRequiredService<IMapper>();
+    return new TaskService(repo, mapper);
+});
 builder.Services.AddScoped<ITaskClassService, TaskClassService>();
 builder.Services.AddScoped<ITaskPoolService, TaskPoolService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();

@@ -14,6 +14,9 @@ public class TaskConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.ToTable("tasks")
             .HasCharSet("utf8mb4");
 
+        // 忽略基类的Id属性（因为使用TaskID作为主键）
+        builder.Ignore(t => t.Id);
+
         builder.HasKey(t => t.TaskID);
         builder.Property(t => t.TaskID).HasMaxLength(50).IsRequired();
         builder.Property(t => t.TaskName).HasMaxLength(200).IsRequired();

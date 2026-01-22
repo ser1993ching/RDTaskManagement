@@ -11,6 +11,7 @@ namespace TaskManageSystem.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+public class TaskPoolController : ControllerBase
 {
     private readonly ITaskPoolService _taskPoolService;
 

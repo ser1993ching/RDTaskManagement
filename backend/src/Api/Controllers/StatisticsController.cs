@@ -11,6 +11,7 @@ namespace TaskManageSystem.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+public class StatisticsController : ControllerBase
 {
     private readonly IStatisticsService _statisticsService;
     private readonly ITaskService _taskService;

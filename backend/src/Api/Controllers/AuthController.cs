@@ -1,4 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using TaskManageSystem.Api.Models;
 using TaskManageSystem.Application.DTOs.Settings;
 using TaskManageSystem.Application.DTOs.Users;
@@ -14,10 +19,12 @@ namespace TaskManageSystem.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IConfiguration _configuration;
 
-    public AuthController(IUserService userService)
+    public AuthController(IUserService userService, IConfiguration configuration)
     {
         _userService = userService;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -36,14 +43,90 @@ public class AuthController : ControllerBase
             });
         }
 
+        var token = GenerateJwtToken(user);
+
         return Ok(new ApiResponse<LoginResponse>
         {
             Success = true,
             Data = new LoginResponse
             {
                 User = user,
-                Token = "mock-jwt-token"
+                Token = token
             }
+        });
+    }
+
+    /// <summary>
+    /// 刷新Token
+    /// </summary>
+    [HttpPost("refresh-token")]
+    [Authorize]
+    public IActionResult RefreshToken()
+    {
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("UserID")?.Value;
+
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError { Code = "INVALID_TOKEN", Message = "无法获取当前用户信息" }
+            });
+        }
+
+        var user = _userService.GetUserByIdAsync(currentUserId).Result;
+        if (user == null)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存在" }
+            });
+        }
+
+        var token = GenerateJwtToken(user);
+
+        return Ok(new ApiResponse<TokenResponse>
+        {
+            Success = true,
+            Data = new TokenResponse { Token = token }
+        });
+    }
+
+    /// <summary>
+    /// 获取当前用户信息
+    /// </summary>
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult GetCurrentUser()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("UserID")?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError { Code = "INVALID_TOKEN", Message = "无效的Token" }
+            });
+        }
+
+        var user = _userService.GetUserByIdAsync(userId).Result;
+        if (user == null)
+        {
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存在" }
+            });
+        }
+
+        return Ok(new ApiResponse<UserDto>
+        {
+            Success = true,
+            Data = user
         });
     }
 
@@ -69,5 +152,34 @@ public class AuthController : ControllerBase
         return result
             ? Ok(new ApiResponse<object> { Success = true, Message = "密码重置成功" })
             : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存在" } });
+    }
+
+    private string GenerateJwtToken(UserDto user)
+    {
+        var secretKey = _configuration["Jwt:SecretKey"] ?? "YourSecretKeyHere12345678901234567890";
+        var issuer = _configuration["Jwt:Issuer"] ?? "R&DTaskSystem";
+        var audience = _configuration["Jwt:Audience"] ?? "R&DTaskSystemClient";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.UserID),
+            new Claim(ClaimTypes.Name, user.Name),
+            new Claim(ClaimTypes.Role, user.SystemRole),
+            new Claim("UserID", user.UserID),
+            new Claim("OfficeLocation", user.OfficeLocation)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

@@ -40,7 +40,7 @@ public class ChangePasswordRequest
 }
 
 /// <summary>
-/// 重置密码请求（管理员�?
+/// 重置密码请求（管理员）
 /// </summary>
 public class ResetPasswordRequest
 {
@@ -48,4 +48,20 @@ public class ResetPasswordRequest
     public string UserId { get; set; } = string.Empty;
 
     public string? NewPassword { get; set; }
+}
+
+/// <summary>
+/// Token刷新响应
+/// </summary>
+public class TokenResponse
+{
+    public string? Token { get; set; }
+}
+
+/// <summary>
+/// 刷新Token请求
+/// </summary>
+public class RefreshTokenRequest
+{
+    public string? RefreshToken { get; set; }
 }

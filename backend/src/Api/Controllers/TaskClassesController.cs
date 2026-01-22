@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManageSystem.Application.DTOs.TaskClasses;
 using TaskManageSystem.Application.Interfaces;
@@ -9,6 +10,7 @@ namespace TaskManageSystem.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "LEADER,ADMIN")]
 public class TaskClassesController : ControllerBase
 {
     private readonly ITaskClassService _taskClassService;

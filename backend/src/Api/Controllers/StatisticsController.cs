@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManageSystem.Application.DTOs.Statistics;
 using TaskManageSystem.Application.Interfaces;
@@ -9,7 +10,7 @@ namespace TaskManageSystem.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class StatisticsController : ControllerBase
+[Authorize]
 {
     private readonly IStatisticsService _statisticsService;
     private readonly ITaskService _taskService;

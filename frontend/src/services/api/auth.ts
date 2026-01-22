@@ -25,6 +25,10 @@ export interface LoginResponse {
   token: string;
 }
 
+export interface TokenResponse {
+  token: string;
+}
+
 export interface User {
   userID: string;
   name: string;
@@ -39,6 +43,8 @@ export interface User {
 }
 
 class AuthService {
+  private refreshTokenTimeout: number | null = null;
+
   /**
    * 用户登录
    */
@@ -54,6 +60,8 @@ class AuthService {
       apiClient.setToken(response.token);
       // 保存用户信息到localStorage
       this.setStoredUser(response.user);
+      // 启动Token刷新定时器
+      this.startRefreshTokenTimer(response.token);
       return response;
     }
 
@@ -64,8 +72,9 @@ class AuthService {
    * 用户登出
    */
   logout(): void {
+    this.stopRefreshTokenTimer();
     apiClient.setToken(null);
-    localStorage.removeItem('rd_current_user');
+    this.clearAuthData();
   }
 
   /**
@@ -100,6 +109,83 @@ class AuthService {
    */
   setStoredUser(user: User): void {
     localStorage.setItem('rd_current_user', JSON.stringify(user));
+  }
+
+  /**
+   * 刷新Token
+   */
+  async refreshToken(): Promise<boolean> {
+    try {
+      const response = await apiClient.post<ApiResponse<TokenResponse>>(
+        '/api/auth/refresh-token',
+        {}
+      );
+      if (response.token) {
+        apiClient.setToken(response.token);
+        this.startRefreshTokenTimer(response.token);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token刷新失败:', error);
+      this.logout();
+      return false;
+    }
+  }
+
+  /**
+   * 启动Token刷新定时器（在过期前5分钟刷新）
+   */
+  private startRefreshTokenTimer(token: string): void {
+    this.stopRefreshTokenTimer();
+    const expires = this.getTokenExpiry(token);
+    if (!expires) return;
+
+    const timeout = expires - Date.now() - 5 * 60 * 1000; // 过期前5分钟
+    if (timeout > 0) {
+      console.log(`Token刷新定时器已启动，${Math.round(timeout / 60000)}分钟后刷新`);
+      this.refreshTokenTimeout = window.setTimeout(() => {
+        this.refreshToken();
+      }, timeout);
+    } else {
+      // Token即将过期，立即刷新
+      this.refreshToken();
+    }
+  }
+
+  /**
+   * 停止Token刷新定时器
+   */
+  private stopRefreshTokenTimer(): void {
+    if (this.refreshTokenTimeout) {
+      clearTimeout(this.refreshTokenTimeout);
+      this.refreshTokenTimeout = null;
+    }
+  }
+
+  /**
+   * 解析Token获取过期时间
+   */
+  private getTokenExpiry(token: string): number | null {
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      const decoded = JSON.parse(atob(payload));
+      if (decoded.exp) {
+        return decoded.exp * 1000; // 转换为毫秒
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 清除所有认证数据
+   */
+  private clearAuthData(): void {
+    localStorage.removeItem('rd_current_user');
+    localStorage.removeItem('auth_token');
   }
 }
 

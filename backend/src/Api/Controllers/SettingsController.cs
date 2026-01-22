@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Settings;
@@ -6,10 +7,11 @@ using TaskManageSystem.Application.Interfaces;
 namespace TaskManageSystem.Api.Controllers;
 
 /// <summary>
-/// 系统设置控制�?
+/// 系统设置控制器
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "ADMIN")]
 public class SettingsController : ControllerBase
 {
     private readonly ISettingsService _settingsService;

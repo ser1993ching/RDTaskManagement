@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManageSystem.Application.DTOs.TaskPool;
 using TaskManageSystem.Application.Interfaces;
@@ -9,7 +10,7 @@ namespace TaskManageSystem.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class TaskPoolController : ControllerBase
+[Authorize]
 {
     private readonly ITaskPoolService _taskPoolService;
 

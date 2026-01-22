@@ -3,7 +3,7 @@
  */
 import { API_CONFIG } from './config';
 
-const TIMEOUT = 10000; // 10秒超时
+const TIMEOUT = 30000; // 30秒超时（从10秒提升）
 
 // 辅助函数：将PascalCase转换为camelCase
 function convertToCamelCase(obj: any): any {
@@ -117,6 +117,18 @@ class ApiClient {
       const rawText = await response.text();
       console.log(`API [${endpoint}] raw response:`, rawText.substring(0, 500));
       const data = rawText ? JSON.parse(rawText) : null;
+
+      // 处理401未授权
+      if (response.status === 401) {
+        this.setToken(null);
+        localStorage.removeItem('rd_current_user');
+        localStorage.removeItem('auth_token');
+        // 跳转到登录页
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login?unauthorized=true';
+        }
+        throw new Error('登录已过期，请重新登录');
+      }
 
       if (!response.ok) {
         const errorData = data || ({});

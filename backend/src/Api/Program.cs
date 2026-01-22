@@ -1,8 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text;
 using TaskManageSystem.Application.Interfaces;
 using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Application.Services;
@@ -35,6 +39,32 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// JWT Authentication
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? "YourSecretKeyHere12345678901234567890";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "R&DTaskSystem";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "R&DTaskSystemClient";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
+    };
+});
+
+builder.Services.AddAuthorization();
+
 // DbContext - MySQL connection
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (!string.IsNullOrEmpty(connectionString))
@@ -45,7 +75,7 @@ if (!string.IsNullOrEmpty(connectionString))
         {
             mysqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
-                maxRetryDelay: TimeSpan.FromSeconds(10),
+                maxRetryDelay: TimeSpan.FromSeconds(2),
                 errorNumbersToAdd: null);
             // 指定迁移程序集
             mysqlOptions.MigrationsAssembly("TaskManageSystem.Infrastructure");
@@ -84,10 +114,25 @@ if (app.Environment.IsDevelopment())
 // HTTPS redirection disabled for local development with Vite proxy
 // app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Health check endpoint
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+// Health check endpoint - 检测后端服务和数据库连接状态
+app.MapGet("/api/health", (AppDbContext context) => {
+    try {
+        var canConnect = context.Database.CanConnect();
+        return Results.Ok(new {
+            status = "ok",
+            database = canConnect ? "connected" : "disconnected"
+        });
+    } catch (Exception ex) {
+        return Results.Ok(new {
+            status = "ok",
+            database = "error",
+            error = ex.Message
+        });
+    }
+});
 
 app.MapControllers();
 

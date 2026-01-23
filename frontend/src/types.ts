@@ -51,25 +51,25 @@ export interface TaskClass {
   code: string;
   description?: string;
   notice?: string; // 自定义提示文字，显示在任务管理界面该分类标题下
-  is_deleted?: boolean;
-  created_at?: string;
-  updated_at?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Interfaces
 export interface User {
-  UserID: string; // 工号 (PK)
-  Name: string;
-  SystemRole: SystemRole;
-  OfficeLocation: OfficeLocation;
-  Title?: string;
-  JoinDate?: string; // 参加工作时间
-  Status: PersonnelStatus;
-  Education?: string;
-  School?: string;
-  Password?: string; // Hashed in real app
-  Remark?: string;
-  is_deleted?: boolean;
+  userId: string; // 工号 (PK)
+  name: string;
+  systemRole: SystemRole;
+  officeLocation: OfficeLocation;
+  title?: string;
+  joinDate?: string; // 参加工作时间
+  status: PersonnelStatus;
+  education?: string;
+  school?: string;
+  password?: string; // Hashed in real app
+  remark?: string;
+  isDeleted?: boolean;
 }
 
 export interface Project {
@@ -87,104 +87,81 @@ export interface Project {
   isCommissioned?: boolean; // 是否已投运 (Execution)
   isCompleted?: boolean; // 是否已完成 (Research/Renovation/Other)
   isKeyProject?: boolean; // 是否重点项目
-  is_deleted?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface Task {
-  TaskID: string;
-  TaskName: string;
-  TaskClassID: string; // 关联任务类ID
-  Category: string; // 二级分类
-  ProjectID?: string;
-  AssigneeID?: string; // 负责人
-  StartDate?: string;
-  DueDate?: string;
-  CompletedDate?: string; // 完成时间
-  Status: TaskStatus;
-  Workload?: number; // 预估工作量（小时）
-  Difficulty?: number; // 0.5 - 3.0
-  Remark?: string;
-  CreatedDate: string;
-  CreatedBy: string;
-  TravelLocation?: string; // For Travel tasks
-  TravelDuration?: number; // For Travel tasks
-  MeetingDuration?: number; // For Meeting tasks
-  CapacityLevel?: string; // 容量等级 (For Market tasks)
-  TravelLabel?: string; // For Travel tasks (差旅标签)
+  taskId: string;
+  taskName: string;
+  taskClassId: string; // 关联任务类ID
+  category: string; // 二级分类
+  projectId?: string;
+  assigneeId?: string; // 负责人
+  assigneeName?: string; // 负责人（非系统用户时使用）
+  startDate?: string;
+  dueDate?: string;
+  completedDate?: string; // 完成时间
+  status: TaskStatus;
+  workload?: number; // 预估工作量（小时）
+  difficulty?: number; // 0.5 - 3.0
+  remark?: string;
+  createdDate: string;
+  createdBy: string;
+  travelLocation?: string; // For Travel tasks
+  travelDuration?: number; // For Travel tasks
+  meetingDuration?: number; // For Meeting tasks
+  capacityLevel?: string; // 容量等级 (For Market tasks)
+  travelLabel?: string; // For Travel tasks (差旅标签)
   // 校核人（Checker）
-  CheckerID?: string;
-  CheckerName?: string;
-  CheckerWorkload?: number;
+  checkerId?: string;
+  checkerName?: string;
+  checkerWorkload?: number;
   checkerStatus?: RoleStatus;
   // 主任设计（ChiefDesigner）
-  ChiefDesignerID?: string;
-  ChiefDesignerName?: string;
-  ChiefDesignerWorkload?: number;
+  chiefDesignerId?: string;
+  chiefDesignerName?: string;
+  chiefDesignerWorkload?: number;
   chiefDesignerStatus?: RoleStatus;
   // 审查人（Approver）
-  ApproverID?: string;
-  ApproverName?: string;
-  ApproverWorkload?: number;
+  approverId?: string;
+  approverName?: string;
+  approverWorkload?: number;
   approverStatus?: RoleStatus;
-  // 负责人（非系统用户时使用）
-  AssigneeName?: string;
   // 角色状态
   assigneeStatus?: RoleStatus;
   isForceAssessment?: boolean; // 是否强制考核
-  is_deleted?: boolean;
+  isDeleted?: boolean;
   // For Meeting & Training tasks
-  Participants?: string[]; // 参会人员ID列表
-  ParticipantNames?: string[]; // 参会人员姓名列表
+  participants?: string[]; // 参会人员ID列表
+  participantNames?: string[]; // 参会人员姓名列表
   // For Task Pool
-  is_in_pool?: boolean; // 是否在任务库中（计划任务）
-  // 兼容旧字段名（已废弃，保留用于向后兼容）
-  /** @deprecated 已废弃，使用 CheckerID */
-  ReviewerID?: string;
-  /** @deprecated 已废弃，使用 ApproverID */
-  ReviewerID2?: string;
-  /** @deprecated 已废弃，使用 CheckerName */
-  ReviewerName?: string;
-  /** @deprecated 已废弃，使用 ApproverName */
-  Reviewer2Name?: string;
-  /** @deprecated 已废弃，使用 CheckerWorkload */
-  ReviewerWorkload?: number;
-  /** @deprecated 已废弃，使用 ApproverWorkload */
-  Reviewer2Workload?: number;
+  isInPool?: boolean; // 是否在任务库中（计划任务）
 }
 
 // 任务库/任务计划项
 export interface TaskPoolItem {
   id: string;
-  TaskName: string; // 任务名称
-  TaskClassID: string; // 任务类别ID
-  Category: string; // 二级分类
-  ProjectID?: string; // 关联项目ID
-  ProjectName?: string; // 关联项目名称（冗余存储，便于显示）
-  PersonInChargeID?: string; // 负责人ID（计划中的负责人）
-  PersonInChargeName?: string; // 负责人姓名
-  CheckerID?: string; // 校核人ID
-  CheckerName?: string; // 校核人姓名
-  ChiefDesignerID?: string; // 主任设计ID
-  ChiefDesignerName?: string; // 主任设计姓名
-  ApproverID?: string; // 审查人ID
-  ApproverName?: string; // 审查人姓名
-  StartDate?: string; // 开始时间
-  DueDate?: string; // 截止时间
-  CreatedBy: string; // 创建人
-  CreatedByName?: string; // 创建人姓名
-  CreatedDate: string; // 创建日期
+  taskName: string; // 任务名称
+  taskClassId: string; // 任务类别ID
+  category: string; // 二级分类
+  projectId?: string; // 关联项目ID
+  projectName?: string; // 关联项目名称（冗余存储，便于显示）
+  personInChargeId?: string; // 负责人ID（计划中的负责人）
+  personInChargeName?: string; // 负责人姓名
+  checkerId?: string; // 校核人ID
+  checkerName?: string; // 校核人姓名
+  chiefDesignerId?: string; // 主任设计ID
+  chiefDesignerName?: string; // 主任设计姓名
+  approverId?: string; // 审查人ID
+  approverName?: string; // 审查人姓名
+  startDate?: string; // 开始时间
+  dueDate?: string; // 截止时间
+  createdBy: string; // 创建人
+  createdByName?: string; // 创建人姓名
+  createdDate: string; // 创建日期
   isForceAssessment?: boolean; // 强制考核
-  Remark?: string; // 备注
-  is_deleted?: boolean; // 软删除
-  // 兼容旧字段名（已废弃，保留用于向后兼容）
-  /** @deprecated 已废弃，使用 CheckerID */
-  ReviewerID?: string;
-  /** @deprecated 已废弃，使用 ApproverID */
-  ReviewerID2?: string;
-  /** @deprecated 已废弃，使用 CheckerName */
-  ReviewerName?: string;
-  /** @deprecated 已废弃，使用 ApproverName */
-  Reviewer2Name?: string;
+  remark?: string; // 备注
+  isDeleted?: boolean; // 软删除
 }
 
 // Period type for statistics

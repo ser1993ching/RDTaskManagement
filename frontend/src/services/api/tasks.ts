@@ -4,12 +4,12 @@
 import { apiClient, ApiResponse, PaginatedResponse } from './client';
 
 export interface Task {
-  taskID: string;
+  taskId: string;
   taskName: string;
-  taskClassID: string;
+  taskClassId: string;
   category: string;
-  projectID?: string;
-  assigneeID?: string;
+  projectId?: string;
+  assigneeId?: string;
   assigneeName?: string;
   startDate?: string;
   dueDate?: string;
@@ -31,15 +31,15 @@ export interface Task {
   // 市场任务字段
   capacityLevel?: string;
   // 角色字段
-  checkerID?: string;
+  checkerId?: string;
   checkerName?: string;
   checkerWorkload?: number;
   checkerStatus?: string;
-  chiefDesignerID?: string;
+  chiefDesignerId?: string;
   chiefDesignerName?: string;
   chiefDesignerWorkload?: number;
   chiefDesignerStatus?: string;
-  approverID?: string;
+  approverId?: string;
   approverName?: string;
   approverWorkload?: number;
   approverStatus?: string;
@@ -50,10 +50,10 @@ export interface Task {
 
 export interface CreateTaskRequest {
   taskName: string;
-  taskClassID: string;
+  taskClassId: string;
   category: string;
-  projectID?: string;
-  assigneeID?: string;
+  projectId?: string;
+  assigneeId?: string;
   assigneeName?: string;
   startDate?: string;
   dueDate?: string;
@@ -62,9 +62,9 @@ export interface CreateTaskRequest {
   remark?: string;
   isForceAssessment?: boolean;
   // 角色分配
-  checkerID?: string;
-  chiefDesignerID?: string;
-  approverID?: string;
+  checkerId?: string;
+  chiefDesignerId?: string;
+  approverId?: string;
   // 差旅任务
   travelLocation?: string;
   travelDuration?: number;
@@ -82,11 +82,11 @@ export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
 
 export interface TaskQueryParams {
   status?: string;
-  taskClassID?: string;
-  projectID?: string;
-  assigneeID?: string;
-  checkerID?: string;
-  approverID?: string;
+  taskClassId?: string;
+  projectId?: string;
+  assigneeId?: string;
+  checkerId?: string;
+  approverId?: string;
   page?: number;
   pageSize?: number;
 }
@@ -114,11 +114,11 @@ class TaskService {
   async getTasks(params?: TaskQueryParams): Promise<Task[]> {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set('status', params.status);
-    if (params?.taskClassID) searchParams.set('taskClassID', params.taskClassID);
-    if (params?.projectID) searchParams.set('projectID', params.projectID);
-    if (params?.assigneeID) searchParams.set('assigneeID', params.assigneeID);
-    if (params?.checkerID) searchParams.set('checkerID', params.checkerID);
-    if (params?.approverID) searchParams.set('approverID', params.approverID);
+    if (params?.taskClassId) searchParams.set('taskClassId', params.taskClassId);
+    if (params?.projectId) searchParams.set('projectId', params.projectId);
+    if (params?.assigneeId) searchParams.set('assigneeId', params.assigneeId);
+    if (params?.checkerId) searchParams.set('checkerId', params.checkerId);
+    if (params?.approverId) searchParams.set('approverId', params.approverId);
     if (params?.page) searchParams.set('page', params.page.toString());
     if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
 
@@ -142,14 +142,14 @@ class TaskService {
   async createTask(data: CreateTaskRequest): Promise<Task> {
     const response = await apiClient.post<any>('/api/tasks', data);
     // 后端直接返回TaskDto或包装格式ApiResponse<Task>
-    if (response.Success !== undefined && response.Data) {
+    if (response.success !== undefined && response.data) {
       // 包装格式
-      return response.Data;
-    } else if (response.taskID || response.TaskID) {
+      return response.data;
+    } else if (response.taskId) {
       // 直接返回TaskDto格式
       return response;
     }
-    throw new Error(response.Error?.Message || response.Message || '创建任务失败');
+    throw new Error(response.error?.message || response.message || '创建任务失败');
   }
 
   /**
@@ -158,14 +158,14 @@ class TaskService {
   async updateTask(taskId: string, data: UpdateTaskRequest): Promise<Task> {
     const response = await apiClient.put<any>(`/api/tasks/${taskId}`, data);
     // 后端直接返回TaskDto或包装格式ApiResponse<Task>
-    if (response.Success !== undefined && response.Data) {
+    if (response.success !== undefined && response.data) {
       // 包装格式
-      return response.Data;
-    } else if (response.taskID || response.TaskID) {
+      return response.data;
+    } else if (response.taskId) {
       // 直接返回TaskDto格式
       return response;
     }
-    throw new Error(response.Error?.Message || response.Message || '更新任务失败');
+    throw new Error(response.error?.message || response.message || '更新任务失败');
   }
 
   /**
@@ -180,12 +180,12 @@ class TaskService {
    */
   async updateTaskStatus(taskId: string, status: string): Promise<Task> {
     const response = await apiClient.put<any>(`/api/tasks/${taskId}/status`, { status });
-    if (response.Success !== undefined && response.Data) {
-      return response.Data;
-    } else if (response.taskID || response.TaskID) {
+    if (response.success !== undefined && response.data) {
+      return response.data;
+    } else if (response.taskId) {
       return response;
     }
-    throw new Error(response.Error?.Message || response.Message || '更新任务状态失败');
+    throw new Error(response.error?.message || response.message || '更新任务状态失败');
   }
 
   /**
@@ -200,12 +200,12 @@ class TaskService {
       `/api/tasks/${taskId}/role-status`,
       { role, status }
     );
-    if (response.Success !== undefined && response.Data) {
-      return response.Data;
-    } else if (response.taskID || response.TaskID) {
+    if (response.success !== undefined && response.data) {
+      return response.data;
+    } else if (response.taskId) {
       return response;
     }
-    throw new Error(response.Error?.Message || response.Message || '更新角色状态失败');
+    throw new Error(response.error?.message || response.message || '更新角色状态失败');
   }
 
   /**
@@ -213,12 +213,12 @@ class TaskService {
    */
   async completeAllRoles(taskId: string): Promise<Task> {
     const response = await apiClient.post<any>(`/api/tasks/${taskId}/complete-all`, {});
-    if (response.Success !== undefined && response.Data) {
-      return response.Data;
-    } else if (response.taskID || response.TaskID) {
+    if (response.success !== undefined && response.data) {
+      return response.data;
+    } else if (response.taskId) {
       return response;
     }
-    throw new Error(response.Error?.Message || response.Message || '完成所有角色失败');
+    throw new Error(response.error?.message || response.message || '完成所有角色失败');
   }
 
   /**
@@ -226,12 +226,12 @@ class TaskService {
    */
   async retrieveToPool(taskId: string): Promise<Task> {
     const response = await apiClient.post<any>(`/api/tasks/${taskId}/retrieve`, {});
-    if (response.Success !== undefined && response.Data) {
-      return response.Data;
-    } else if (response.taskID || response.TaskID) {
+    if (response.success !== undefined && response.data) {
+      return response.data;
+    } else if (response.taskId) {
       return response;
     }
-    throw new Error(response.Error?.Message || response.Message || '回收任务到任务库失败');
+    throw new Error(response.error?.message || response.message || '回收任务到任务库失败');
   }
 
   /**

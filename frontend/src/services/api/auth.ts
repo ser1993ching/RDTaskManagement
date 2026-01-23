@@ -11,7 +11,7 @@ export interface LoginRequest {
 // 登录响应（客户端处理后的格式，camelCase）
 export interface LoginResponse {
   user: {
-    userID: string;
+    userId: string;
     name: string;
     systemRole: string;
     officeLocation: string;
@@ -30,7 +30,7 @@ export interface TokenResponse {
 }
 
 export interface User {
-  userID: string;
+  userId: string;
   name: string;
   systemRole: string;
   officeLocation: string;
@@ -51,7 +51,7 @@ class AuthService {
   async login(userId: string, password: string): Promise<LoginResponse> {
     const response = await apiClient.post<ApiResponse<LoginResponse>>(
       '/api/auth/login',
-      { UserId: userId, Password: password }
+      { userId, password }
     );
     console.log('authService.login response:', response);
 

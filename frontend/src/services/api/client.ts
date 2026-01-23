@@ -1,73 +1,18 @@
 /**
  * API客户端配置
+ * 注意：后端API统一使用camelCase命名，此客户端直接使用camelCase，无需转换
  */
 import { API_CONFIG } from './config';
 
-const TIMEOUT = 30000; // 30秒超时（从10秒提升）
-
-// 辅助函数：将PascalCase转换为camelCase
-function convertToCamelCase(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) {
-    return obj.map(convertToCamelCase);
-  }
-  if (typeof obj === 'object') {
-    const converted: Record<string, any> = {};
-    for (const key of Object.keys(obj)) {
-      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
-        .replace(/^[A-Z]/, letter => letter.toLowerCase());
-      converted[camelKey] = convertToCamelCase(obj[key]);
-    }
-    return converted;
-  }
-  return obj;
-}
-
-// 辅助函数：将camelCase转换为PascalCase（用于POST/PUT请求）
-function convertToPascalCase(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) {
-    return obj.map(convertToPascalCase);
-  }
-  if (typeof obj === 'object') {
-    const converted: Record<string, any> = {};
-    for (const key of Object.keys(obj)) {
-      const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
-      converted[pascalKey] = convertToPascalCase(obj[key]);
-    }
-    return converted;
-  }
-  return obj;
-}
-
-// 辅助函数：处理API响应（提取Data，处理PascalCase）
-function processApiResponse(data: any): any {
-  if (!data) return data;
-
-  // 如果有Success属性，说明是包装的响应
-  if ('Success' in data || 'success' in data) {
-    const success = data.Success || data.success;
-    const responseData = data.Data || data.data;
-
-    if (!success || !responseData) {
-      throw new Error(data.Error?.Message || data.message || '请求失败');
-    }
-
-    // 转换Data中的PascalCase为camelCase
-    return convertToCamelCase(responseData);
-  }
-
-  // 如果没有Success属性，直接转换整个响应（处理PascalCase）
-  return convertToCamelCase(data);
-}
+const TIMEOUT = 30000; // 30秒超时
 
 export interface ApiResponse<T> {
-  Success: boolean;
-  Data?: T;
-  Message?: string;
-  Error?: {
-    Code: string;
-    Message: string;
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: {
+    code: string;
+    message: string;
   };
 }
 
@@ -149,11 +94,27 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = data || ({});
-        throw new Error(errorData.Error?.Message || errorData.Message || `HTTP ${response.status}`);
+        throw new Error(errorData.error?.message || errorData.message || `HTTP ${response.status}`);
       }
 
-      // 处理响应：提取Data（如果存在）并转换PascalCase为camelCase
-      return processApiResponse(data);
+      // 处理响应：提取Data（如果存在）
+      // 后端已返回camelCase，无需转换
+      if (!data) return null as T;
+
+      // 检查是否是包装的响应格式
+      if ('success' in data || 'Success' in data) {
+        const success = data.success || data.Success;
+        const responseData = data.data || data.Data;
+
+        if (!success || !responseData) {
+          throw new Error(data.error?.message || data.message || '请求失败');
+        }
+
+        return responseData as T;
+      }
+
+      // 如果没有包装格式，直接返回
+      return data as T;
     } catch (error) {
       clearTimeout(timeoutId);
       console.error(`API Error [${endpoint}]:`, error);
@@ -169,21 +130,27 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  // POST请求
+  // POST请求 - 直接发送camelCase数据
   async post<T>(endpoint: string, data?: unknown): Promise<T> {
-    const pascalData = data ? convertToPascalCase(data) : undefined;
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: pascalData ? JSON.stringify(pascalData) : undefined,
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  // PUT请求
+  // PUT请求 - 直接发送camelCase数据
   async put<T>(endpoint: string, data?: unknown): Promise<T> {
-    const pascalData = data ? convertToPascalCase(data) : undefined;
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: pascalData ? JSON.stringify(pascalData) : undefined,
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  // PATCH请求
+  async patch<T>(endpoint: string, data?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 

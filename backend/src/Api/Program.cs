@@ -35,12 +35,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // 支持中文和Unicode字符
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // 使用原始属性名
+        // 使用camelCase命名策略 - JSON字段统一使用camelCase
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
         options.JsonSerializerOptions.WriteIndented = false;
-        // 允许不区分大小写的属性名匹配（支持前端 PascalCase 属性名）
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

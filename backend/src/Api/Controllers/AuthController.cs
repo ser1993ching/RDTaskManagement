@@ -190,7 +190,7 @@ public class AuthController : ControllerBase
             {
                 Success = true,
                 Message = "管理员用户创建成功",
-                Data = new { userId = user.UserID, name = user.Name }
+                Data = new { userId = user.UserId, name = user.Name }
             });
         }
         catch (Exception ex)
@@ -214,10 +214,10 @@ public class AuthController : ControllerBase
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, user.UserID),
+            new Claim(ClaimTypes.NameIdentifier, user.UserId),
             new Claim(ClaimTypes.Name, user.Name),
             new Claim(ClaimTypes.Role, user.SystemRole.ToUpperInvariant()),
-            new Claim("UserID", user.UserID),
+            new Claim("userId", user.UserId),
             new Claim("OfficeLocation", user.OfficeLocation)
         };
 

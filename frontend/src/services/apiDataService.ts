@@ -65,79 +65,7 @@ const clearCache = (key?: string): void => {
   }
 };
 
-// 类型转换函数 - 将API返回类型转换为前端类型
-const convertUser = (apiUser: UserDto) => ({
-  UserID: apiUser.userID,
-  Name: apiUser.name,
-  SystemRole: apiUser.systemRole as any,
-  OfficeLocation: apiUser.officeLocation as any,
-  Title: apiUser.title,
-  JoinDate: apiUser.joinDate,
-  Status: apiUser.status as any,
-  Education: apiUser.education,
-  School: apiUser.school,
-  Remark: apiUser.remark,
-});
-
-const convertProject = (apiProject: ProjectDto) => ({
-  id: apiProject.id,
-  name: apiProject.name,
-  category: apiProject.category as any,
-  workNo: apiProject.workNo,
-  capacity: apiProject.capacity,
-  model: apiProject.model,
-  isWon: apiProject.isWon,
-  isForeign: apiProject.isForeign,
-  startDate: apiProject.startDate,
-  endDate: apiProject.endDate,
-  remark: apiProject.remark,
-  isCommissioned: apiProject.isCommissioned,
-  isCompleted: apiProject.isCompleted,
-  isKeyProject: apiProject.isKeyProject,
-  is_deleted: false,
-});
-
-const convertTask = (apiTask: TaskDto) => ({
-  TaskID: apiTask.taskID,
-  TaskName: apiTask.taskName,
-  TaskClassID: apiTask.taskClassID,
-  Category: apiTask.category,
-  ProjectID: apiTask.projectID,
-  AssigneeID: apiTask.assigneeID,
-  AssigneeName: apiTask.assigneeName,
-  StartDate: apiTask.startDate,
-  DueDate: apiTask.dueDate,
-  CompletedDate: apiTask.completedDate,
-  Status: apiTask.status as any,
-  Workload: apiTask.workload,
-  Difficulty: apiTask.difficulty,
-  Remark: apiTask.remark,
-  CreatedDate: apiTask.createdDate,
-  CreatedBy: apiTask.createdBy,
-  TravelLocation: apiTask.travelLocation,
-  TravelDuration: apiTask.travelDuration,
-  TravelLabel: apiTask.travelLabel,
-  MeetingDuration: apiTask.meetingDuration,
-  Participants: apiTask.participants,
-  ParticipantNames: apiTask.participantNames,
-  CapacityLevel: apiTask.capacityLevel,
-  CheckerID: apiTask.checkerID,
-  CheckerName: apiTask.checkerName,
-  CheckerWorkload: apiTask.checkerWorkload,
-  checkerStatus: apiTask.checkerStatus as any,
-  ChiefDesignerID: apiTask.chiefDesignerID,
-  ChiefDesignerName: apiTask.chiefDesignerName,
-  ChiefDesignerWorkload: apiTask.chiefDesignerWorkload,
-  chiefDesignerStatus: apiTask.chiefDesignerStatus as any,
-  ApproverID: apiTask.approverID,
-  ApproverName: apiTask.approverName,
-  ApproverWorkload: apiTask.approverWorkload,
-  approverStatus: apiTask.approverStatus as any,
-  assigneeStatus: apiTask.assigneeStatus as any,
-  isForceAssessment: apiTask.isForceAssessment,
-  is_in_pool: apiTask.isInPool,
-  is_deleted: false,
-});
+// 注意：后端API已统一返回camelCase，无需额外转换
 
 // API数据服务
 class ApiDataService {
@@ -172,8 +100,8 @@ class ApiDataService {
 
   async saveUser(user: Partial<UserDto>): Promise<UserDto> {
     let result: UserDto;
-    if ((user as any).UserID) {
-      result = await userService.updateUser((user as any).UserID, user);
+    if (user.userId) {
+      result = await userService.updateUser(user.userId, user);
     } else {
       result = await userService.createUser(user as any);
     }
@@ -275,21 +203,21 @@ class ApiDataService {
   }
 
   // 任务相关
-  async getTasks(params?: { taskClassID?: string; assigneeID?: string; projectID?: string }, forceRefresh = false): Promise<TaskDto[]> {
-    const cacheKey = `tasks_${params?.taskClassID || ''}_${params?.assigneeID || ''}_${params?.projectID || ''}`;
-    if (!forceRefresh && !params?.taskClassID && !params?.assigneeID && !params?.projectID) {
+  async getTasks(params?: { taskClassId?: string; assigneeId?: string; projectId?: string }, forceRefresh = false): Promise<TaskDto[]> {
+    const cacheKey = `tasks_${params?.taskClassId || ''}_${params?.assigneeId || ''}_${params?.projectId || ''}`;
+    if (!forceRefresh && !params?.taskClassId && !params?.assigneeId && !params?.projectId) {
       const cached = getCachedData<TaskDto[]>(cacheKey);
       if (cached) return cached;
     }
     try {
       const result = await taskService.getTasks({
-        taskClassID: params?.taskClassID,
-        assigneeID: params?.assigneeID,
-        projectID: params?.projectID,
+        taskClassId: params?.taskClassId,
+        assigneeId: params?.assigneeId,
+        projectId: params?.projectId,
         pageSize: 300,
       });
       setApiAvailable(true);
-      if (!params?.taskClassID && !params?.assigneeID && !params?.projectID) {
+      if (!params?.taskClassId && !params?.assigneeId && !params?.projectId) {
         setCachedData(cacheKey, result);
       }
       return result;
@@ -341,8 +269,8 @@ class ApiDataService {
 
   async saveTask(task: Partial<TaskDto>): Promise<TaskDto> {
     let result: TaskDto;
-    if (task.taskID) {
-      result = await taskService.updateTask(task.taskID, task as any);
+    if (task.taskId) {
+      result = await taskService.updateTask(task.taskId, task as any);
     } else {
       result = await taskService.createTask(task as any);
     }
@@ -747,13 +675,13 @@ class ApiDataService {
   async getTeamMembers(currentUserId: string): Promise<UserDto[]> {
     try {
       const users = await this.getUsers();
-      const currentUser = users.find(u => u.userID === currentUserId);
+      const currentUser = users.find(u => u.userId === currentUserId);
       if (!currentUser) return [];
 
       const officeLocation = currentUser.officeLocation;
       return users.filter(u =>
-        u.userID !== 'admin' &&
-        u.userID !== currentUserId &&
+        u.userId !== 'admin' &&
+        u.userId !== currentUserId &&
         u.officeLocation === officeLocation
       );
     } catch (error) {
@@ -797,7 +725,7 @@ class ApiDataService {
     }
 
     return tasks.filter(task => {
-      const taskStartDate = task.startDate || task.StartDate;
+      const taskStartDate = task.startDate;
       if (!taskStartDate) return false;
       const taskDate = new Date(taskStartDate);
       return taskDate >= startDate && taskDate <= now;
@@ -816,18 +744,18 @@ class ApiDataService {
     const completedStatuses = ['COMPLETED'];
 
     for (const task of tasks) {
-      // 确定用户在任务中的角色状态（支持 PascalCase 和 camelCase）
-      const taskStatus = task.status || task.Status || '';
+      // 确定用户在任务中的角色状态
+      const taskStatus = task.status || '';
       let roleStatus = '';
-      const assigneeId = task.assigneeID || task.AssigneeID;
-      const checkerId = task.checkerID || task.CheckerID;
-      const chiefDesignerId = task.chiefDesignerID || task.ChiefDesignerID;
-      const approverId = task.approverID || task.ApproverID;
+      const assigneeId = task.assigneeId;
+      const checkerId = task.checkerId;
+      const chiefDesignerId = task.chiefDesignerId;
+      const approverId = task.approverId;
 
-      if (assigneeId === userId) roleStatus = task.assigneeStatus || task.AssigneeStatus || '';
-      else if (checkerId === userId) roleStatus = task.checkerStatus || task.CheckerStatus || '';
-      else if (chiefDesignerId === userId) roleStatus = task.chiefDesignerStatus || task.ChiefDesignerStatus || '';
-      else if (approverId === userId) roleStatus = task.approverStatus || task.ApproverStatus || '';
+      if (assigneeId === userId) roleStatus = task.assigneeStatus || '';
+      else if (checkerId === userId) roleStatus = task.checkerStatus || '';
+      else if (chiefDesignerId === userId) roleStatus = task.chiefDesignerStatus || '';
+      else if (approverId === userId) roleStatus = task.approverStatus || '';
 
       // 综合判断任务状态
       const finalStatus = roleStatus || taskStatus;
@@ -869,12 +797,12 @@ class ApiDataService {
     }));
 
     // 差旅统计
-    const travelTasks = allTasks.filter(t => t.taskClassID === 'TC009');
+    const travelTasks = allTasks.filter(t => t.taskClassId === 'TC009');
     const totalTravelDays = travelTasks.reduce((sum, t) => sum + (t.travelDuration || 0), 0);
     const travelPercentage = Math.round((totalTravelDays / 22) * 100); // 假设每月22个工作日
 
     // 会议统计
-    const meetingTasks = allTasks.filter(t => t.taskClassID === 'TC007');
+    const meetingTasks = allTasks.filter(t => t.taskClassId === 'TC007');
     const totalMeetingHours = meetingTasks.reduce((sum, t) => sum + (t.meetingDuration || 0), 0);
     const meetingPercentage = Math.round((totalMeetingHours / 160) * 100); // 假设每月160工作小时
 
@@ -985,40 +913,40 @@ class ApiDataService {
 
     for (const task of separatedTasks.inProgress) {
       rows.push([
-        task.TaskName || '',
-        task.Category || '',
-        task.ProjectName || '',
-        task.StartDate || '',
-        task.DueDate || '',
+        task.taskName || '',
+        task.category || '',
+        task.projectName || '',
+        task.startDate || '',
+        task.dueDate || '',
         '进行中',
-        task.Status || '',
-        String(task.Workload || ''),
+        task.status || '',
+        String(task.workload || ''),
       ]);
     }
 
     for (const task of separatedTasks.pending) {
       rows.push([
-        task.TaskName || '',
-        task.Category || '',
-        task.ProjectName || '',
-        task.StartDate || '',
-        task.DueDate || '',
+        task.taskName || '',
+        task.category || '',
+        task.projectName || '',
+        task.startDate || '',
+        task.dueDate || '',
         '未开始',
-        task.Status || '',
-        String(task.Workload || ''),
+        task.status || '',
+        String(task.workload || ''),
       ]);
     }
 
     for (const task of separatedTasks.completed) {
       rows.push([
-        task.TaskName || '',
-        task.Category || '',
-        task.ProjectName || '',
-        task.StartDate || '',
-        task.DueDate || '',
+        task.taskName || '',
+        task.category || '',
+        task.projectName || '',
+        task.startDate || '',
+        task.dueDate || '',
         '已完成',
-        task.Status || '',
-        String(task.Workload || ''),
+        task.status || '',
+        String(task.workload || ''),
       ]);
     }
 
@@ -1054,9 +982,9 @@ class ApiDataService {
 
   // 判断任务是否为长期任务（超过30天）
   isTaskLongRunning(task: any): boolean {
-    if (!task.StartDate || !task.DueDate) return false;
-    const startDate = new Date(task.StartDate);
-    const dueDate = new Date(task.DueDate);
+    if (!task.startDate || !task.dueDate) return false;
+    const startDate = new Date(task.startDate);
+    const dueDate = new Date(task.dueDate);
     const diffDays = Math.ceil((dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     return diffDays > 30;
   }

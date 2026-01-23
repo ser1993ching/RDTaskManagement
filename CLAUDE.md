@@ -144,6 +144,17 @@ dotnet watch run             # Hot reload during development
 
 **Enums:** SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus
 
+## API JSON字段命名规范
+
+- **JSON字段统一使用 camelCase**（如 `taskId`, `userId`, `startDate`）
+- **后端配置**：`PropertyNamingPolicy = JsonNamingPolicy.CamelCase`
+- **前端类型**：使用camelCase，与API响应一致
+- **禁止**：前后端各自转换，统一在后端处理
+
+**关键文件：**
+- 后端配置：`backend/src/Api/Program.cs`
+- 前端API客户端：`frontend/src/services/api/client.ts`
+
 ## Authentication
 
 - **Login:** `dataService.login(userId, password)` - matches UserID or Name + Password

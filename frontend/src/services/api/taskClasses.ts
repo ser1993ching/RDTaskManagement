@@ -29,21 +29,24 @@ class TaskClassService {
    */
   async getTaskClasses(includeDeleted?: boolean): Promise<TaskClass[]> {
     const params = includeDeleted ? '?includeDeleted=true' : '';
-    // 后端返回 { taskClasses: [...], categories: {...} }
-    const response = await apiClient.get<any>(`/api/taskclasses${params}`);
+    // 后端返回 { TaskClasses: [...], Categories: {...} }
+    // apiClient.get已提取Data并转换为camelCase: { taskClasses: [...], categories: {...} }
+    const response = await apiClient.get<any>(`/api/TaskClasses${params}`);
     // 提取 taskClasses 数组
-    return response.taskClasses || response.data?.taskClasses || [];
+    return response.taskClasses || [];
   }
 
   /**
    * 获取任务分类（包含子类别）
    */
   async getTaskClassesWithCategories(): Promise<TaskClassesResponse> {
-    // 后端返回 { taskClasses: [...], categories: {...} }
-    const response = await apiClient.get<any>('/api/taskclasses/with-categories');
+    // 后端返回 { TaskClasses: [...], Categories: {...} }
+    // apiClient.get已提取Data并转换为camelCase: { taskClasses: [...], categories: {...} }
+    // 注意：categories的key是PascalCase (Market, Execution) 转为 camelCase (market, execution)
+    const response = await apiClient.get<any>('/api/TaskClasses');
     return {
-      taskClasses: response.taskClasses || response.data?.taskClasses || [],
-      categories: response.categories || response.data?.categories || {}
+      taskClasses: response.taskClasses || [],
+      categories: response.categories || {}
     };
   }
 

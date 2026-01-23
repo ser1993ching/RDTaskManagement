@@ -27,7 +27,9 @@ const CAPACITY_LEVEL_OPTIONS = [
 ];
 
 // Default task categories (fallback when API fails) - 修复 Bug 2
+// 支持多种key格式：UPPERCASE, camelCase, PascalCase
 const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
+  // UPPERCASE keys (原格式)
   'MARKET': ['技术支持', '商务配合', '技术方案', '项目管理', '其他'],
   'EXECUTION': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
   'NUCLEAR': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
@@ -37,7 +39,18 @@ const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
   'ADMIN_PARTY': ['党建活动', '行政事务', '会议组织', '其他'],
   'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
   'TRAVEL': ['市场配合出差', '常规项目执行出差', '核电项目执行出差', '科研出差', '改造服务出差', '其他'],
-  'OTHER': ['其他']
+  'OTHER': ['其他'],
+  // camelCase keys (API返回格式经convertToCamelCase转换后)
+  'market': ['技术支持', '商务配合', '技术方案', '项目管理', '其他'],
+  'execution': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
+  'nuclear': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
+  'productDev': ['研发工作', '测试工作', '设计工作', '技术支持', '其他'],
+  'research': ['理论研究', '试验工作', '数据分析', '报告编写', '其他'],
+  'renovation': ['现场服务', '技术支持', '设计工作', '项目管理', '其他'],
+  'adminParty': ['党建活动', '行政事务', '会议组织', '其他'],
+  'meetingTraining': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
+  'travel': ['市场配合出差', '常规项目执行出差', '核电项目执行出差', '科研出差', '改造服务出差', '其他'],
+  'other': ['其他'],
 };
 
 // Helper function to format date
@@ -120,15 +133,32 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   // Helper function to get categories for a task class
   // 修复 Bug 2: 使用默认分类作为降级处理
+  // API返回的categories key是camelCase (market, execution)，但taskClassCode可能是PascalCase或大写
   const getCategoriesForTaskClass = (taskClassCode: string): string[] => {
-    // First try API data
-    if (taskCategories[taskClassCode] && taskCategories[taskClassCode].length > 0) {
-      return taskCategories[taskClassCode];
+    if (!taskClassCode) return [];
+
+    // 尝试多种key格式（camelCase, PascalCase, uppercase）
+    const keyVariants = [
+      taskClassCode,  // 原样
+      taskClassCode.charAt(0).toLowerCase() + taskClassCode.slice(1),  // camelCase
+      taskClassCode.toLowerCase(),  // lowercase
+      taskClassCode.toUpperCase(),  // UPPERCASE
+    ];
+
+    // 查找API数据
+    for (const key of keyVariants) {
+      if (taskCategories[key] && taskCategories[key].length > 0) {
+        return taskCategories[key];
+      }
     }
-    // Fallback to default categories
-    if (DEFAULT_TASK_CATEGORIES[taskClassCode]) {
-      return DEFAULT_TASK_CATEGORIES[taskClassCode];
+
+    // 查找默认分类（DEFAULT_TASK_CATEGORIES使用UPPERCASE key）
+    for (const key of keyVariants) {
+      if (DEFAULT_TASK_CATEGORIES[key]) {
+        return DEFAULT_TASK_CATEGORIES[key];
+      }
     }
+
     return [];
   };
 

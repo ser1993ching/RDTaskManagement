@@ -587,8 +587,8 @@ class ApiDataService {
   async getEquipmentModels(): Promise<string[]> {
     try {
       const response = await apiClient.get<any>('/api/settings/equipment-models');
-      // 后端返回 { success: true, data: { models: [...] } }
-      return response.data?.models || response.data?.Models || [];
+      // apiClient.get已提取Data并转为camelCase，返回 { models: [...] }
+      return response.models || response.Models || [];
     } catch (error) {
       console.error('获取设备型号失败:', error);
       return [];
@@ -598,7 +598,8 @@ class ApiDataService {
   async saveEquipmentModel(model: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>('/api/settings/equipment-models', { model });
-      return response.data?.success || false;
+      // apiClient.post已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('保存设备型号失败:', error);
       return false;
@@ -608,7 +609,8 @@ class ApiDataService {
   async deleteEquipmentModel(model: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/equipment-models/${encodeURIComponent(model)}`);
-      return response.data?.success || false;
+      // apiClient.delete已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('删除设备型号失败:', error);
       return false;
@@ -619,8 +621,8 @@ class ApiDataService {
   async getCapacityLevels(): Promise<string[]> {
     try {
       const response = await apiClient.get<any>('/api/settings/capacity-levels');
-      // 后端返回 { success: true, data: { levels: [...] } }
-      return response.data?.levels || response.data?.Levels || [];
+      // apiClient.get已提取Data并转为camelCase，返回 { levels: [...] }
+      return response.levels || response.Levels || [];
     } catch (error) {
       console.error('获取容量等级失败:', error);
       return [];
@@ -630,7 +632,8 @@ class ApiDataService {
   async saveCapacityLevel(level: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>('/api/settings/capacity-levels', { level });
-      return response.data?.success || false;
+      // apiClient.post已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('保存容量等级失败:', error);
       return false;
@@ -640,7 +643,8 @@ class ApiDataService {
   async deleteCapacityLevel(level: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/capacity-levels/${encodeURIComponent(level)}`);
-      return response.data?.success || false;
+      // apiClient.delete已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('删除容量等级失败:', error);
       return false;
@@ -651,8 +655,8 @@ class ApiDataService {
   async getTravelLabels(): Promise<string[]> {
     try {
       const response = await apiClient.get<any>('/api/settings/travel-labels');
-      // 后端返回 { success: true, data: { labels: [...] } }
-      return response.data?.labels || response.data?.Labels || [];
+      // apiClient.get已提取Data并转为camelCase，返回 { labels: [...] }
+      return response.labels || response.Labels || [];
     } catch (error) {
       console.error('获取差旅标签失败:', error);
       return [];
@@ -662,7 +666,8 @@ class ApiDataService {
   async saveTravelLabel(label: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>('/api/settings/travel-labels', { label });
-      return response.data?.success || false;
+      // apiClient.post已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('保存差旅标签失败:', error);
       return false;
@@ -672,7 +677,8 @@ class ApiDataService {
   async deleteTravelLabel(label: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/travel-labels/${encodeURIComponent(label)}`);
-      return response.data?.success || false;
+      // apiClient.delete已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('删除差旅标签失败:', error);
       return false;
@@ -683,8 +689,8 @@ class ApiDataService {
   async getUserAvatar(userId: string): Promise<string | null> {
     try {
       const response = await apiClient.get<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`);
-      // 后端返回 { success: true, data: { avatar: "..." } }
-      return response.data?.avatar || response.data?.Avatar || null;
+      // apiClient.get已提取Data并转为camelCase，返回 { avatar: "..." }
+      return response.avatar || response.Avatar || null;
     } catch (error) {
       console.error('获取用户头像失败:', error);
       return null;
@@ -694,7 +700,8 @@ class ApiDataService {
   async saveUserAvatar(userId: string, avatar: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`, { avatar });
-      return response.data?.success || false;
+      // apiClient.post已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('保存用户头像失败:', error);
       return false;
@@ -704,7 +711,8 @@ class ApiDataService {
   async deleteUserAvatar(userId: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`);
-      return response.data?.success || false;
+      // apiClient.delete已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('删除用户头像失败:', error);
       return false;
@@ -715,12 +723,8 @@ class ApiDataService {
   async getTaskCategories(): Promise<Record<string, string[]>> {
     try {
       const response = await apiClient.get<any>('/api/settings/task-categories');
-      console.log('【调试】task-categories API响应:', response);
-      // 后端返回 { success: true, data: { categories: {...} } }
-      // apiClient.get 返回解析后的JSON对象
-      const result = response.data?.categories || response.data?.Categories || {};
-      console.log('【调试】task-categories 返回值:', result);
-      return result;
+      // apiClient.get已提取Data并转为camelCase，返回 { categories: {...} }
+      return response.categories || response.Categories || {};
     } catch (error) {
       console.error('获取任务分类失败:', error);
       return {};
@@ -730,7 +734,8 @@ class ApiDataService {
   async saveTaskCategories(code: string, categories: string[]): Promise<boolean> {
     try {
       const response = await apiClient.put<any>(`/api/settings/task-categories/${code}`, { categories });
-      return response.data?.success || false;
+      // apiClient.put已提取Data，返回 { success: true/false }
+      return response.success || response.Success || false;
     } catch (error) {
       console.error('保存任务分类失败:', error);
       return false;

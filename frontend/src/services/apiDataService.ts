@@ -23,6 +23,15 @@ import type {
 let apiAvailable = true;
 let lastApiError: string | null = null;
 
+// 缓存配置
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const cache: Map<string, CacheEntry<any>> = new Map();
+const CACHE_DURATION = 30 * 1000; // 30秒缓存
+
 // 设置API可用性
 export const setApiAvailable = (available: boolean, error?: string) => {
   apiAvailable = available;
@@ -32,6 +41,29 @@ export const setApiAvailable = (available: boolean, error?: string) => {
 // 获取API可用性
 export const isApiAvailable = () => apiAvailable;
 export const getLastApiError = () => lastApiError;
+
+// 缓存辅助函数
+const getCachedData = <T>(key: string): T | null => {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_DURATION) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.data;
+};
+
+const setCachedData = <T>(key: string, data: T): void => {
+  cache.set(key, { data, timestamp: Date.now() });
+};
+
+const clearCache = (key?: string): void => {
+  if (key) {
+    cache.delete(key);
+  } else {
+    cache.clear();
+  }
+};
 
 // 类型转换函数 - 将API返回类型转换为前端类型
 const convertUser = (apiUser: UserDto) => ({
@@ -110,10 +142,16 @@ const convertTask = (apiTask: TaskDto) => ({
 // API数据服务
 class ApiDataService {
   // 用户相关
-  async getUsers(): Promise<UserDto[]> {
+  async getUsers(forceRefresh = false): Promise<UserDto[]> {
+    const cacheKey = 'users';
+    if (!forceRefresh) {
+      const cached = getCachedData<UserDto[]>(cacheKey);
+      if (cached) return cached;
+    }
     try {
-      const result = await userService.getUsers({ pageSize: 1000 });
+      const result = await userService.getUsers({ pageSize: 200 });
       setApiAvailable(true);
+      setCachedData(cacheKey, result);
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误';
@@ -133,15 +171,19 @@ class ApiDataService {
   }
 
   async saveUser(user: Partial<UserDto>): Promise<UserDto> {
+    let result: UserDto;
     if ((user as any).UserID) {
-      return await userService.updateUser((user as any).UserID, user);
+      result = await userService.updateUser((user as any).UserID, user);
     } else {
-      return await userService.createUser(user as any);
+      result = await userService.createUser(user as any);
     }
+    clearCache('users'); // 清除用户缓存
+    return result;
   }
 
   async deleteUser(userId: string): Promise<void> {
     await userService.deleteUser(userId);
+    clearCache('users'); // 清除用户缓存
   }
 
   async restoreUser(userId: string): Promise<boolean> {
@@ -169,10 +211,16 @@ class ApiDataService {
   }
 
   // 项目相关
-  async getProjects(): Promise<ProjectDto[]> {
+  async getProjects(forceRefresh = false): Promise<ProjectDto[]> {
+    const cacheKey = 'projects';
+    if (!forceRefresh) {
+      const cached = getCachedData<ProjectDto[]>(cacheKey);
+      if (cached) return cached;
+    }
     try {
-      const result = await projectService.getProjects({ pageSize: 1000 });
+      const result = await projectService.getProjects({ pageSize: 200 });
       setApiAvailable(true);
+      setCachedData(cacheKey, result);
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误';
@@ -192,15 +240,19 @@ class ApiDataService {
   }
 
   async saveProject(project: Partial<ProjectDto>): Promise<ProjectDto> {
+    let result: ProjectDto;
     if (project.id) {
-      return await projectService.updateProject(project.id, project as any);
+      result = await projectService.updateProject(project.id, project as any);
     } else {
-      return await projectService.createProject(project as any);
+      result = await projectService.createProject(project as any);
     }
+    clearCache('projects'); // 清除项目缓存
+    return result;
   }
 
   async deleteProject(projectId: string): Promise<void> {
     await projectService.deleteProject(projectId);
+    clearCache('projects'); // 清除项目缓存
   }
 
   async getProjectStatistics(): Promise<any> {
@@ -223,15 +275,23 @@ class ApiDataService {
   }
 
   // 任务相关
-  async getTasks(params?: { taskClassID?: string; assigneeID?: string; projectID?: string }): Promise<TaskDto[]> {
+  async getTasks(params?: { taskClassID?: string; assigneeID?: string; projectID?: string }, forceRefresh = false): Promise<TaskDto[]> {
+    const cacheKey = `tasks_${params?.taskClassID || ''}_${params?.assigneeID || ''}_${params?.projectID || ''}`;
+    if (!forceRefresh && !params?.taskClassID && !params?.assigneeID && !params?.projectID) {
+      const cached = getCachedData<TaskDto[]>(cacheKey);
+      if (cached) return cached;
+    }
     try {
       const result = await taskService.getTasks({
         taskClassID: params?.taskClassID,
         assigneeID: params?.assigneeID,
         projectID: params?.projectID,
-        pageSize: 1000,
+        pageSize: 300,
       });
       setApiAvailable(true);
+      if (!params?.taskClassID && !params?.assigneeID && !params?.projectID) {
+        setCachedData(cacheKey, result);
+      }
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误';
@@ -280,19 +340,24 @@ class ApiDataService {
   }
 
   async saveTask(task: Partial<TaskDto>): Promise<TaskDto> {
+    let result: TaskDto;
     if (task.taskID) {
-      return await taskService.updateTask(task.taskID, task as any);
+      result = await taskService.updateTask(task.taskID, task as any);
     } else {
-      return await taskService.createTask(task as any);
+      result = await taskService.createTask(task as any);
     }
+    clearCache('tasks__'); // 清除任务缓存（不带参数的主缓存）
+    return result;
   }
 
   async deleteTask(taskId: string): Promise<void> {
     await taskService.deleteTask(taskId);
+    clearCache('tasks__'); // 清除任务缓存
   }
 
   async updateTaskStatus(taskId: string, status: string): Promise<void> {
     await taskService.updateTaskStatus(taskId, status);
+    clearCache('tasks__'); // 清除任务缓存
   }
 
   async completeAllRoles(taskId: string): Promise<boolean> {
@@ -318,6 +383,7 @@ class ApiDataService {
   async batchOperation(operation: string, taskIds: string[]): Promise<boolean> {
     try {
       await taskService.batchOperation(operation, taskIds);
+      clearCache('tasks__'); // 清除任务缓存
       return true;
     } catch (error) {
       console.error('批量操作任务失败:', error);
@@ -361,7 +427,7 @@ class ApiDataService {
   // 任务库相关
   async getTaskPoolItems(): Promise<TaskPoolItemDto[]> {
     try {
-      const result = await taskPoolService.getPoolItems({ pageSize: 1000 });
+      const result = await taskPoolService.getPoolItems({ pageSize: 200 });
       setApiAvailable(true);
       return result.data || [];
     } catch (error) {
@@ -1097,6 +1163,19 @@ class ApiDataService {
 
   isLoggedIn(): boolean {
     return authService.isLoggedIn();
+  }
+
+  // 清除缓存
+  clearCache(key?: string): void {
+    clearCache(key);
+  }
+
+  // 数据变更时刷新缓存
+  async refreshData(): Promise<void> {
+    clearCache();
+    await this.getUsers(true);
+    await this.getProjects(true);
+    await this.getTasks(undefined, true);
   }
 }
 

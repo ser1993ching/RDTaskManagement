@@ -24,6 +24,19 @@ public class ApiLoggingMiddleware
         _logger = logger;
     }
 
+    // 高频请求路径（不记录日志）
+    private static readonly HashSet<string> HighFrequencyPaths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/api/tasks/personal",
+        "/api/statistics/dashboard",
+        "/api/statistics/personal",
+        "/api/health",
+    };
+
+    // 上次记录日志的时间（用于节流）
+    private static DateTime _lastLogTime = DateTime.MinValue;
+    private static readonly TimeSpan MinLogInterval = TimeSpan.FromSeconds(1);
+
     public async Task InvokeAsync(HttpContext context)
     {
         // 跳过Swagger等非API请求
@@ -34,22 +47,32 @@ public class ApiLoggingMiddleware
             return;
         }
 
+        // 检查是否为高频请求路径（用于节流）
+        var isHighFrequencyPath = HighFrequencyPaths.Any(p => path.StartsWith(p));
+
+        // 节流：每秒最多记录一次日志
+        var now = DateTime.Now;
+        var shouldSkipLogging = isHighFrequencyPath && (now - _lastLogTime) < MinLogInterval;
+
         var stopwatch = Stopwatch.StartNew();
         var requestId = context.TraceIdentifier;
         var userId = context.User?.Identity?.Name ?? "Anonymous";
 
-        // 记录请求信息
-        _logger.LogInformation(
-            "[{RequestId}] 请求: {Method} {Path} | User: {UserId} | Query: {Query}",
-            requestId,
-            context.Request.Method,
-            path,
-            userId,
-            context.Request.QueryString.Value);
+        // 跳过高频请求的详细日志
+        if (!shouldSkipLogging)
+        {
+            _logger.LogInformation(
+                "[{RequestId}] 请求: {Method} {Path} | User: {UserId} | Query: {Query}",
+                requestId,
+                context.Request.Method,
+                path,
+                userId,
+                context.Request.QueryString.Value);
+        }
 
-        // 捕获请求体（仅限POST/PUT/PATCH）
+        // 捕获请求体（仅限POST/PUT/PATCH，且不是高频请求）
         string? requestBody = null;
-        if (context.Request.Method is "POST" or "PUT" or "PATCH")
+        if (!shouldSkipLogging && context.Request.Method is "POST" or "PUT" or "PATCH")
         {
             context.Request.EnableBuffering();
             using var reader = new StreamReader(
@@ -69,10 +92,7 @@ public class ApiLoggingMiddleware
             _logger.LogDebug("[{RequestId}] 请求体: {Body}", requestId, requestBody);
         }
 
-        // 获取客户端IP
         var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-
-        // 获取User-Agent
         var userAgent = context.Request.Headers.UserAgent.ToString();
 
         try
@@ -83,20 +103,21 @@ public class ApiLoggingMiddleware
         {
             stopwatch.Stop();
 
-            // 记录响应信息
+            // 记录响应信息（高频请求简化日志）
             var statusCode = context.Response.StatusCode;
-            var statusInfo = statusCode >= 200 && statusCode < 300 ? "成功" :
-                            statusCode >= 400 && statusCode < 500 ? "客户端错误" :
-                            statusCode >= 500 ? "服务端错误" : "未知";
+            if (!shouldSkipLogging)
+            {
+                var statusInfo = statusCode >= 200 && statusCode < 300 ? "成功" :
+                                statusCode >= 400 && statusCode < 500 ? "客户端错误" :
+                                statusCode >= 500 ? "服务端错误" : "未知";
 
-            _logger.LogInformation(
-                "[{RequestId}] 响应: {StatusCode} {StatusInfo} | 耗时: {Elapsed}ms",
-                requestId,
-                statusCode,
-                statusInfo,
-                stopwatch.ElapsedMilliseconds);
+                _logger.LogInformation(
+                    "[{RequestId}] 响应: {StatusCode} | 耗时: {Elapsed}ms",
+                    requestId,
+                    statusCode,
+                    stopwatch.ElapsedMilliseconds);
+            }
 
-            // 警告级别的日志
             if (statusCode >= 400)
             {
                 _logger.LogWarning(
@@ -107,8 +128,17 @@ public class ApiLoggingMiddleware
                     statusCode);
             }
 
-            // 保存到数据库（异步，不阻塞响应）
-            _ = SaveLogToDatabaseAsync(context, requestId, userId, requestBody, statusCode, statusInfo, stopwatch.ElapsedMilliseconds, clientIp, userAgent);
+            // 更新节流时间
+            if (!shouldSkipLogging)
+            {
+                _lastLogTime = now;
+            }
+
+            // 高频请求跳过数据库记录
+            if (!isHighFrequencyPath)
+            {
+                _ = SaveLogToDatabaseAsync(context, requestId, userId, requestBody, statusCode, stopwatch.ElapsedMilliseconds, clientIp, userAgent);
+            }
         }
     }
 
@@ -118,7 +148,6 @@ public class ApiLoggingMiddleware
         string userId,
         string? requestBody,
         int statusCode,
-        string statusInfo,
         long elapsedMs,
         string clientIp,
         string userAgent)
@@ -137,7 +166,9 @@ public class ApiLoggingMiddleware
                 QueryString = context.Request.QueryString.Value,
                 RequestBody = requestBody,
                 StatusCode = statusCode,
-                StatusInfo = statusInfo,
+                StatusInfo = statusCode >= 200 && statusCode < 300 ? "成功" :
+                            statusCode >= 400 && statusCode < 500 ? "客户端错误" :
+                            statusCode >= 500 ? "服务端错误" : "未知",
                 IsSuccess = statusCode >= 200 && statusCode < 400,
                 ElapsedMilliseconds = elapsedMs,
                 ClientIp = clientIp,

@@ -140,22 +140,32 @@ class TaskService {
    * 创建任务
    */
   async createTask(data: CreateTaskRequest): Promise<Task> {
-    const response = await apiClient.post<ApiResponse<Task>>('/api/tasks', data);
-    if (response.Success && response.Data) {
+    const response = await apiClient.post<any>('/api/tasks', data);
+    // 后端直接返回TaskDto或包装格式ApiResponse<Task>
+    if (response.Success !== undefined && response.Data) {
+      // 包装格式
       return response.Data;
+    } else if (response.taskID || response.TaskID) {
+      // 直接返回TaskDto格式
+      return response;
     }
-    throw new Error(response.Error?.Message || '创建任务失败');
+    throw new Error(response.Error?.Message || response.Message || '创建任务失败');
   }
 
   /**
    * 更新任务
    */
   async updateTask(taskId: string, data: UpdateTaskRequest): Promise<Task> {
-    const response = await apiClient.put<ApiResponse<Task>>(`/api/tasks/${taskId}`, data);
-    if (response.Success && response.Data) {
+    const response = await apiClient.put<any>(`/api/tasks/${taskId}`, data);
+    // 后端直接返回TaskDto或包装格式ApiResponse<Task>
+    if (response.Success !== undefined && response.Data) {
+      // 包装格式
       return response.Data;
+    } else if (response.taskID || response.TaskID) {
+      // 直接返回TaskDto格式
+      return response;
     }
-    throw new Error(response.Error?.Message || '更新任务失败');
+    throw new Error(response.Error?.Message || response.Message || '更新任务失败');
   }
 
   /**
@@ -169,11 +179,13 @@ class TaskService {
    * 更新任务状态
    */
   async updateTaskStatus(taskId: string, status: string): Promise<Task> {
-    const response = await apiClient.put<ApiResponse<Task>>(`/api/tasks/${taskId}/status`, { status });
-    if (response.Success && response.Data) {
+    const response = await apiClient.put<any>(`/api/tasks/${taskId}/status`, { status });
+    if (response.Success !== undefined && response.Data) {
       return response.Data;
+    } else if (response.taskID || response.TaskID) {
+      return response;
     }
-    throw new Error(response.Error?.Message || '更新任务状态失败');
+    throw new Error(response.Error?.Message || response.Message || '更新任务状态失败');
   }
 
   /**
@@ -184,36 +196,42 @@ class TaskService {
     role: 'assignee' | 'checker' | 'chiefdesigner' | 'approver',
     status: string
   ): Promise<Task> {
-    const response = await apiClient.put<ApiResponse<Task>>(
+    const response = await apiClient.put<any>(
       `/api/tasks/${taskId}/role-status`,
       { role, status }
     );
-    if (response.Success && response.Data) {
+    if (response.Success !== undefined && response.Data) {
       return response.Data;
+    } else if (response.taskID || response.TaskID) {
+      return response;
     }
-    throw new Error(response.Error?.Message || '更新角色状态失败');
+    throw new Error(response.Error?.Message || response.Message || '更新角色状态失败');
   }
 
   /**
    * 完成所有角色
    */
   async completeAllRoles(taskId: string): Promise<Task> {
-    const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/complete-all`, {});
-    if (response.Success && response.Data) {
+    const response = await apiClient.post<any>(`/api/tasks/${taskId}/complete-all`, {});
+    if (response.Success !== undefined && response.Data) {
       return response.Data;
+    } else if (response.taskID || response.TaskID) {
+      return response;
     }
-    throw new Error(response.Error?.Message || '完成所有角色失败');
+    throw new Error(response.Error?.Message || response.Message || '完成所有角色失败');
   }
 
   /**
    * 回收任务到任务库
    */
   async retrieveToPool(taskId: string): Promise<Task> {
-    const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/retrieve`, {});
-    if (response.Success && response.Data) {
+    const response = await apiClient.post<any>(`/api/tasks/${taskId}/retrieve`, {});
+    if (response.Success !== undefined && response.Data) {
       return response.Data;
+    } else if (response.taskID || response.TaskID) {
+      return response;
     }
-    throw new Error(response.Error?.Message || '回收任务到任务库失败');
+    throw new Error(response.Error?.Message || response.Message || '回收任务到任务库失败');
   }
 
   /**

@@ -1,3 +1,5 @@
+using TaskManageSystem.Domain.Enums;
+
 namespace TaskManageSystem.Application.DTOs.Projects;
 
 /// <summary>
@@ -7,7 +9,7 @@ public class ProjectDto
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty;
+    public ProjectCategory Category { get; set; }
     public string? WorkNo { get; set; }
     public string? Capacity { get; set; }
     public string? Model { get; set; }

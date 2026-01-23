@@ -22,10 +22,8 @@ public class UserService : IUserService
         _userRepository = userRepository;
         var config = new MapperConfiguration(cfg => {
             cfg.CreateMap<User, UserDto>()
-                .ForMember(dest => dest.SystemRole, opt => opt.MapFrom(src => src.SystemRole.ToString()))
-                .ForMember(dest => dest.OfficeLocation, opt => opt.MapFrom(src => src.OfficeLocation.ToString()))
-                .ForMember(dest => dest.JoinDate, opt => opt.MapFrom(src => src.JoinDate.HasValue ? src.JoinDate.Value.ToString("yyyy-MM-dd") : ""))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+                // 枚举直接映射，由JSON序列化器的DisplayNameEnumConverter处理
+                .ForMember(dest => dest.JoinDate, opt => opt.MapFrom(src => src.JoinDate.HasValue ? src.JoinDate.Value.ToString("yyyy-MM-dd") : ""));
             cfg.CreateMap<CreateUserRequest, User>();
             cfg.CreateMap<UpdateUserRequest, User>();
         });

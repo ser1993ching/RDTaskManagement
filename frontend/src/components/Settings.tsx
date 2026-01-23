@@ -82,7 +82,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     setTravelLabels(labels);
 
     if (currentUser) {
-      const userAvatar = await apiDataService.getUserAvatar(currentUser.UserID);
+      const userAvatar = await apiDataService.getUserAvatar(currentUser.userId);
       setAvatar(userAvatar);
     }
   };
@@ -443,14 +443,14 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
   const handleSaveAvatar = async () => {
     if (!avatar || !currentUser) return;
-    await apiDataService.saveUserAvatar(currentUser.UserID, avatar);
+    await apiDataService.saveUserAvatar(currentUser.userId, avatar);
     showMessage('success', '头像保存成功');
   };
 
   const handleRemoveAvatar = async () => {
     if (!currentUser) return;
     if (confirm('确定要删除头像吗？')) {
-      await apiDataService.deleteUserAvatar(currentUser.UserID);
+      await apiDataService.deleteUserAvatar(currentUser.userId);
       setAvatar(null);
       setAvatarFile(null);
       showMessage('success', '头像删除成功');
@@ -474,7 +474,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       return;
     }
 
-    const success = await apiDataService.changePassword(currentUser.UserID, currentPassword, newPassword);
+    const success = await apiDataService.changePassword(currentUser.userId, currentPassword, newPassword);
     if (success) {
       setCurrentPassword('');
       setNewPassword('');
@@ -1100,7 +1100,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                         <img src={avatar} alt="Avatar" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg" />
                       ) : (
                         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-white shadow-lg">
-                          {currentUser.Name.charAt(0)}
+                          {currentUser.name?.charAt(0)}
                         </div>
                       )}
                       <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 shadow-lg">
@@ -1134,15 +1134,15 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-700">工号</label>
-                    <p className="mt-1 text-slate-900">{currentUser.UserID}</p>
+                    <p className="mt-1 text-slate-900">{currentUser.userId}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">姓名</label>
-                    <p className="mt-1 text-slate-900">{currentUser.Name}</p>
+                    <p className="mt-1 text-slate-900">{currentUser.name}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">角色</label>
-                    <p className="mt-1 text-slate-900">{currentUser.SystemRole}</p>
+                    <p className="mt-1 text-slate-900">{currentUser.systemRole}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">办公地点</label>

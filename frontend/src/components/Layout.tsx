@@ -33,7 +33,7 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
   // Filter menu items based on user role
   const visibleMenuItems = menuItems.filter(item => {
     if (!item.roles) return true;
-    return item.roles.includes(currentUser.SystemRole);
+    return item.roles.includes(currentUser.systemRole);
   });
 
   return (
@@ -78,8 +78,8 @@ export const Layout: React.FC<LayoutProps> = ({ currentUser, onLogout, currentVi
               <UserCircle size={24} />
             </div>
             <div>
-              <p className="text-sm font-semibold">{currentUser.Name}</p>
-              <p className="text-xs text-slate-400">{currentUser.SystemRole}</p>
+              <p className="text-sm font-semibold">{currentUser.name}</p>
+              <p className="text-xs text-slate-400">{currentUser.systemRole}</p>
             </div>
           </div>
           <button

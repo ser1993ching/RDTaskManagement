@@ -6,7 +6,9 @@ using Microsoft.OpenApi.Models;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text;
+using System.ComponentModel.DataAnnotations;
 using TaskManageSystem.Application.Interfaces;
 using TaskManageSystem.Application.Repositories;
 using TaskManageSystem.Application.Services;
@@ -39,6 +41,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
         options.JsonSerializerOptions.WriteIndented = false;
+        // 使用Display(Name)属性序列化枚举为中文
+        options.JsonSerializerOptions.Converters.Add(new DisplayNameEnumConverterFactory());
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -260,4 +264,68 @@ async Task LogDatabaseEventAsync(ILogService logService, string operation, bool 
         await logService.LogAsync(log);
     }
     catch { /* 忽略日志记录错误 */ }
+}
+
+// 自定义枚举序列化器：使用 Display(Name) 属性值
+public class DisplayNameEnumConverter<T> : JsonConverter<T> where T : struct, Enum
+{
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        string value = reader.GetString();
+        if (value == null) return default;
+
+        // 尝试通过 Display(Name) 找到对应的枚举值
+        foreach (T enumValue in Enum.GetValues(typeToConvert))
+        {
+            var displayAttr = enumValue.GetType()
+                .GetField(enumValue.ToString())
+                ?.GetCustomAttributes(typeof(DisplayAttribute), false)
+                .FirstOrDefault() as DisplayAttribute;
+
+            if (displayAttr != null && displayAttr.Name == value)
+            {
+                return enumValue;
+            }
+        }
+
+        // 如果找不到匹配的DisplayName，尝试直接解析
+        if (Enum.TryParse<T>(value, ignoreCase: true, out T result))
+        {
+            return result;
+        }
+
+        return default;
+    }
+
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    {
+        var displayAttr = value.GetType()
+            .GetField(value.ToString())
+            ?.GetCustomAttributes(typeof(DisplayAttribute), false)
+            .FirstOrDefault() as DisplayAttribute;
+
+        if (displayAttr != null && !string.IsNullOrEmpty(displayAttr.Name))
+        {
+            writer.WriteStringValue(displayAttr.Name);
+        }
+        else
+        {
+            writer.WriteStringValue(value.ToString());
+        }
+    }
+}
+
+// 为所有枚举类型创建转换器的工厂
+public class DisplayNameEnumConverterFactory : JsonConverterFactory
+{
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return typeToConvert.IsEnum;
+    }
+
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    {
+        var converterType = typeof(DisplayNameEnumConverter<>).MakeGenericType(typeToConvert);
+        return (JsonConverter?)Activator.CreateInstance(converterType);
+    }
 }

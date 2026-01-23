@@ -82,8 +82,8 @@ const ForceAssessmentPanel: React.FC<{
 
   const getUserName = (userId?: string) => {
     if (!userId) return '-';
-    const user = users.find(u => u.UserID === userId);
-    return user?.Name || userId;
+    const user = users.find(u => u.userId === userId);
+    return user?.name || userId;
   };
 
   const getStatusBadgeClass = (status: TaskStatus): string => {
@@ -139,29 +139,29 @@ const ForceAssessmentPanel: React.FC<{
         if (deadlineFilter !== 'all') {
           // Special handling for thisYear - show all tasks with dueDate in this year
           if (deadlineFilter === 'thisYear') {
-            if (!task.DueDate) return false;
-            const due = new Date(task.DueDate);
+            if (!task.dueDate) return false;
+            const due = new Date(task.dueDate);
             const today = new Date();
             const yearStart = new Date(today.getFullYear(), 0, 1);
             const yearEnd = new Date(today.getFullYear(), 11, 31);
             if (due < yearStart || due > yearEnd) return false;
           } else {
-            const deadlineCheck = checkDeadline(task.DueDate, task.Status);
+            const deadlineCheck = checkDeadline(task.dueDate, task.status);
             if (deadlineCheck.type !== deadlineFilter) return false;
           }
         }
         if (statusFilter !== 'all') {
-          if (statusFilter === 'notStarted' && task.Status !== TaskStatus.NOT_STARTED) return false;
+          if (statusFilter === 'notStarted' && task.status !== TaskStatus.NOT_STARTED) return false;
           if (statusFilter === 'inProgress' &&
-              task.Status !== TaskStatus.DRAFTING &&
-              task.Status !== TaskStatus.REVISING &&
-              task.Status !== TaskStatus.REVIEWING &&
-              task.Status !== TaskStatus.REVIEWING2) return false;
-          if (statusFilter === 'completed' && task.Status !== TaskStatus.COMPLETED) return false;
+              task.status !== TaskStatus.DRAFTING &&
+              task.status !== TaskStatus.REVISING &&
+              task.status !== TaskStatus.REVIEWING &&
+              task.status !== TaskStatus.REVIEWING2) return false;
+          if (statusFilter === 'completed' && task.status !== TaskStatus.COMPLETED) return false;
         }
         return true;
       })
-      .sort((a, b) => a.TaskName.localeCompare(b.TaskName, 'zh-CN'));
+      .sort((a, b) => a.taskName.localeCompare(b.taskName, 'zh-CN'));
   }, [tasks, deadlineFilter, statusFilter]);
 
   const deadlineLabels: Record<DeadlineFilter, string> = {
@@ -255,15 +255,15 @@ const ForceAssessmentPanel: React.FC<{
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredTasks.map((task) => {
-                    const deadlineInfo = checkDeadline(task.DueDate, task.Status);
+                    const deadlineInfo = checkDeadline(task.dueDate, task.status);
                     const isOverdue = deadlineInfo.type === 'overdue';
-                    const displayName = task.TaskName.length > 20
-                      ? task.TaskName.substring(0, 20) + '...'
-                      : task.TaskName;
+                    const displayName = task.taskName.length > 20
+                      ? task.taskName.substring(0, 20) + '...'
+                      : task.taskName;
 
                     return (
                       <tr
-                        key={task.TaskID}
+                        key={task.taskId}
                         className={`${isOverdue ? 'bg-red-50' : 'hover:bg-slate-50'} transition-colors`}
                       >
                         <td className="px-3 py-2 w-64">
@@ -271,22 +271,22 @@ const ForceAssessmentPanel: React.FC<{
                             {isOverdue && (
                               <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
                             )}
-                            <span className="text-sm text-slate-900 font-medium" title={task.TaskName}>
+                            <span className="text-sm text-slate-900 font-medium" title={task.taskName}>
                               {displayName}
                             </span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{getCategoryName(task.TaskClassID)}</td>
-                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.AssigneeID)}</td>
-                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.CheckerID)}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{getCategoryName(task.taskClassId)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.assigneeId)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.checkerId)}</td>
                         <td className="px-3 py-2 w-20">
-                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.Status)}`}>
-                            {task.Status}
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.status)}`}>
+                            {task.status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.StartDate)}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.startDate)}</td>
                         <td className={`px-3 py-2 w-24 text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
-                          {formatDate(task.DueDate)}
+                          {formatDate(task.dueDate)}
                         </td>
                       </tr>
                     );
@@ -316,8 +316,8 @@ const DelayedTaskPanel: React.FC<{
 
   const getUserName = (userId?: string) => {
     if (!userId) return '-';
-    const user = users.find(u => u.UserID === userId);
-    return user?.Name || userId;
+    const user = users.find(u => u.userId === userId);
+    return user?.name || userId;
   };
 
   const getStatusBadgeClass = (status: TaskStatus): string => {
@@ -347,17 +347,17 @@ const DelayedTaskPanel: React.FC<{
 
     return tasks
       .filter(task => {
-        if (task.is_deleted) return false;
-        if (!task.StartDate) return false;
-        if (task.Status === TaskStatus.COMPLETED) return false;
+        if (task.isDeleted) return false;
+        if (!task.startDate) return false;
+        if (task.status === TaskStatus.COMPLETED) return false;
 
-        const startDate = new Date(task.StartDate);
+        const startDate = new Date(task.startDate);
         return startDate <= fortyFiveDaysAgo;
       })
       .sort((a, b) => {
         // Sort by start date (oldest first)
-        const dateA = new Date(a.StartDate);
-        const dateB = new Date(b.StartDate);
+        const dateA = new Date(a.startDate);
+        const dateB = new Date(b.startDate);
         return dateA.getTime() - dateB.getTime(); // Older tasks first
       });
   }, [tasks]);
@@ -401,29 +401,29 @@ const DelayedTaskPanel: React.FC<{
                 </thead>
                 <tbody className="divide-y divide-amber-100">
                   {delayedTasks.map((task) => {
-                    const startDate = new Date(task.StartDate);
+                    const startDate = new Date(task.startDate);
                     const now = new Date();
                     const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                    const displayName = task.TaskName.length > 20
-                      ? task.TaskName.substring(0, 20) + '...'
-                      : task.TaskName;
+                    const displayName = task.taskName.length > 20
+                      ? task.taskName.substring(0, 20) + '...'
+                      : task.taskName;
 
                     return (
-                      <tr key={task.TaskID} className="hover:bg-amber-50 transition-colors">
+                      <tr key={task.taskId} className="hover:bg-amber-50 transition-colors">
                         <td className="px-3 py-2 w-64">
-                          <span className="text-sm text-slate-900 font-medium" title={task.TaskName}>
+                          <span className="text-sm text-slate-900 font-medium" title={task.taskName}>
                             {displayName}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{getCategoryName(task.TaskClassID)}</td>
-                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.AssigneeID)}</td>
-                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.CheckerID)}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{getCategoryName(task.taskClassId)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.assigneeId)}</td>
+                        <td className="px-3 py-2 w-20 text-sm text-slate-600">{getUserName(task.checkerId)}</td>
                         <td className="px-3 py-2 w-20">
-                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.Status)}`}>
-                            {task.Status}
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(task.status)}`}>
+                            {task.status}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.StartDate)}</td>
+                        <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.startDate)}</td>
                         <td className="px-3 py-2 w-24 text-sm text-amber-600 font-medium">{daysSinceStart}天</td>
                       </tr>
                     );
@@ -478,8 +478,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     }
 
     return tasks.filter(t => {
-      const createdDate = new Date(t.CreatedDate);
-      return createdDate >= startDate && createdDate <= now && !t.is_deleted;
+      const createdDate = new Date(t.createdDate);
+      return createdDate >= startDate && createdDate <= now && !t.isDeleted;
     });
   }, [tasks, period]);
 
@@ -506,11 +506,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
 
       // 统计每天的任务
       getFilteredTasks.forEach(t => {
-        const createdDate = new Date(t.CreatedDate);
+        const createdDate = new Date(t.createdDate);
         const key = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}-${String(createdDate.getDate()).padStart(2, '0')}`;
         if (data[key]) {
           data[key].assigned++;
-          if (t.Status === TaskStatus.COMPLETED) {
+          if (t.status === TaskStatus.COMPLETED) {
             data[key].completed++;
           }
         }
@@ -563,11 +563,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
 
       // 统计每月的任务
       getFilteredTasks.forEach(t => {
-        const createdDate = new Date(t.CreatedDate);
+        const createdDate = new Date(t.createdDate);
         const key = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
         if (data[key]) {
           data[key].assigned++;
-          if (t.Status === TaskStatus.COMPLETED) {
+          if (t.status === TaskStatus.COMPLETED) {
             data[key].completed++;
           }
         }
@@ -589,49 +589,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
   // Statistics Logic
   const stats = useMemo(() => {
     const filteredVisibleTasks = getFilteredTasks.filter(t =>
-      currentUser.SystemRole === SystemRole.ADMIN || currentUser.SystemRole === SystemRole.LEADER
+      currentUser.systemRole === SystemRole.ADMIN || currentUser.systemRole === SystemRole.LEADER
         ? true
-        : t.AssigneeID === currentUser.UserID
+        : t.assigneeId === currentUser.userId
     );
 
     // KPI counts
-    const pending = filteredVisibleTasks.filter(t => t.Status === TaskStatus.NOT_STARTED).length;
+    const pending = filteredVisibleTasks.filter(t => t.status === TaskStatus.NOT_STARTED).length;
     const inProgress = filteredVisibleTasks.filter(t =>
-      t.Status === TaskStatus.DRAFTING ||
-      t.Status === TaskStatus.REVISING ||
-      t.Status === TaskStatus.REVIEWING ||
-      t.Status === TaskStatus.REVIEWING2
+      t.status === TaskStatus.DRAFTING ||
+      t.status === TaskStatus.REVISING ||
+      t.status === TaskStatus.REVIEWING ||
+      t.status === TaskStatus.REVIEWING2
     ).length;
-    const completed = filteredVisibleTasks.filter(t => t.Status === TaskStatus.COMPLETED).length;
+    const completed = filteredVisibleTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
     const total = filteredVisibleTasks.length;
 
     // Distribution by TaskClass (excluding TC009 travel and TC007 meeting for main stats)
     const typeDist = taskClasses.map(tc => ({
       name: tc.name,
-      value: filteredVisibleTasks.filter(t => t.TaskClassID === tc.id).length
+      value: filteredVisibleTasks.filter(t => t.taskClassId === tc.id).length
     })).filter(d => d.value > 0);
 
     // Workload by Person (Leader/Admin only, exclude admin user, only active personnel)
     const workloadData = users
-      .filter(u => u.SystemRole !== 'ADMIN' && u.Name !== '系统管理员' && u.Status === '在岗')
+      .filter(u => u.systemRole !== 'ADMIN' && u.name !== '系统管理员' && u.status === '在岗')
       .map(u => {
-        const userTasks = filteredVisibleTasks.filter(t => t.AssigneeID === u.UserID);
-        const pendingTasks = userTasks.filter(t => t.Status !== TaskStatus.COMPLETED);
-        const completedTasks = userTasks.filter(t => t.Status === TaskStatus.COMPLETED);
+        const userTasks = filteredVisibleTasks.filter(t => t.assigneeId === u.userId);
+        const pendingTasks = userTasks.filter(t => t.status !== TaskStatus.COMPLETED);
+        const completedTasks = userTasks.filter(t => t.status === TaskStatus.COMPLETED);
         return {
-          name: u.Name,
+          name: u.name,
           pendingTasks: pendingTasks.length,
-          pendingWorkload: pendingTasks.reduce((sum, t) => sum + (t.Workload || 0), 0),
+          pendingWorkload: pendingTasks.reduce((sum, t) => sum + (t.workload || 0), 0),
           completedTasks: completedTasks.length,
-          completedWorkload: completedTasks.reduce((sum, t) => sum + (t.Workload || 0), 0),
+          completedWorkload: completedTasks.reduce((sum, t) => sum + (t.workload || 0), 0),
           totalTasks: userTasks.length
         };
       }).sort((a, b) => b.pendingWorkload - a.pendingWorkload).slice(0, 10);
 
     // Category completion rate
     const categoryCompletion = taskClasses.map(tc => {
-      const categoryTasks = filteredVisibleTasks.filter(t => t.TaskClassID === tc.id);
-      const completedCategory = categoryTasks.filter(t => t.Status === TaskStatus.COMPLETED).length;
+      const categoryTasks = filteredVisibleTasks.filter(t => t.taskClassId === tc.id);
+      const completedCategory = categoryTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
       return {
         name: tc.name,
         total: categoryTasks.length,
@@ -642,34 +642,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
 
     // Project attribute stats
     const projectStats = {
-      wonMarket: projects.filter(p => p.isWon === true && p.category === ProjectCategory.MARKET && !p.is_deleted).length,
-      commissioned: projects.filter(p => p.isCommissioned === true && p.category === ProjectCategory.EXECUTION && !p.is_deleted).length,
-      keyProjects: projects.filter(p => p.isKeyProject === true && !p.is_deleted).length,
-      total: projects.filter(p => !p.is_deleted).length
+      wonMarket: projects.filter(p => p.isWon === true && p.category === ProjectCategory.MARKET && !p.isDeleted).length,
+      commissioned: projects.filter(p => p.isCommissioned === true && p.category === ProjectCategory.EXECUTION && !p.isDeleted).length,
+      keyProjects: projects.filter(p => p.isKeyProject === true && !p.isDeleted).length,
+      total: projects.filter(p => !p.isDeleted).length
     };
 
     // Special task stats (travel and meeting)
-    const travelTasks = filteredVisibleTasks.filter(t => t.TaskClassID === 'TC009');
-    const meetingTasks = filteredVisibleTasks.filter(t => t.TaskClassID === 'TC007');
+    const travelTasks = filteredVisibleTasks.filter(t => t.taskClassId === 'TC009');
+    const meetingTasks = filteredVisibleTasks.filter(t => t.taskClassId === 'TC007');
     const specialStats = {
-      travelDays: travelTasks.reduce((sum, t) => sum + (t.TravelDuration || 0), 0),
+      travelDays: travelTasks.reduce((sum, t) => sum + (t.travelDuration || 0), 0),
       travelCount: travelTasks.length,
-      meetingHours: meetingTasks.reduce((sum, t) => sum + (t.MeetingDuration || 0), 0),
+      meetingHours: meetingTasks.reduce((sum, t) => sum + (t.meetingDuration || 0), 0),
       meetingCount: meetingTasks.length
     };
 
     // Overdue tasks
     const now = new Date();
     const overdueTasks = filteredVisibleTasks.filter(t => {
-      if (!t.DueDate || t.Status === TaskStatus.COMPLETED) return false;
-      const dueDate = new Date(t.DueDate);
+      if (!t.dueDate || t.status === TaskStatus.COMPLETED) return false;
+      const dueDate = new Date(t.dueDate);
       return dueDate < now;
     });
 
     // 1. 项目任务数量分配（横向柱状图数据）
     const projectTaskDist = projects
       .filter(p => {
-        if (p.is_deleted) return false;
+        if (p.isDeleted) return false;
         switch (projectTypeFilter) {
           case 'nuclear':
             return p.category === ProjectCategory.NUCLEAR;
@@ -688,7 +688,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       .map(p => ({
         name: p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name,
         fullName: p.name,
-        value: filteredVisibleTasks.filter(t => t.ProjectID === p.id).length
+        value: filteredVisibleTasks.filter(t => t.projectId === p.id).length
       }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value);
@@ -696,7 +696,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     // 2. 容量等级任务数量分配（横向柱状图数据）
     const capacityLevelCount: Record<string, number> = {};
     filteredVisibleTasks.forEach(t => {
-      const level = t.CapacityLevel || '未分类';
+      const level = t.capacityLevel || '未分类';
       capacityLevelCount[level] = (capacityLevelCount[level] || 0) + 1;
     });
     const capacityLevelData = Object.entries(capacityLevelCount)
@@ -705,14 +705,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
 
     // 3. 核电项目与非核电项目工时对比
     const nuclearWorkload = filteredVisibleTasks.filter(t => {
-      const proj = projects.find(p => p.id === t.ProjectID);
+      const proj = projects.find(p => p.id === t.projectId);
       return proj?.category === ProjectCategory.NUCLEAR;
-    }).reduce((sum, t) => sum + (t.Workload || 0), 0);
+    }).reduce((sum, t) => sum + (t.workload || 0), 0);
 
     const nonNuclearWorkload = filteredVisibleTasks.filter(t => {
-      const proj = projects.find(p => p.id === t.ProjectID);
+      const proj = projects.find(p => p.id === t.projectId);
       return proj?.category !== ProjectCategory.NUCLEAR;
-    }).reduce((sum, t) => sum + (t.Workload || 0), 0);
+    }).reduce((sum, t) => sum + (t.workload || 0), 0);
 
     const nuclearExecutionDist = [
       { name: '核电项目', value: Math.round(nuclearWorkload) },
@@ -722,10 +722,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     // 4. 差旅任务月度趋势
     const travelTrend = Object.entries(
       filteredVisibleTasks
-        .filter(t => t.TaskClassID === 'TC009')
+        .filter(t => t.taskClassId === 'TC009')
         .reduce((acc, t) => {
-          if (t.DueDate) {
-            const month = t.DueDate.substring(0, 7); // YYYY-MM
+          if (t.dueDate) {
+            const month = t.dueDate.substring(0, 7); // YYYY-MM
             acc[month] = (acc[month] || 0) + 1;
           }
           return acc;
@@ -737,11 +737,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     // 5. 会议时长月度趋势
     const meetingTrend = Object.entries(
       filteredVisibleTasks
-        .filter(t => t.TaskClassID === 'TC007')
+        .filter(t => t.taskClassId === 'TC007')
         .reduce((acc, t) => {
-          if (t.DueDate) {
-            const month = t.DueDate.substring(0, 7); // YYYY-MM
-            acc[month] = (acc[month] || 0) + (t.MeetingDuration || 0);
+          if (t.dueDate) {
+            const month = t.dueDate.substring(0, 7); // YYYY-MM
+            acc[month] = (acc[month] || 0) + (t.meetingDuration || 0);
           }
           return acc;
         }, {} as Record<string, number>)
@@ -773,7 +773,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
 
   // Filter force assessment tasks
   const forceAssessmentTasks = useMemo(() => {
-    return tasks.filter(t => t.isForceAssessment === true && !t.is_deleted);
+    return tasks.filter(t => t.isForceAssessment === true && !t.isDeleted);
   }, [tasks]);
 
   return (

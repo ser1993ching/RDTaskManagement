@@ -1078,7 +1078,7 @@ class ApiDataService {
   async login(userId: string, password: string): Promise<{ user: any; token: string } | null> {
     try {
       const response = await authService.login(userId, password);
-      console.log('apiDataService.login response:', response);
+      // console.log('apiDataService.login response:', response);
       return response;
     } catch (error) {
       console.error('登录失败:', error);

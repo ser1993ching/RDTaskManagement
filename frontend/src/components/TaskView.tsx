@@ -118,10 +118,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   useEffect(() => {
     if (targetTaskName) {
       // Find the task by name to get its TaskClassID
-      const targetTask = tasks.find(t => t.TaskName === targetTaskName);
+      const targetTask = tasks.find(t => t.taskName === targetTaskName);
       if (targetTask) {
         // Switch to the task's category
-        setActiveTaskClassId(targetTask.TaskClassID);
+        setActiveTaskClassId(targetTask.taskClassId);
       }
       setFilterTaskName(targetTaskName);
       // Clear targetTaskName after processing
@@ -301,7 +301,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     if (isTravel && formData.Category) {
       // Check if current project belongs to the selected category
       const availableProjects = getProjectsForTravelTask(formData.Category);
-      const currentProject = projects.find(p => p.id === formData.ProjectID);
+      const currentProject = projects.find(p => p.id === formData.projectId);
       const isProjectValid = currentProject && availableProjects.some(p => p.id === currentProject.id);
 
       // Clear project and label if they don't match the new category
@@ -318,7 +318,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   // Helper function to get filtered tasks for sidebar count (consistent with main content)
   const getSidebarTaskCount = (taskClassId: string) => {
     // No time filter - show all tasks
-    return tasks.filter(t => t.TaskClassID === taskClassId).length;
+    return tasks.filter(t => t.taskClassId === taskClassId).length;
   };
 
   // Helper function to check if a date is in current week
@@ -343,26 +343,26 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   const filteredTasks = tasks.filter(t => {
     // 会议培训任务和差旅任务不受状态和强制考核筛选器影响
-    const isMeetingTask = t.TaskClassID === 'TC007';
-    const isTravelTask = t.TaskClassID === 'TC009';
-    return t.TaskClassID === activeTaskClassId &&
-      (filterProject ? t.ProjectID === filterProject : true) &&
-      ((isMeetingTask || isTravelTask) ? true : (filterStatus ? t.Status === filterStatus : true)) &&
-      (filterCategory ? t.Category === filterCategory : true) &&
-      (filterAssignee ? t.AssigneeID === filterAssignee : true) &&
-      (filterCapacityLevel ? (t.CapacityLevel || '').toLowerCase().includes(filterCapacityLevel.toLowerCase()) : true) &&
-      (filterTaskName ? t.TaskName.toLowerCase().includes(filterTaskName.toLowerCase()) : true) &&
-      (filterStartDateFrom ? (t.StartDate ? new Date(t.StartDate) >= new Date(filterStartDateFrom) : true) : true) &&
-      (filterStartDateTo ? (t.StartDate ? new Date(t.StartDate) <= new Date(filterStartDateTo) : true) : true) &&
-      (filterThisWeek ? isInCurrentWeek(t.StartDate || '') : true) &&
-      (filterThisMonth ? isInCurrentMonth(t.StartDate || '') : true) &&
+    const isMeetingTask = t.taskClassId === 'TC007';
+    const isTravelTask = t.taskClassId === 'TC009';
+    return t.taskClassId === activeTaskClassId &&
+      (filterProject ? t.projectId === filterProject : true) &&
+      ((isMeetingTask || isTravelTask) ? true : (filterStatus ? t.status === filterStatus : true)) &&
+      (filterCategory ? t.category === filterCategory : true) &&
+      (filterAssignee ? t.assigneeId === filterAssignee : true) &&
+      (filterCapacityLevel ? (t.capacityLevel || '').toLowerCase().includes(filterCapacityLevel.toLowerCase()) : true) &&
+      (filterTaskName ? t.taskName.toLowerCase().includes(filterTaskName.toLowerCase()) : true) &&
+      (filterStartDateFrom ? (t.startDate ? new Date(t.startDate) >= new Date(filterStartDateFrom) : true) : true) &&
+      (filterStartDateTo ? (t.startDate ? new Date(t.startDate) <= new Date(filterStartDateTo) : true) : true) &&
+      (filterThisWeek ? isInCurrentWeek(t.startDate || '') : true) &&
+      (filterThisMonth ? isInCurrentMonth(t.startDate || '') : true) &&
       ((isMeetingTask || isTravelTask) ? true : (filterForceAssessment === '' ? true : t.isForceAssessment === filterForceAssessment));
   });
 
   const handleExport = () => {
     // 检查是否包含差旅任务或会议培训任务
-    const hasTravelTask = filteredTasks.some(t => t.TaskClassID === 'TC009');
-    const hasMeetingTask = filteredTasks.some(t => t.TaskClassID === 'TC007');
+    const hasTravelTask = filteredTasks.some(t => t.taskClassId === 'TC009');
+    const hasMeetingTask = filteredTasks.some(t => t.taskClassId === 'TC007');
 
     // 根据任务类型决定列头
     let headers;
@@ -377,35 +377,35 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     // 根据任务类型决定行数据
     const rows = filteredTasks.map(t => {
       // 获取负责人姓名（优先使用AssigneeName，其次使用用户表中的姓名）
-      const assigneeName = t.AssigneeName || users.find(u => u.UserID === t.AssigneeID)?.Name || '-';
-      const reviewerName = t.ReviewerName || users.find(u => u.UserID === t.ReviewerID)?.Name || '-';
-      const reviewer2Name = t.Reviewer2Name || users.find(u => u.UserID === t.ReviewerID2)?.Name || '-';
+      const assigneeName = t.assigneeName || users.find(u => u.userId === t.assigneeId)?.name || '-';
+      const reviewerName = t.checkerName || users.find(u => u.userId === t.checkerId)?.name || '-';
+      const reviewer2Name = t.chiefDesignerName || users.find(u => u.userId === t.chiefDesignerId)?.name || '-';
 
       let baseRow;
 
       // 会议培训任务使用特殊的行数据格式
-      if (t.TaskClassID === 'TC007') {
+      if (t.taskClassId === 'TC007') {
         baseRow = [
-          t.TaskID,
-          t.TaskName,
+          t.taskId,
+          t.taskName,
           assigneeName,
-          t.CapacityLevel || '-',
-          t.StartDate ? formatDate(t.StartDate) : '-',
-          t.MeetingDuration ? `${t.MeetingDuration}h` : '-',
-          `${t.Participants?.length || 0}人`
+          t.capacityLevel || '-',
+          t.startDate ? formatDate(t.startDate) : '-',
+          t.meetingDuration ? `${t.meetingDuration}h` : '-',
+          `${t.participants?.length || 0}人`
         ];
       } else {
         baseRow = [
-          t.TaskID,
-          t.TaskName,
-          t.Status,
+          t.taskId,
+          t.taskName,
+          t.status,
           assigneeName,
-          t.CapacityLevel || '-',
-          t.DueDate || ''
+          t.capacityLevel || '-',
+          t.dueDate || ''
         ];
 
         // 如果不是差旅任务，添加校核人和审查人
-        if (t.TaskClassID !== 'TC009') {
+        if (t.taskClassId !== 'TC009') {
           baseRow.splice(4, 0, reviewerName);
           baseRow.splice(5, 0, reviewer2Name);
         }
@@ -443,10 +443,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   useEffect(() => {
     if (isModalOpen && !editingTask) {
       // If it's a new task, try to auto-generate name
-      const proj = projects.find(p => p.id === formData.ProjectID);
+      const proj = projects.find(p => p.id === formData.projectId);
       const projName = proj ? proj.name : '';
-      const category = formData.Category || '';
-      const travelLabel = formData.TravelLabel || '';
+      const category = formData.category || '';
+      const travelLabel = formData.travelLabel || '';
 
       if (activeTaskClass?.code !== 'MEETING_TRAINING') { // Meeting usually custom name
         let taskName = '';
@@ -468,45 +468,45 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         if (taskName) {
           setFormData(prev => ({
              ...prev,
-             TaskName: taskName
+             taskName: taskName
           }));
         }
       }
     }
-  }, [formData.ProjectID, formData.Category, formData.TravelLabel, isModalOpen, projects, activeTaskClass, editingTask, isTravel]);
+  }, [formData.projectId, formData.category, formData.travelLabel, isModalOpen, projects, activeTaskClass, editingTask, isTravel]);
 
   // 差旅任务专用：当标签改变时自动更新任务名称
   useEffect(() => {
-    if (isModalOpen && !editingTask && isTravel && formData.ProjectID && formData.Category) {
-      const proj = projects.find(p => p.id === formData.ProjectID);
+    if (isModalOpen && !editingTask && isTravel && formData.projectId && formData.category) {
+      const proj = projects.find(p => p.id === formData.projectId);
       const projName = proj ? proj.name : '';
-      const category = formData.Category || '';
-      const travelLabel = formData.TravelLabel || '';
+      const category = formData.category || '';
+      const travelLabel = formData.travelLabel || '';
 
       if (travelLabel) {
         const newTaskName = `${projName}-${category}-${travelLabel}`;
         setFormData(prev => ({
           ...prev,
-          TaskName: newTaskName
+          taskName: newTaskName
         }));
       }
     }
-  }, [formData.TravelLabel, isModalOpen, isTravel, formData.ProjectID, formData.Category, projects]);
+  }, [formData.travelLabel, isModalOpen, isTravel, formData.projectId, formData.category, projects]);
 
   // Auto-match project based on task name (only for matching categories)
   useEffect(() => {
-    if (isModalOpen && formData.TaskName && formData.TaskName.includes('项目') && activeTaskClass) {
+    if (isModalOpen && formData.taskName && formData.taskName.includes('项目') && activeTaskClass) {
       const matchingProjects = getProjectsForTaskClass(activeTaskClass.code);
       const projectNames = matchingProjects.map(p => p.name);
-      const matchedProject = projectNames.find(name => formData.TaskName?.includes(name));
+      const matchedProject = projectNames.find(name => formData.taskName?.includes(name));
       if (matchedProject) {
         const project = matchingProjects.find(p => p.name === matchedProject);
-        if (project && formData.ProjectID !== project.id) {
-          setFormData(prev => ({ ...prev, ProjectID: project.id }));
+        if (project && formData.projectId !== project.id) {
+          setFormData(prev => ({ ...prev, projectId: project.id }));
         }
       }
     }
-  }, [formData.TaskName, isModalOpen, projects, activeTaskClass]);
+  }, [formData.taskName, isModalOpen, projects, activeTaskClass]);
 
   // Handle new project creation
   // Open project creation modal
@@ -560,7 +560,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
     // If creating from task view, auto-associate with current task
     if (isModalOpen) {
-      setFormData(prev => ({ ...prev, ProjectID: newProject.id, CapacityLevel: newProject.capacity }));
+      setFormData(prev => ({ ...prev, projectId: newProject.id, capacityLevel: newProject.capacity }));
     }
 
     setIsProjectModalOpen(false);
@@ -572,8 +572,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     e.preventDefault();
 
     // 验证项目与任务类型的匹配性
-    if (formData.ProjectID && activeTaskClass) {
-      const project = projects.find(p => p.id === formData.ProjectID);
+    if (formData.projectId && activeTaskClass) {
+      const project = projects.find(p => p.id === formData.projectId);
       const allowedCategories = getAllowedProjectCategoriesForTaskClass(activeTaskClass.code);
       if (project && allowedCategories.length > 0 && !allowedCategories.includes(project.category)) {
         const allowedCategoryNames = allowedCategories.map(c => c).join('、');
@@ -585,25 +585,25 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     const taskToSave: Task = {
       ...(editingTask || {}),
       ...formData as Task,
-      TaskID: editingTask?.TaskID || `TSK-${Date.now()}`,
-      CreatedDate: editingTask?.CreatedDate || new Date().toISOString().split('T')[0],
-      CreatedBy: editingTask?.CreatedBy || currentUser.UserID
+      taskId: editingTask?.taskId || `TSK-${Date.now()}`,
+      createdDate: editingTask?.createdDate || new Date().toISOString().split('T')[0],
+      createdBy: editingTask?.createdBy || currentUser.userId
     };
 
     // 如果状态变为已完成，自动设置完成日期
-    if (taskToSave.Status === TaskStatus.COMPLETED && editingTask?.Status !== TaskStatus.COMPLETED) {
-      taskToSave.CompletedDate = new Date().toISOString().split('T')[0];
+    if (taskToSave.status === TaskStatus.COMPLETED && editingTask?.status !== TaskStatus.COMPLETED) {
+      taskToSave.completedDate = new Date().toISOString().split('T')[0];
     }
     // 如果状态从已完成变为非已完成，清除完成日期
-    if (taskToSave.Status !== TaskStatus.COMPLETED && editingTask?.Status === TaskStatus.COMPLETED) {
-      taskToSave.CompletedDate = undefined;
+    if (taskToSave.status !== TaskStatus.COMPLETED && editingTask?.status === TaskStatus.COMPLETED) {
+      taskToSave.completedDate = undefined;
     }
 
     // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级（始终覆盖）
-    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && formData.ProjectID) {
-      const project = projects.find(p => p.id === formData.ProjectID);
+    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && formData.projectId) {
+      const project = projects.find(p => p.id === formData.projectId);
       if (project) {
-        taskToSave.CapacityLevel = project.capacity;
+        taskToSave.capacityLevel = project.capacity;
       }
     }
     // 修复 Bug 4: 添加保存操作的错误处理
@@ -624,17 +624,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     setEditingTask(task || null);
     const defaultCategory = activeTaskClass ? getCategoriesForTaskClass(activeTaskClass.code)[0] : '';
     const taskData: Task = task || {
-      TaskClassID: activeTaskClassId,
-      Category: defaultCategory,
-      Status: TaskStatus.NOT_STARTED,
-      TaskID: '',
-      TaskName: '',
-      CreatedDate: '',
-      CreatedBy: ''
+      taskClassId: activeTaskClassId,
+      category: defaultCategory,
+      status: TaskStatus.NOT_STARTED,
+      taskId: '',
+      taskName: '',
+      createdDate: '',
+      createdBy: ''
     };
     // 如果是编辑模式，验证项目与任务类型的匹配性
-    if (task && task.ProjectID && activeTaskClass) {
-      const project = projects.find(p => p.id === task.ProjectID);
+    if (task && task.projectId && activeTaskClass) {
+      const project = projects.find(p => p.id === task.projectId);
       const allowedCategories = getAllowedProjectCategoriesForTaskClass(activeTaskClass.code);
       if (project && allowedCategories.length > 0 && !allowedCategories.includes(project.category)) {
         const allowedCategoryNames = allowedCategories.map(c => c).join('、');
@@ -643,37 +643,37 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       }
     }
     // 如果是编辑模式，设置人员姓名字段
-    if (task && task.AssigneeID) {
-      const assignee = users.find(u => u.UserID === task.AssigneeID);
+    if (task && task.assigneeId) {
+      const assignee = users.find(u => u.userId === task.assigneeId);
       if (assignee) {
-        taskData.AssigneeName = assignee.Name;
+        taskData.assigneeName = assignee.name;
       }
     }
-    if (task && task.ReviewerID) {
-      const reviewer = users.find(u => u.UserID === task.ReviewerID);
+    if (task && task.checkerId) {
+      const reviewer = users.find(u => u.userId === task.checkerId);
       if (reviewer) {
-        taskData.ReviewerName = reviewer.Name;
+        taskData.checkerName = reviewer.name;
       }
     }
-    if (task && task.ReviewerID2) {
-      const reviewer2 = users.find(u => u.UserID === task.ReviewerID2);
+    if (task && task.chiefDesignerId) {
+      const reviewer2 = users.find(u => u.userId === task.chiefDesignerId);
       if (reviewer2) {
-        taskData.Reviewer2Name = reviewer2.Name;
+        taskData.chiefDesignerName = reviewer2.name;
       }
     }
 
     // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级
-    if (task && task.ProjectID && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '')) {
-      const project = projects.find(p => p.id === task.ProjectID);
+    if (task && task.projectId && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '')) {
+      const project = projects.find(p => p.id === task.projectId);
       if (project) {
-        taskData.CapacityLevel = project.capacity;
+        taskData.capacityLevel = project.capacity;
       }
     }
 
     // 如果是差旅任务，自动计算截止日期
-    if (task && task.TaskClassID === 'TC009' && task.StartDate && task.TravelDuration) {
-      const calculatedDueDate = calculateDueDate(task.StartDate, task.TravelDuration);
-      taskData.DueDate = calculatedDueDate;
+    if (task && task.taskClassId === 'TC009' && task.startDate && task.travelDuration) {
+      const calculatedDueDate = calculateDueDate(task.startDate, task.travelDuration);
+      taskData.dueDate = calculatedDueDate;
     }
 
     setFormData(taskData);
@@ -703,7 +703,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           <div>
             <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 分类</label>
             <select required className="w-full border rounded p-2"
-              value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})}>
+              value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
               {activeTaskClass && getCategoriesForTaskClass(activeTaskClass.code).map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
@@ -713,18 +713,18 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <label className="block text-sm font-medium mb-1">关联项目</label>
               <AutocompleteInput
                 id="project-autocomplete"
-                value={projects.find(p => p.id === formData.ProjectID)?.name || ''}
+                value={projects.find(p => p.id === formData.projectId)?.name || ''}
                 options={getProjectsForTaskClass(activeTaskClass?.code || '').map(p => p.name)}
                 onChange={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
-                  const newFormData = {...formData, ProjectID: project?.id || ''};
+                  const newFormData = {...formData, projectId: project?.id || ''};
 
                   // 如果是支持容量等级的任务且选择了项目，自动获取容量等级（始终覆盖）
                   if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && project) {
-                    newFormData.CapacityLevel = project.capacity;
+                    newFormData.capacityLevel = project.capacity;
                   } else if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && !project && value.trim()) {
                     // 如果清除项目选择，清空容量等级
-                    newFormData.CapacityLevel = '';
+                    newFormData.capacityLevel = '';
                   }
 
                   setFormData(newFormData);
@@ -736,10 +736,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 onSelect={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   if (project) {
-                    const newFormData = {...formData, ProjectID: project.id};
+                    const newFormData = {...formData, projectId: project.id};
                     // 如果是支持容量等级的任务，自动获取容量等级（始终覆盖）
                     if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '')) {
-                      newFormData.CapacityLevel = project.capacity;
+                      newFormData.capacityLevel = project.capacity;
                     }
                     setFormData(newFormData);
                   }
@@ -764,9 +764,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <div>
               <label className="block text-sm font-medium mb-1">容量等级</label>
               <AutocompleteInput
-                value={formData.CapacityLevel || ''}
+                value={formData.capacityLevel || ''}
                 options={capacityLevels}
-                onChange={(value) => setFormData({...formData, CapacityLevel: value})}
+                onChange={(value) => setFormData({...formData, capacityLevel: value})}
                 placeholder="选择或输入容量等级"
                 className="w-full border rounded p-2"
                 id="capacity-level-autocomplete"
@@ -782,17 +782,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <div>
               <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 分类</label>
               <select required className="w-full border rounded p-2"
-                value={formData.Category} onChange={e => setFormData({...formData, Category: e.target.value})}>
+                value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
                 {activeTaskClass && getCategoriesForTaskClass(activeTaskClass.code).map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">差旅标签</label>
               <select className="w-full border rounded p-2"
-                value={formData.TravelLabel || ''} onChange={e => setFormData({...formData, TravelLabel: e.target.value})}>
+                value={formData.travelLabel || ''} onChange={e => setFormData({...formData, travelLabel: e.target.value})}>
                 <option value="">选择标签</option>
                 {/* 市场配合出差 */}
-                {(formData.Category === '市场配合出差' || formData.Category === '技术支持' || formData.Category === '商务配合') && (
+                {(formData.category === '市场配合出差' || formData.category === '技术支持' || formData.category === '商务配合') && (
                   <>
                     <option value="技术交流">技术交流</option>
                     <option value="现场投标">现场投标</option>
@@ -801,7 +801,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   </>
                 )}
                 {/* 常规项目/核电项目执行出差 */}
-                {(formData.Category === '常规项目执行出差' || formData.Category === '核电项目执行出差' || formData.Category === '设计工作' || formData.Category === '计算工作' || formData.Category === '图纸工作') && (
+                {(formData.category === '常规项目执行出差' || formData.category === '核电项目执行出差' || formData.category === '设计工作' || formData.category === '计算工作' || formData.category === '图纸工作') && (
                   <>
                     <option value="联络会">联络会</option>
                     <option value="安装现场服务">安装现场服务</option>
@@ -809,7 +809,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   </>
                 )}
                 {/* 科研/改造服务/其他 */}
-                {(formData.Category === '科研出差' || formData.Category === '改造服务出差' || formData.Category === '其他' || formData.Category === '理论研究' || formData.Category === '现场服务') && (
+                {(formData.category === '科研出差' || formData.category === '改造服务出差' || formData.category === '其他' || formData.category === '理论研究' || formData.category === '现场服务') && (
                   <>
                     <option value="现场调研">现场调研</option>
                     <option value="技术交流">技术交流</option>
@@ -822,16 +822,16 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <label className="block text-sm font-medium mb-1">关联项目</label>
               <AutocompleteInput
                 id="travel-project-autocomplete"
-                value={projects.find(p => p.id === formData.ProjectID)?.name || ''}
-                options={getProjectsForTravelTask(formData.Category || '').map(p => p.name)}
+                value={projects.find(p => p.id === formData.projectId)?.name || ''}
+                options={getProjectsForTravelTask(formData.category || '').map(p => p.name)}
                 onChange={(value) => {
-                  const project = getProjectsForTravelTask(formData.Category || '').find(p => p.name === value);
-                  setFormData({...formData, ProjectID: project?.id || ''});
+                  const project = getProjectsForTravelTask(formData.category || '').find(p => p.name === value);
+                  setFormData({...formData, projectId: project?.id || ''});
                 }}
                 onSelect={(value) => {
-                  const project = getProjectsForTravelTask(formData.Category || '').find(p => p.name === value);
+                  const project = getProjectsForTravelTask(formData.category || '').find(p => p.name === value);
                   if (project) {
-                    setFormData({...formData, ProjectID: project.id});
+                    setFormData({...formData, projectId: project.id});
                   }
                 }}
                 placeholder="搜索或输入项目名称..."
@@ -850,20 +850,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">负责人</label>
                 <AutocompleteInput
                   id="travel-assignee-autocomplete"
-                  value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
-                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
+                  value={users.find(u => u.userId === formData.assigneeId)?.name || formData.assigneeName || ''}
+                  options={users.filter(u => u.status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                      setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     } else {
-                      setFormData({...formData, AssigneeID: '', AssigneeName: value});
+                      setFormData({...formData, assigneeId: '', assigneeName: value});
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                      setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     }
                   }}
                   placeholder="搜索或输入负责人姓名..."
@@ -873,14 +873,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div>
                 <label className="block text-sm font-medium mb-1">开始日期</label>
                 <input type="date" className="w-full border rounded p-2"
-                  value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+                  value={formData.startDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">出差天数(天)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.TravelDuration || ''} onChange={e => {
+                  value={formData.travelDuration || ''} onChange={e => {
                     const newTravelDuration = parseFloat(e.target.value) || 0;
-                    const startDate = formData.StartDate || '';
+                    const startDate = formData.startDate || '';
                     const newDueDate = calculateDueDate(startDate, newTravelDuration);
                     setFormData({...formData, TravelDuration: newTravelDuration, DueDate: newDueDate});
                   }} />
@@ -895,20 +895,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">负责人</label>
                 <AutocompleteInput
                   id="assignee-autocomplete"
-                  value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
-                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
+                  value={users.find(u => u.userId === formData.assigneeId)?.name || formData.assigneeName || ''}
+                  options={users.filter(u => u.Status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                      setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     } else {
                       setFormData({...formData, AssigneeID: '', AssigneeName: value});
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                      setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     }
                   }}
                   placeholder="搜索或输入负责人姓名..."
@@ -918,12 +918,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div>
                 <label className="block text-sm font-medium mb-1">会议日期</label>
                 <input type="date" className="w-full border rounded p-2"
-                  value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+                  value={formData.startDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">会议时长(小时)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.MeetingDuration || ''} onChange={e => setFormData({...formData, MeetingDuration: parseFloat(e.target.value)})} />
+                  value={formData.meetingDuration || ''} onChange={e => setFormData({...formData, MeetingDuration: parseFloat(e.target.value)})} />
               </div>
             </div>
           </div>
@@ -935,20 +935,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">负责人</label>
                 <AutocompleteInput
                   id="assignee-autocomplete"
-                  value={users.find(u => u.UserID === formData.AssigneeID)?.Name || formData.AssigneeName || ''}
-                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
+                  value={users.find(u => u.userId === formData.assigneeId)?.name || formData.assigneeName || ''}
+                  options={users.filter(u => u.Status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                      setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     } else {
                       setFormData({...formData, AssigneeID: '', AssigneeName: value});
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, AssigneeID: user.UserID, AssigneeName: user.Name});
+                      setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     }
                   }}
                   placeholder="搜索或输入负责人姓名..."
@@ -959,20 +959,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">校核人</label>
                 <AutocompleteInput
                   id="reviewer-autocomplete"
-                  value={users.find(u => u.UserID === formData.ReviewerID)?.Name || formData.ReviewerName || ''}
-                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
+                  value={users.find(u => u.userId === formData.ReviewerID)?.name || formData.ReviewerName || ''}
+                  options={users.filter(u => u.Status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, ReviewerID: user.UserID, ReviewerName: user.Name});
+                      setFormData({...formData, checkerId: user.userId, checkerName: user.name});
                     } else {
                       setFormData({...formData, ReviewerID: '', ReviewerName: value});
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, ReviewerID: user.UserID, ReviewerName: user.Name});
+                      setFormData({...formData, checkerId: user.userId, checkerName: user.name});
                     }
                   }}
                   placeholder="搜索或输入校核人姓名..."
@@ -983,20 +983,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">审查人</label>
                 <AutocompleteInput
                   id="reviewer2-autocomplete"
-                  value={users.find(u => u.UserID === formData.ReviewerID2)?.Name || formData.Reviewer2Name || ''}
-                  options={users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => u.Name)}
+                  value={users.find(u => u.userId === formData.ReviewerID2)?.name || formData.Reviewer2Name || ''}
+                  options={users.filter(u => u.Status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, ReviewerID2: user.UserID, Reviewer2Name: user.Name});
+                      setFormData({...formData, chiefDesignerId: user.userId, chiefDesignerName: user.name});
                     } else {
                       setFormData({...formData, ReviewerID2: '', Reviewer2Name: value});
                     }
                   }}
                   onSelect={(value) => {
-                    const user = users.find(u => u.Name === value && u.Status !== '离岗' && u.UserID !== 'admin');
+                    const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, ReviewerID2: user.UserID, Reviewer2Name: user.Name});
+                      setFormData({...formData, chiefDesignerId: user.userId, chiefDesignerName: user.name});
                     }
                   }}
                   placeholder="搜索或输入审查人姓名..."
@@ -1022,20 +1022,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <div>
               <label className="block text-sm font-medium mb-1">任务开始日期</label>
               <input type="date" className="w-full border rounded p-2"
-                value={formData.StartDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+                value={formData.startDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
             </div>
           )}
           {!isMeeting && !isTravel && (
             <div>
               <label className="block text-sm font-medium mb-1">截止日期</label>
               <input type="date" className="w-full border rounded p-2"
-                value={formData.DueDate || ''} onChange={e => setFormData({...formData, DueDate: e.target.value})} />
+                value={formData.dueDate || ''} onChange={e => setFormData({...formData, DueDate: e.target.value})} />
             </div>
           )}
         </div>
 
         {/* 第五行：负责人工时 + 校核人工时 + 审查人工时（仅班组长/管理员可见，会议培训任务和差旅任务不显示） */}
-        {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && !isMeeting && !isTravel && (
+        {(currentUser?.systemRole === '管理员' || currentUser?.systemRole === '班组长') && !isMeeting && !isTravel && (
           <div className="col-span-2">
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -1070,7 +1070,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         {/* 会议与培训任务的特殊字段 */}
         {isMeeting && (
           <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1">参会人员 <span className="text-xs font-normal text-slate-500">({formData.Participants?.length || 0}人已选择)</span></label>
+            <label className="block text-sm font-medium mb-1">参会人员 <span className="text-xs font-normal text-slate-500">({formData.participants?.length || 0}人已选择)</span></label>
             <div className="border rounded p-3 bg-slate-50">
               {/* 搜索和已选人员区域 */}
               <div className="mb-3">
@@ -1100,16 +1100,16 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     const filteredUsers = users.filter(u =>
                       u.Status !== '离岗' &&
                       u.SystemRole !== '管理员' &&
-                      u.UserID !== 'admin' &&
-                      u.Name.toLowerCase().includes(participantSearchTerm.toLowerCase())
+                      u.userId !== 'admin' &&
+                      u.name.toLowerCase().includes(participantSearchTerm.toLowerCase())
                     );
-                    const allUserIds = filteredUsers.map(u => u.UserID);
-                    const allUserNames = filteredUsers.map(u => u.Name);
+                    const allUserIds = filteredUsers.map(u => u.userId);
+                    const allUserNames = filteredUsers.map(u => u.name);
 
                     if (participantSearchTerm) {
                       // 如果有搜索词，只对搜索结果进行全选/反选
-                      const currentParticipants = formData.Participants || [];
-                      const currentNames = formData.ParticipantNames || [];
+                      const currentParticipants = formData.participants || [];
+                      const currentNames = formData.participantNames || [];
                       const allSelected = allUserIds.every(id => currentParticipants.includes(id));
 
                       if (allSelected) {
@@ -1136,14 +1136,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       const allUserIdsFull = users.filter(u =>
                         u.Status !== '离岗' &&
                         u.SystemRole !== '管理员' &&
-                        u.UserID !== 'admin'
-                      ).map(u => u.UserID);
+                        u.userId !== 'admin'
+                      ).map(u => u.userId);
                       const allUserNamesFull = users.filter(u =>
                         u.Status !== '离岗' &&
                         u.SystemRole !== '管理员' &&
-                        u.UserID !== 'admin'
-                      ).map(u => u.Name);
-                      if (formData.Participants?.length === allUserIdsFull.length) {
+                        u.userId !== 'admin'
+                      ).map(u => u.name);
+                      if (formData.participants?.length === allUserIdsFull.length) {
                         setFormData({...formData, Participants: [], ParticipantNames: []});
                       } else {
                         setFormData({...formData, Participants: allUserIdsFull, ParticipantNames: allUserNamesFull});
@@ -1156,31 +1156,31 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     `选择搜索结果 (${users.filter(u =>
                       u.Status !== '离岗' &&
                       u.SystemRole !== '管理员' &&
-                      u.UserID !== 'admin' &&
-                      u.Name.toLowerCase().includes(participantSearchTerm.toLowerCase())
+                      u.userId !== 'admin' &&
+                      u.name.toLowerCase().includes(participantSearchTerm.toLowerCase())
                     ).length}人)` :
-                    (formData.Participants?.length === users.filter(u => u.Status !== '离岗' && u.SystemRole !== '管理员' && u.UserID !== 'admin').length ? '取消全选' : '全选')
+                    (formData.participants?.length === users.filter(u => u.Status !== '离岗' && u.SystemRole !== '管理员' && u.userId !== 'admin').length ? '取消全选' : '全选')
                   }
                 </button>
                 </div>
                 {/* 已选择的人员显示 */}
-                {formData.Participants && formData.Participants.length > 0 && (
+                {formData.participants && formData.participants.length > 0 && (
                   <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
-                    {formData.ParticipantNames?.filter(name => {
-                      const user = users.find(u => u.Name === name);
-                      return user && user.SystemRole !== '管理员' && user.UserID !== 'admin';
+                    {formData.participantNames?.filter(name => {
+                      const user = users.find(u => u.name === name);
+                      return user && user.systemRole !== '管理员' && user.userId !== 'admin';
                     }).map(name => (
                       <span key={name} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
                         {name}
                         <button
                           type="button"
                           onClick={() => {
-                            const user = users.find(u => u.Name === name);
+                            const user = users.find(u => u.name === name);
                             if (user) {
                               setFormData({
                                 ...formData,
-                                Participants: formData.Participants?.filter(id => id !== user.UserID) || [],
-                                ParticipantNames: formData.ParticipantNames?.filter(n => n !== name) || []
+                                Participants: formData.participants?.filter(id => id !== user.userId) || [],
+                                ParticipantNames: formData.participantNames?.filter(n => n !== name) || []
                               });
                             }
                           }}
@@ -1203,15 +1203,15 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     u.SystemRole === '班组长' &&
                     u.Status !== '离岗' &&
                     u.SystemRole !== '管理员' &&
-                    u.UserID !== 'admin' &&
-                    u.Name.toLowerCase().includes(searchLower)
+                    u.userId !== 'admin' &&
+                    u.name.toLowerCase().includes(searchLower)
                   );
                   const filteredMembers = users.filter(u =>
                     u.SystemRole === '组员' &&
                     u.Status !== '离岗' &&
                     u.SystemRole !== '管理员' &&
-                    u.UserID !== 'admin' &&
-                    u.Name.toLowerCase().includes(searchLower)
+                    u.userId !== 'admin' &&
+                    u.name.toLowerCase().includes(searchLower)
                   );
 
                   const hasSearchResults = filteredGroupLeaders.length > 0 || filteredMembers.length > 0;
@@ -1232,19 +1232,19 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
-                                checked={filteredGroupLeaders.every(u => formData.Participants?.includes(u.UserID))}
+                                checked={filteredGroupLeaders.every(u => formData.participants?.includes(u.userId))}
                                 onChange={(e) => {
-                                  const currentParticipants = formData.Participants || [];
-                                  const currentNames = formData.ParticipantNames || [];
+                                  const currentParticipants = formData.participants || [];
+                                  const currentNames = formData.participantNames || [];
 
                                   if (e.target.checked) {
                                     // 添加所有过滤后的班组长
                                     const newIds = [...currentParticipants];
                                     const newNames = [...currentNames];
                                     filteredGroupLeaders.forEach(user => {
-                                      if (!newIds.includes(user.UserID)) {
-                                        newIds.push(user.UserID);
-                                        newNames.push(user.Name);
+                                      if (!newIds.includes(user.userId)) {
+                                        newIds.push(user.userId);
+                                        newNames.push(user.name);
                                       }
                                     });
                                     setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
@@ -1252,8 +1252,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                                     // 移除所有过滤后的班组长
                                     setFormData({
                                       ...formData,
-                                      Participants: currentParticipants.filter(id => !filteredGroupLeaders.some(g => g.UserID === id)),
-                                      ParticipantNames: currentNames.filter(name => !filteredGroupLeaders.some(g => g.Name === name))
+                                      Participants: currentParticipants.filter(id => !filteredGroupLeaders.some(g => g.userId === id)),
+                                      ParticipantNames: currentNames.filter(name => !filteredGroupLeaders.some(g => g.name === name))
                                     });
                                   }
                                 }}
@@ -1267,29 +1267,29 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <div className="px-2 py-1.5">
                             <div className="grid grid-cols-6 gap-1.5">
                               {filteredGroupLeaders.map(user => (
-                                <label key={user.UserID} className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1.5 py-1 rounded">
+                                <label key={user.userId} className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1.5 py-1 rounded">
                                   <input
                                     type="checkbox"
-                                    checked={formData.Participants?.includes(user.UserID) || false}
+                                    checked={formData.participants?.includes(user.userId) || false}
                                     onChange={(e) => {
-                                      const currentParticipants = formData.Participants || [];
-                                      const currentNames = formData.ParticipantNames || [];
+                                      const currentParticipants = formData.participants || [];
+                                      const currentNames = formData.participantNames || [];
                                       if (e.target.checked) {
                                         setFormData({
                                           ...formData,
-                                          Participants: [...currentParticipants, user.UserID],
-                                          ParticipantNames: [...currentNames, user.Name]
+                                          Participants: [...currentParticipants, user.userId],
+                                          ParticipantNames: [...currentNames, user.name]
                                         });
                                       } else {
                                         setFormData({
                                           ...formData,
-                                          Participants: currentParticipants.filter(id => id !== user.UserID),
-                                          ParticipantNames: currentNames.filter(name => name !== user.Name)
+                                          Participants: currentParticipants.filter(id => id !== user.userId),
+                                          ParticipantNames: currentNames.filter(name => name !== user.name)
                                         });
                                       }
                                     }}
                                   />
-                                  <span className="text-sm truncate">{user.Name}</span>
+                                  <span className="text-sm truncate">{user.name}</span>
                                 </label>
                               ))}
                             </div>
@@ -1304,19 +1304,19 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
-                                checked={filteredMembers.every(u => formData.Participants?.includes(u.UserID))}
+                                checked={filteredMembers.every(u => formData.participants?.includes(u.userId))}
                                 onChange={(e) => {
-                                  const currentParticipants = formData.Participants || [];
-                                  const currentNames = formData.ParticipantNames || [];
+                                  const currentParticipants = formData.participants || [];
+                                  const currentNames = formData.participantNames || [];
 
                                   if (e.target.checked) {
                                     // 添加所有过滤后的组员
                                     const newIds = [...currentParticipants];
                                     const newNames = [...currentNames];
                                     filteredMembers.forEach(user => {
-                                      if (!newIds.includes(user.UserID)) {
-                                        newIds.push(user.UserID);
-                                        newNames.push(user.Name);
+                                      if (!newIds.includes(user.userId)) {
+                                        newIds.push(user.userId);
+                                        newNames.push(user.name);
                                       }
                                     });
                                     setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
@@ -1324,8 +1324,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                                     // 移除所有过滤后的组员
                                     setFormData({
                                       ...formData,
-                                      Participants: currentParticipants.filter(id => !filteredMembers.some(m => m.UserID === id)),
-                                      ParticipantNames: currentNames.filter(name => !filteredMembers.some(m => m.Name === name))
+                                      Participants: currentParticipants.filter(id => !filteredMembers.some(m => m.userId === id)),
+                                      ParticipantNames: currentNames.filter(name => !filteredMembers.some(m => m.name === name))
                                     });
                                   }
                                 }}
@@ -1339,29 +1339,29 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <div className="px-2 py-1.5">
                             <div className="grid grid-cols-6 gap-1.5">
                               {filteredMembers.map(user => (
-                                <label key={user.UserID} className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1.5 py-1 rounded">
+                                <label key={user.userId} className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1.5 py-1 rounded">
                                   <input
                                     type="checkbox"
-                                    checked={formData.Participants?.includes(user.UserID) || false}
+                                    checked={formData.participants?.includes(user.userId) || false}
                                     onChange={(e) => {
-                                      const currentParticipants = formData.Participants || [];
-                                      const currentNames = formData.ParticipantNames || [];
+                                      const currentParticipants = formData.participants || [];
+                                      const currentNames = formData.participantNames || [];
                                       if (e.target.checked) {
                                         setFormData({
                                           ...formData,
-                                          Participants: [...currentParticipants, user.UserID],
-                                          ParticipantNames: [...currentNames, user.Name]
+                                          Participants: [...currentParticipants, user.userId],
+                                          ParticipantNames: [...currentNames, user.name]
                                         });
                                       } else {
                                         setFormData({
                                           ...formData,
-                                          Participants: currentParticipants.filter(id => id !== user.UserID),
-                                          ParticipantNames: currentNames.filter(name => name !== user.Name)
+                                          Participants: currentParticipants.filter(id => id !== user.userId),
+                                          ParticipantNames: currentNames.filter(name => name !== user.name)
                                         });
                                       }
                                     }}
                                   />
-                                  <span className="text-sm truncate">{user.Name}</span>
+                                  <span className="text-sm truncate">{user.name}</span>
                                 </label>
                               ))}
                             </div>
@@ -1506,7 +1506,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <label className="block text-xs text-slate-600 mb-1">负责人</label>
               <select className="w-full border rounded px-2 py-2 text-sm" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
                 <option value="">所有负责人</option>
-                {users.filter(u => u.Status !== '离岗' && u.UserID !== 'admin').map(u => <option key={u.UserID} value={u.UserID}>{u.Name}</option>)}
+                {users.filter(u => u.Status !== '离岗' && u.userId !== 'admin').map(u => <option key={u.userId} value={u.userId}>{u.name}</option>)}
               </select>
             </div>
             <div className="min-w-[130px]">
@@ -1571,7 +1571,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 {!isMeeting && !isTravel && <th className="px-6 py-4">状态</th>}
                 <th className="px-6 py-4">负责人</th>
                 {/* 差旅任务和会议培训任务不显示校核人列 */}
-                {filteredTasks.length > 0 && !filteredTasks.every(t => t.TaskClassID === 'TC009' || t.TaskClassID === 'TC007') && (
+                {filteredTasks.length > 0 && !filteredTasks.every(t => t.taskClassId === 'TC009' || t.taskClassId === 'TC007') && (
                   <th className="px-6 py-4">校核人</th>
                 )}
                 {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
@@ -1592,26 +1592,26 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTasks.map(t => {
-                const isMeetingTask = t.TaskClassID === 'TC007';
+                const isMeetingTask = t.taskClassId === 'TC007';
                 return (
                   <tr
-                    key={t.TaskID}
+                    key={t.taskId}
                     className="hover:bg-blue-50 transition-colors cursor-pointer"
                     onDoubleClick={() => handleDoubleClick(t)}
                   >
                     <td className="px-6 py-4 relative">
-                      {t.isForceAssessment && t.TaskClassID !== 'TC009' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
-                      <div className={`font-medium ${t.isForceAssessment && t.TaskClassID !== 'TC009' ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.TaskName}</div>
-                      <div className="text-xs text-slate-400">{t.TaskID}</div>
+                      {t.isForceAssessment && t.taskClassId !== 'TC009' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
+                      <div className={`font-medium ${t.isForceAssessment && t.taskClassId !== 'TC009' ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.taskName}</div>
+                      <div className="text-xs text-slate-400">{t.taskId}</div>
                     </td>
                     <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.Category}</span></td>
                     {/* 差旅任务显示标签列 */}
-                    {t.TaskClassID === 'TC009' && (
+                    {t.taskClassId === 'TC009' && (
                       <td className="px-6 py-4">{t.TravelLabel || '-'}</td>
                     )}
                     <td className="px-6 py-4">{t.CapacityLevel || '-'}</td>
                     {/* 会议培训任务和差旅任务不显示状态列 */}
-                    {!isMeetingTask && t.TaskClassID !== 'TC009' && (
+                    {!isMeetingTask && t.taskClassId !== 'TC009' && (
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded text-xs ${
                           t.Status === TaskStatus.COMPLETED ? 'bg-green-100 text-green-700' :
@@ -1622,22 +1622,22 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       </td>
                     )}
                     <td className="px-6 py-4">
-                      {users.find(u => u.UserID === t.AssigneeID)?.Name || t.AssigneeName || '-'}
+                      {users.find(u => u.userId === t.assigneeId)?.name || t.assigneeName || '-'}
                     </td>
                     {/* 差旅任务和会议培训任务不显示校核人列 */}
-                    {t.TaskClassID !== 'TC009' && t.TaskClassID !== 'TC007' && (
+                    {t.taskClassId !== 'TC009' && t.taskClassId !== 'TC007' && (
                       <td className="px-6 py-4">
-                        {users.find(u => u.UserID === t.ReviewerID)?.Name || t.ReviewerName || '-'}
+                        {users.find(u => u.userId === t.ReviewerID)?.name || t.ReviewerName || '-'}
                       </td>
                     )}
                     {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
-                    <td className="px-6 py-4 text-slate-500">{formatDate(t.StartDate)}</td>
+                    <td className="px-6 py-4 text-slate-500">{formatDate(t.startDate)}</td>
                     {/* 会议培训任务和差旅任务不显示截止日 */}
-                    {!isMeetingTask && t.TaskClassID !== 'TC009' && (
-                      <td className="px-6 py-4 text-slate-500">{formatDate(t.DueDate)}</td>
+                    {!isMeetingTask && t.taskClassId !== 'TC009' && (
+                      <td className="px-6 py-4 text-slate-500">{formatDate(t.dueDate)}</td>
                     )}
                     {/* 差旅任务显示出差天数 */}
-                    {t.TaskClassID === 'TC009' && (
+                    {t.taskClassId === 'TC009' && (
                       <td className="px-6 py-4 text-slate-500">{t.TravelDuration ? `${t.TravelDuration}天` : '-'}</td>
                     )}
                     {/* 会议培训任务显示会议时长和参会人数 */}
@@ -1649,7 +1649,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     )}
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
-                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.TaskID); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                     </td>
                   </tr>
                 );
@@ -1671,7 +1671,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 任务名称</label>
                 <div className="flex items-center gap-3">
                   <input required type="text" className="flex-1 border rounded p-2 bg-slate-50"
-                    value={formData.TaskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
+                    value={formData.taskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
                   {!isMeeting && !isTravel && (
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" className="hidden" checked={formData.isForceAssessment || false} onChange={e => setFormData({...formData, isForceAssessment: e.target.checked})} />
@@ -1689,7 +1689,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">备注</label>
                 <textarea className="w-full border rounded p-2 h-20"
-                  value={formData.Remark || ''} onChange={e => setFormData({...formData, Remark: e.target.value})} />
+                  value={formData.remark || ''} onChange={e => setFormData({...formData, Remark: e.target.value})} />
               </div>
 
               <div className="col-span-2 flex justify-end gap-3 mt-3 pt-3 border-t">
@@ -1813,7 +1813,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold">任务详细信息</h3>
-                  <div className="text-xs text-white/80 font-mono">ID: {selectedTask.TaskID}</div>
+                  <div className="text-xs text-white/80 font-mono">ID: {selectedTask.taskId}</div>
                 </div>
               </div>
               <button
@@ -1839,9 +1839,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                       任务名称
                     </label>
                     <div className="flex items-center gap-3">
-                      <div className="text-slate-900 font-medium text-sm pl-[18px]">{selectedTask.TaskName}</div>
+                      <div className="text-slate-900 font-medium text-sm pl-[18px]">{selectedTask.taskName}</div>
                       {/* 非差旅任务和会议培训任务显示任务状态 */}
-                      {selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && (
+                      {selectedTask.taskClassId !== 'TC007' && selectedTask.taskClassId !== 'TC009' && (
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                           selectedTask.Status === '已完成' ? 'bg-green-100 text-green-700' :
                           selectedTask.Status === '进行中' ? 'bg-blue-100 text-blue-700' :
@@ -1851,7 +1851,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         </span>
                       )}
                       {/* 非差旅任务和会议培训任务显示强制考核 */}
-                      {selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && selectedTask.isForceAssessment && (
+                      {selectedTask.taskClassId !== 'TC007' && selectedTask.taskClassId !== 'TC009' && selectedTask.isForceAssessment && (
                         <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                           ✓ 强制考核
                         </span>
@@ -1861,7 +1861,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 分类信息卡片 */}
-                {selectedTask.TaskClassID === 'TC009' ? (
+                {selectedTask.taskClassId === 'TC009' ? (
                   // 差旅任务显示分类、标签、关联项目
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
@@ -1888,7 +1888,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           关联项目
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{projects.find(p => p.id === selectedTask.projectId)?.name || '-'}</div>
                       </div>
                     </div>
                   </div>
@@ -1912,7 +1912,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
                           关联项目
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{projects.find(p => p.id === selectedTask.ProjectID)?.name || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{projects.find(p => p.id === selectedTask.projectId)?.name || '-'}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -1937,28 +1937,28 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         <UserIcon size={12} className="text-purple-500" />
                         负责人
                       </label>
-                      <div className="text-slate-900 font-medium text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.AssigneeID)?.Name || selectedTask.AssigneeName || '-'}</div>
+                      <div className="text-slate-900 font-medium text-sm pl-[18px]">{users.find(u => u.userId === selectedTask.assigneeId)?.name || selectedTask.assigneeName || '-'}</div>
                     </div>
-                    {selectedTask.TaskClassID !== 'TC009' && selectedTask.TaskClassID !== 'TC007' && (
+                    {selectedTask.taskClassId !== 'TC009' && selectedTask.taskClassId !== 'TC007' && (
                       <>
                         <div className="bg-white rounded-md p-2">
                           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                             <UserIcon size={12} className="text-purple-500" />
                             校核人
                           </label>
-                          <div className="text-slate-900 text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.ReviewerID)?.Name || selectedTask.ReviewerName || '-'}</div>
+                          <div className="text-slate-900 text-sm pl-[18px]">{users.find(u => u.userId === selectedTask.ReviewerID)?.name || selectedTask.ReviewerName || '-'}</div>
                         </div>
                         <div className="bg-white rounded-md p-2">
                           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                             <UserIcon size={12} className="text-purple-500" />
                             审查人
                           </label>
-                          <div className="text-slate-900 text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.ReviewerID2)?.Name || selectedTask.Reviewer2Name || '-'}</div>
+                          <div className="text-slate-900 text-sm pl-[18px]">{users.find(u => u.userId === selectedTask.ReviewerID2)?.name || selectedTask.Reviewer2Name || '-'}</div>
                         </div>
                       </>
                     )}
                     {/* 会议培训任务显示参会人员信息 */}
-                    {selectedTask.TaskClassID === 'TC007' && (
+                    {selectedTask.taskClassId === 'TC007' && (
                       <div className="bg-white rounded-md p-2 col-span-3">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <UserIcon size={12} className="text-purple-500" />
@@ -1979,7 +1979,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 </div>
 
                 {/* 时间信息卡片 */}
-                {selectedTask.TaskClassID === 'TC009' ? (
+                {selectedTask.taskClassId === 'TC009' ? (
                   // 差旅任务显示出差天数和截止日期
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
@@ -1992,7 +1992,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           开始日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.StartDate)}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.startDate)}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -2006,11 +2006,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           截止日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.DueDate)}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.dueDate)}</div>
                       </div>
                     </div>
                   </div>
-                ) : selectedTask.TaskClassID === 'TC007' ? (
+                ) : selectedTask.taskClassId === 'TC007' ? (
                   // 会议培训任务显示会议日期、会议时长、完成日期
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
@@ -2023,7 +2023,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           会议日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.StartDate || '-'}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{selectedTask.startDate || '-'}</div>
                       </div>
                       <div></div>
                       <div className="bg-white rounded-md p-2">
@@ -2048,14 +2048,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                           <Calendar size={12} className="text-amber-500" />
                           开始日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.StartDate)}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.startDate)}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
                           <Calendar size={12} className="text-amber-500" />
                           截止日期
                         </label>
-                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.DueDate)}</div>
+                        <div className="text-slate-900 text-sm pl-[18px]">{formatDate(selectedTask.dueDate)}</div>
                       </div>
                       <div className="bg-white rounded-md p-2">
                         <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -2069,7 +2069,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 )}
 
                 {/* 差旅信息 */}
-                {selectedTask.TaskClassID === 'TC009' && (
+                {selectedTask.taskClassId === 'TC009' && (
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-teal-500 rounded-full"></div>
@@ -2088,7 +2088,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 )}
 
                 {/* 管理员/班组长可见的额外信息（会议培训任务和差旅任务不显示） */}
-                {(currentUser?.SystemRole === '管理员' || currentUser?.SystemRole === '班组长') && selectedTask.TaskClassID !== 'TC007' && selectedTask.TaskClassID !== 'TC009' && (
+                {(currentUser?.systemRole === '管理员' || currentUser?.systemRole === '班组长') && selectedTask.taskClassId !== 'TC007' && selectedTask.taskClassId !== 'TC009' && (
                   <div className="bg-white rounded-lg p-2 border border-slate-200">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-4 bg-rose-500 rounded-full"></div>
@@ -2132,7 +2132,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         <UserIcon size={12} className="text-emerald-600" />
                         创建人
                       </label>
-                      <div className="text-slate-900 font-semibold text-sm pl-[18px]">{users.find(u => u.UserID === selectedTask.CreatedBy)?.Name || selectedTask.CreatedBy || '-'}</div>
+                      <div className="text-slate-900 font-semibold text-sm pl-[18px]">{users.find(u => u.userId === selectedTask.CreatedBy)?.name || selectedTask.CreatedBy || '-'}</div>
                     </div>
                     <div className="bg-white rounded-md p-2">
                       <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
@@ -2146,7 +2146,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         <Clock size={12} className="text-emerald-600" />
                         任务ID
                       </label>
-                      <div className="text-slate-900 font-semibold text-sm font-mono text-xs pl-[18px]">{selectedTask.TaskID}</div>
+                      <div className="text-slate-900 font-semibold text-sm font-mono text-xs pl-[18px]">{selectedTask.taskId}</div>
                     </div>
                   </div>
                 </div>

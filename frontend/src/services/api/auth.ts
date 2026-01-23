@@ -53,7 +53,7 @@ class AuthService {
       '/api/auth/login',
       { userId, password }
     );
-    console.log('authService.login response:', response);
+    // console.log('authService.login response:', response);
 
     // 客户端已提取Data并转换为camelCase，response直接是{ user, token }
     if (response.user && response.token) {
@@ -143,7 +143,7 @@ class AuthService {
 
     const timeout = expires - Date.now() - 5 * 60 * 1000; // 过期前5分钟
     if (timeout > 0) {
-      console.log(`Token刷新定时器已启动，${Math.round(timeout / 60000)}分钟后刷新`);
+      // console.log(`Token刷新定时器已启动，${Math.round(timeout / 60000)}分钟后刷新`);
       this.refreshTokenTimeout = window.setTimeout(() => {
         this.refreshToken();
       }, timeout);

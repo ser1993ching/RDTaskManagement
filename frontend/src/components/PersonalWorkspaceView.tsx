@@ -333,16 +333,16 @@ const TravelTaskPanel: React.FC<{
             <tbody className="divide-y divide-gray-100">
               {tasks.slice(0, 5).map((task) => (
                 <tr
-                  key={task.TaskID}
+                  key={task.taskId}
                   className="cursor-pointer hover:bg-gray-50 transition-colors"
                   onDoubleClick={() => onTaskDoubleClick(task)}
                 >
-                  <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLabel || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelDuration ? `${task.TravelDuration}天` : '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLocation || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-900">{task.taskName}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.taskClassId)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.travelLabel || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.startDate)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.travelDuration ? `${task.travelDuration}天` : '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.travelLocation || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -391,14 +391,14 @@ const MeetingTaskPanel: React.FC<{
             <tbody className="divide-y divide-gray-100">
               {tasks.slice(0, 5).map((task) => (
                 <tr
-                  key={task.TaskID}
+                  key={task.taskId}
                   className="cursor-pointer hover:bg-gray-50 transition-colors"
                   onDoubleClick={() => onTaskDoubleClick(task)}
                 >
-                  <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.Category || getCategoryName(task.TaskClassID)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.MeetingDuration ? `${task.MeetingDuration}小时` : '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-900">{task.taskName}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.category || getCategoryName(task.taskClassId)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.startDate)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.meetingDuration ? `${task.meetingDuration}小时` : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -409,10 +409,9 @@ const MeetingTaskPanel: React.FC<{
   );
 };
 
-// Helper function to get property value regardless of case (PascalCase or camelCase)
-const getTaskProp = (task: Task, pascalKey: string): any => {
-  const camelKey = pascalKey.charAt(0).toLowerCase() + pascalKey.slice(1);
-  return task[pascalKey as keyof Task] || task[camelKey as keyof Task];
+// Helper function to get property value from task (camelCase)
+const getTaskProp = (task: Task, key: string): any => {
+  return (task as any)[key];
 };
 
 // Helper function to format date (ISO format to friendly format)
@@ -430,10 +429,10 @@ const formatDate = (dateStr: string | undefined | null): string => {
 
 // Helper function to determine user's role in a task
 const getUserRoleInTask = (task: Task, userId: string): string => {
-  const assigneeId = getTaskProp(task, 'AssigneeID');
-  const checkerId = getTaskProp(task, 'CheckerID');
-  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
-  const approverId = getTaskProp(task, 'ApproverID');
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
 
   if (assigneeId === userId) return '负责人';
   if (checkerId === userId) return '校核人';
@@ -444,10 +443,10 @@ const getUserRoleInTask = (task: Task, userId: string): string => {
 
 // Helper function to get user's role type in a task
 const getUserRoleTypeInTask = (task: Task, userId: string): 'assignee' | 'checker' | 'chiefDesigner' | 'approver' | null => {
-  const assigneeId = getTaskProp(task, 'AssigneeID');
-  const checkerId = getTaskProp(task, 'CheckerID');
-  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
-  const approverId = getTaskProp(task, 'ApproverID');
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
 
   if (assigneeId === userId) return 'assignee';
   if (checkerId === userId) return 'checker';
@@ -458,29 +457,29 @@ const getUserRoleTypeInTask = (task: Task, userId: string): 'assignee' | 'checke
 
 // Helper function to get role status for a user in a task
 const getRoleStatusInTask = (task: Task, userId: string): string => {
-  const assigneeId = getTaskProp(task, 'AssigneeID');
-  const checkerId = getTaskProp(task, 'CheckerID');
-  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
-  const approverId = getTaskProp(task, 'ApproverID');
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
 
-  if (assigneeId === userId) return getTaskProp(task, 'AssigneeStatus') || RoleStatus.NOT_STARTED;
-  if (checkerId === userId) return getTaskProp(task, 'CheckerStatus') || RoleStatus.NOT_STARTED;
-  if (chiefDesignerId === userId) return getTaskProp(task, 'ChiefDesignerStatus') || RoleStatus.NOT_STARTED;
-  if (approverId === userId) return getTaskProp(task, 'ApproverStatus') || RoleStatus.NOT_STARTED;
+  if (assigneeId === userId) return getTaskProp(task, 'assigneeStatus') || RoleStatus.NOT_STARTED;
+  if (checkerId === userId) return getTaskProp(task, 'checkerStatus') || RoleStatus.NOT_STARTED;
+  if (chiefDesignerId === userId) return getTaskProp(task, 'chiefDesignerStatus') || RoleStatus.NOT_STARTED;
+  if (approverId === userId) return getTaskProp(task, 'approverStatus') || RoleStatus.NOT_STARTED;
   return '-';
 };
 
 // Helper function to get workload for a user's role in a task
 const getRoleWorkloadInTask = (task: Task, userId: string): number | undefined => {
-  const assigneeId = getTaskProp(task, 'AssigneeID');
-  const checkerId = getTaskProp(task, 'CheckerID');
-  const chiefDesignerId = getTaskProp(task, 'ChiefDesignerID');
-  const approverId = getTaskProp(task, 'ApproverID');
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
 
-  if (assigneeId === userId) return getTaskProp(task, 'Workload');
-  if (checkerId === userId) return getTaskProp(task, 'CheckerWorkload');
-  if (chiefDesignerId === userId) return getTaskProp(task, 'ChiefDesignerWorkload');
-  if (approverId === userId) return getTaskProp(task, 'ApproverWorkload');
+  if (assigneeId === userId) return getTaskProp(task, 'workload');
+  if (checkerId === userId) return getTaskProp(task, 'checkerWorkload');
+  if (chiefDesignerId === userId) return getTaskProp(task, 'chiefDesignerWorkload');
+  if (approverId === userId) return getTaskProp(task, 'approverWorkload');
   return undefined;
 };
 
@@ -620,7 +619,7 @@ const TaskPanel: React.FC<{
   viewingUserId,
   currentUserRole
 }) => {
-  console.log(`TaskPanel[${title}] rendering with ${tasks.length} tasks`);
+  // console.log(`TaskPanel[${title}] rendering with ${tasks.length} tasks`);
   const getCategoryName = (taskClassId: string) => {
     const tc = taskClasses.find(t => t.id === taskClassId);
     return tc?.name || taskClassId;
@@ -673,32 +672,29 @@ const TaskPanel: React.FC<{
                   const roleStatus = getRoleStatusInTask(task, viewingUserId);
                   const roleWorkload = getRoleWorkloadInTask(task, viewingUserId);
 
-                  // 支持 PascalCase 和 camelCase
-                  const taskID = task.TaskID || task.taskID;
-                  const taskName = task.TaskName || task.taskName;
-                  const taskClassID = task.TaskClassID || task.taskClassID;
-                  const startDate = task.StartDate || task.startDate;
-                  const dueDate = task.DueDate || task.dueDate;
-                  const isForceAssessment = task.isForceAssessment || task.IsForceAssessment;
+                  const taskId = task.taskId;
+                  const taskName = task.taskName;
+                  const taskClassId = task.taskClassId;
+                  const isForceAssessment = task.isForceAssessment;
 
                   return (
                     <tr
-                      key={taskID}
+                      key={taskId}
                       className={`${isLongRunning ? 'bg-yellow-50' : ''} cursor-pointer hover:bg-gray-50 transition-colors`}
                       onDoubleClick={() => onTaskDoubleClick(task)}
                     >
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
-                          {isForceAssessment && taskClassID !== 'TC009' && (
+                          {isForceAssessment && taskClassId !== 'TC009' && (
                             <span className="inline-block w-1 h-4 bg-red-500 mr-1 rounded flex-shrink-0" />
                           )}
                           {isLongRunning && (
                             <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                           )}
-                          <span className={`text-sm ${isForceAssessment && taskClassID !== 'TC009' ? 'font-bold text-gray-900' : 'text-gray-900'}`}>{taskName}</span>
+                          <span className={`text-sm ${isForceAssessment && taskClassId !== 'TC009' ? 'font-bold text-gray-900' : 'text-gray-900'}`}>{taskName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(taskClassID)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(taskClassId)}</td>
                       <td className="px-4 py-2">
                         <span className="text-sm font-medium text-gray-700">{userRole}</span>
                       </td>
@@ -706,7 +702,7 @@ const TaskPanel: React.FC<{
                         {userRoleType ? (
                           <RoleStatusDropdown
                             currentStatus={roleStatus}
-                            onChange={(status) => onStatusChange(taskID, userRoleType, status)}
+                            onChange={(status) => onStatusChange(taskId, userRoleType, status)}
                           />
                         ) : (
                           <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(roleStatus)}`}>
@@ -714,8 +710,8 @@ const TaskPanel: React.FC<{
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(startDate)}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(dueDate)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.startDate)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.dueDate)}</td>
                       {canViewWorkload && (
                         <td className="px-4 py-2 text-sm text-gray-600">{roleWorkload ?? '-'}</td>
                       )}
@@ -739,7 +735,7 @@ const UserSwitcher: React.FC<{
   teamMembers: UserType[];
   onSelect: (userId: string) => void;
 }> = ({ currentUser, selectedUserId, teamMembers, onSelect }) => {
-  const selectedUser = teamMembers.find(u => u.UserID === selectedUserId) || currentUser;
+  const selectedUser = teamMembers.find(u => u.userId === selectedUserId) || currentUser;
 
   return (
     <div className="flex items-center gap-2">
@@ -749,10 +745,10 @@ const UserSwitcher: React.FC<{
         onChange={(e) => onSelect(e.target.value)}
         className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
-        <option value={currentUser.UserID}>{currentUser.Name} (本人)</option>
+        <option value={currentUser.userId}>{currentUser.name} (本人)</option>
         {teamMembers.map((user) => (
-          <option key={user.UserID} value={user.UserID}>
-            {user.Name}
+          <option key={user.userId} value={user.userId}>
+            {user.name}
           </option>
         ))}
       </select>
@@ -790,42 +786,39 @@ const PersonalWorkspaceView: React.FC<{
 
   // Sync selectedUserId when currentUser changes
   useEffect(() => {
-    if (currentUser?.UserID) {
-      setSelectedUserId(currentUser.UserID);
+    if (currentUser?.userId) {
+      setSelectedUserId(currentUser.userId);
     }
-  }, [currentUser?.UserID]);
+  }, [currentUser?.userId]);
 
   // Get user being viewed - ensure it's always defined
-  const viewingUserId = currentUser?.UserID ?
-    (currentUser.SystemRole === SystemRole.MEMBER ? currentUser.UserID : (selectedUserId || currentUser.UserID)) :
+  const viewingUserId = currentUser?.userId ?
+    (currentUser.systemRole === SystemRole.MEMBER ? currentUser.userId : (selectedUserId || currentUser.userId)) :
     '';
 
   // Load data when viewingUserId changes
   useEffect(() => {
     const loadData = async () => {
       if (!viewingUserId) {
-        console.log('Waiting for user data...', { viewingUserId, selectedUserId, currentUserId: currentUser?.UserID });
+        // console.log('Waiting for user data...', { viewingUserId, selectedUserId, currentUserId: currentUser?.userId });
         return;
       }
 
-      console.log('Loading data for user:', viewingUserId, 'role:', currentUser?.SystemRole);
       setLoading(true);
       try {
-        // Load team members
-        const members = await apiDataService.getTeamMembers(currentUser.UserID);
-        setTeamMembers(members.map(u => ({
-          UserID: u.userID,
-          Name: u.name,
-          SystemRole: u.systemRole as SystemRole,
-          OfficeLocation: u.officeLocation as any,
-          Title: u.title,
-          JoinDate: u.joinDate,
-          Status: u.status as any,
-          Education: u.education,
-          School: u.school,
-          Remark: u.remark,
-          Gender: u.gender,
-          Password: '',
+        // Load team members - API returns camelCase, types.ts uses camelCase
+        const members = await apiDataService.getTeamMembers(currentUser.userId);
+        setTeamMembers(members.map((u: any) => ({
+          userId: u.userId,
+          name: u.name,
+          systemRole: u.systemRole as SystemRole,
+          officeLocation: u.officeLocation as any,
+          title: u.title,
+          joinDate: u.joinDate,
+          status: u.status as any,
+          education: u.education,
+          school: u.school,
+          remark: u.remark,
         })));
 
         // Load task classes
@@ -836,12 +829,12 @@ const PersonalWorkspaceView: React.FC<{
           code: tc.code,
           description: tc.description,
           notice: tc.notice,
-          is_deleted: false,
+          isDeleted: false,
         })));
 
         // Load personal tasks
         const tasks = await apiDataService.getPersonalTasks(viewingUserId);
-        console.log('Personal tasks loaded:', tasks);
+        // console.log('Personal tasks loaded:', tasks);
         setPersonalTasks({
           inProgress: tasks.inProgress || [],
           pending: tasks.pending || [],
@@ -867,8 +860,8 @@ const PersonalWorkspaceView: React.FC<{
 
   // Get viewing user info
   const viewingUser = useMemo(() => {
-    if (viewingUserId === currentUser.UserID) return currentUser;
-    return teamMembers.find(u => u.UserID === viewingUserId) || currentUser;
+    if (viewingUserId === currentUser.userId) return currentUser;
+    return teamMembers.find(u => u.userId === viewingUserId) || currentUser;
   }, [viewingUserId, currentUser, teamMembers]);
 
   // Get all tasks (combine from different sources)
@@ -878,16 +871,16 @@ const PersonalWorkspaceView: React.FC<{
       ...personalTasks.pending,
       ...personalTasks.completed,
     ];
-    console.log('allTasks count:', tasks.length, 'first task startDate:', tasks[0]?.startDate);
+    // console.log('allTasks count:', tasks.length, 'first task startDate:', tasks[0]?.startDate);
     return tasks;
   }, [personalTasks]);
 
   // Filter tasks by period based on StartDate (only for completed tasks)
   const periodFilteredTasks = useMemo(() => {
     const filtered = apiDataService.filterTasksByStartDate(allTasks, period);
-    console.log('periodFilteredTasks count:', filtered.length, 'period:', period);
+    // console.log('periodFilteredTasks count:', filtered.length, 'period:', period);
     if (allTasks.length > 0) {
-      console.log('sample startDates:', allTasks.slice(0, 3).map(t => t.startDate));
+      // console.log('sample startDates:', allTasks.slice(0, 3).map(t => t.startDate));
     }
     return filtered;
   }, [allTasks, period]);
@@ -897,11 +890,6 @@ const PersonalWorkspaceView: React.FC<{
   const separatedTasks = useMemo(() => {
     const allSeparated = apiDataService.separateTasksByRoleStatus(allTasks, viewingUserId);
     const completedSeparated = apiDataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
-    console.log('separatedTasks:', {
-      inProgress: allSeparated.inProgress.length,
-      pending: allSeparated.pending.length,
-      completed: completedSeparated.completed.length
-    });
     return {
       inProgress: allSeparated.inProgress,      // 进行中：显示所有
       pending: allSeparated.pending,            // 未开始：显示所有
@@ -921,55 +909,14 @@ const PersonalWorkspaceView: React.FC<{
 
   // Calculate stats based on role status
   const stats = useMemo(() => {
-    // Convert API tasks to expected format
-    const apiTasks = allTasks.map(t => ({
-      taskID: t.TaskID,
-      taskName: t.TaskName,
-      taskClassID: t.TaskClassID,
-      category: t.Category,
-      projectID: t.ProjectID,
-      assigneeID: t.AssigneeID,
-      assigneeName: t.AssigneeName,
-      startDate: t.StartDate,
-      dueDate: t.DueDate,
-      completedDate: t.CompletedDate,
-      status: t.Status,
-      workload: t.Workload,
-      difficulty: t.Difficulty,
-      remark: t.Remark,
-      createdDate: t.CreatedDate,
-      createdBy: t.CreatedBy,
-      travelLocation: t.TravelLocation,
-      travelDuration: t.TravelDuration,
-      travelLabel: t.TravelLabel,
-      meetingDuration: t.MeetingDuration,
-      participants: t.Participants,
-      participantNames: t.ParticipantNames,
-      capacityLevel: t.CapacityLevel,
-      checkerID: t.CheckerID,
-      checkerName: t.CheckerName,
-      checkerWorkload: t.CheckerWorkload,
-      checkerStatus: t.checkerStatus,
-      chiefDesignerID: t.ChiefDesignerID,
-      chiefDesignerName: t.ChiefDesignerName,
-      chiefDesignerWorkload: t.ChiefDesignerWorkload,
-      chiefDesignerStatus: t.chiefDesignerStatus,
-      approverID: t.ApproverID,
-      approverName: t.ApproverName,
-      approverWorkload: t.ApproverWorkload,
-      approverStatus: t.approverStatus,
-      assigneeStatus: t.assigneeStatus,
-      isForceAssessment: t.isForceAssessment,
-      isInPool: t.is_in_pool,
-    }));
-
-    const baseStats = apiDataService.calculatePersonalStats(apiTasks, period, viewingUserId);
+    // API返回的数据已经是camelCase格式，直接使用
+    const baseStats = apiDataService.calculatePersonalStats(allTasks as any, period, viewingUserId);
     // Calculate trend - daily for week/month, monthly for others
     let monthlyTrend;
     if (period === 'week' || period === 'month') {
       // 按天统计（本周显示7天，本月显示约30天）
       const days = period === 'week' ? 7 : 30;
-      monthlyTrend = apiDataService.calculateDailyTrend(apiTasks, days, viewingUserId);
+      monthlyTrend = apiDataService.calculateDailyTrend(allTasks as any, days, viewingUserId);
     } else {
       // 按月统计，根据时间段确定月份数
       let months: number;
@@ -980,7 +927,7 @@ const PersonalWorkspaceView: React.FC<{
         case 'yearAndHalf': months = 12; break;  // 近一年
         default: months = 6;
       }
-      monthlyTrend = apiDataService.calculateMonthlyTrend(apiTasks, months, viewingUserId);
+      monthlyTrend = apiDataService.calculateMonthlyTrend(allTasks as any, months, viewingUserId);
     }
     return { ...baseStats, monthlyTrend };
   }, [allTasks, period, viewingUserId]);
@@ -1009,14 +956,14 @@ const PersonalWorkspaceView: React.FC<{
   // Handle task double click - navigate to task view
   const handleTaskDoubleClick = (task: Task) => {
     if (onChangeView) {
-      onChangeView('tasks', task.TaskName);
+      onChangeView('tasks', task.taskName);
     }
   };
 
   // Handle CSV export
   const handleExportCSV = () => {
-    const csvContent = apiDataService.generateStatsCSV(stats, separatedTasks, viewingUser.Name);
-    const fileName = `个人工作台_${viewingUser.Name}_${new Date().toISOString().split('T')[0]}.csv`;
+    const csvContent = apiDataService.generateStatsCSV(stats, separatedTasks, viewingUser.name);
+    const fileName = `个人工作台_${viewingUser.name}_${new Date().toISOString().split('T')[0]}.csv`;
     apiDataService.downloadStatsCSV(csvContent, fileName);
   };
 
@@ -1031,7 +978,7 @@ const PersonalWorkspaceView: React.FC<{
       <div className="flex items-center justify-between gap-4 mb-4 print:hidden">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold text-gray-900">个人工作台</h1>
-          {currentUser.SystemRole !== '组员' && (
+          {currentUser.systemRole !== '组员' && (
             <UserSwitcher
               currentUser={currentUser}
               selectedUserId={selectedUserId}
@@ -1073,9 +1020,9 @@ const PersonalWorkspaceView: React.FC<{
             onStatusChange={handleStatusChange}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
-            viewingUserName={viewingUser.Name}
+            viewingUserName={viewingUser.name}
             viewingUserId={viewingUserId}
-            currentUserRole={currentUser.SystemRole}
+            currentUserRole={currentUser.systemRole}
           />
 
           {/* Pending Panel - Middle */}
@@ -1087,9 +1034,9 @@ const PersonalWorkspaceView: React.FC<{
             onStatusChange={handleStatusChange}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
-            viewingUserName={viewingUser.Name}
+            viewingUserName={viewingUser.name}
             viewingUserId={viewingUserId}
-            currentUserRole={currentUser.SystemRole}
+            currentUserRole={currentUser.systemRole}
           />
 
           {/* Completed Panel - Bottom */}
@@ -1101,9 +1048,9 @@ const PersonalWorkspaceView: React.FC<{
             onStatusChange={handleStatusChange}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
-            viewingUserName={viewingUser.Name}
+            viewingUserName={viewingUser.name}
             viewingUserId={viewingUserId}
-            currentUserRole={currentUser.SystemRole}
+            currentUserRole={currentUser.systemRole}
           />
 
           {/* Travel Task Panel */}

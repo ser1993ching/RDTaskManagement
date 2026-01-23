@@ -216,9 +216,9 @@ public class AuthController : ControllerBase
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId),
             new Claim(ClaimTypes.Name, user.Name),
-            new Claim(ClaimTypes.Role, user.SystemRole.ToUpperInvariant()),
+            new Claim(ClaimTypes.Role, user.SystemRole.ToString().ToUpperInvariant()),
             new Claim("userId", user.UserId),
-            new Claim("OfficeLocation", user.OfficeLocation)
+            new Claim("OfficeLocation", user.OfficeLocation.ToString())
         };
 
         var token = new JwtSecurityToken(

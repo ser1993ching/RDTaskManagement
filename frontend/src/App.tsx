@@ -9,7 +9,7 @@ import PersonalWorkspaceView from './components/PersonalWorkspaceView';
 import { Settings as SettingsComponent } from './components/Settings';
 import { apiDataService } from './services/apiDataService';
 import { checkSystemHealth, HealthStatus } from './services/healthService';
-import { User, Project, Task, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus } from './types';
+import { User, Project, Task, SystemRole, OfficeLocation, PersonnelStatus, ProjectCategory, TaskStatus, TaskClass } from './types';
 import { Lock, Settings, Server, Database, AlertCircle } from 'lucide-react';
 
 // API值到前端值的映射函数
@@ -109,24 +109,8 @@ const App: React.FC = () => {
     if (apiDataService.isLoggedIn()) {
       const storedUser = apiDataService.getCurrentUser();
       if (storedUser) {
-        console.log('Stored user from localStorage:', storedUser);
-        // Convert stored user (camelCase) to frontend format (PascalCase)
-        const convertedUser: User = {
-          UserID: storedUser.userID,
-          Name: storedUser.name,
-          SystemRole: mapSystemRole(storedUser.systemRole),
-          OfficeLocation: storedUser.officeLocation as any,
-          Title: storedUser.title,
-          JoinDate: storedUser.joinDate,
-          Status: mapPersonnelStatus(storedUser.status),
-          Education: storedUser.education,
-          School: storedUser.school,
-          Remark: storedUser.remark,
-          Gender: undefined,
-          Password: '',
-        };
-        console.log('Converted user:', convertedUser);
-        setCurrentUser(convertedUser);
+        // 直接使用API返回的camelCase数据，只进行枚举映射
+        setCurrentUser(storedUser as User);
         await refreshData();
       }
     }
@@ -139,99 +123,14 @@ const App: React.FC = () => {
       apiDataService.getTasks(),
     ]);
 
-    // Convert API users to frontend User format
-    const convertedUsers: User[] = apiUsers.map((apiUser: any) => ({
-      UserID: apiUser.userID,
-      Name: apiUser.name,
-      SystemRole: mapSystemRole(apiUser.systemRole),
-      OfficeLocation: mapOfficeLocation(apiUser.officeLocation),
-      Title: apiUser.title,
-      JoinDate: apiUser.joinDate,
-      Status: mapPersonnelStatus(apiUser.status),
-      Education: apiUser.education,
-      School: apiUser.school,
-      Remark: apiUser.remark,
-      Gender: apiUser.gender,
-      Password: '',
-    }));
-
-    // Convert API projects to frontend Project format
-    const convertedProjects: Project[] = apiProjects.map((apiProject: any) => ({
-      id: apiProject.id,
-      name: apiProject.name,
-      category: mapProjectCategory(apiProject.category),
-      workNo: apiProject.workNo,
-      capacity: apiProject.capacity,
-      model: apiProject.model,
-      isWon: apiProject.isWon,
-      isForeign: apiProject.isForeign,
-      startDate: apiProject.startDate,
-      endDate: apiProject.endDate,
-      remark: apiProject.remark,
-      isCommissioned: apiProject.isCommissioned,
-      isCompleted: apiProject.isCompleted,
-      isKeyProject: apiProject.isKeyProject,
-      is_deleted: false,
-    }));
-
-    // Convert API tasks to frontend Task format
-    const convertedTasks: Task[] = apiTasks.map((apiTask: any) => ({
-      TaskID: apiTask.taskID,
-      TaskName: apiTask.taskName,
-      TaskClassID: apiTask.taskClassID,
-      Category: apiTask.category,
-      ProjectID: apiTask.projectID,
-      AssigneeID: apiTask.assigneeID,
-      AssigneeName: apiTask.assigneeName,
-      StartDate: apiTask.startDate,
-      DueDate: apiTask.dueDate,
-      CompletedDate: apiTask.completedDate,
-      Status: mapTaskStatus(apiTask.status),
-      Workload: apiTask.workload,
-      Difficulty: apiTask.difficulty,
-      Remark: apiTask.remark,
-      CreatedDate: apiTask.createdDate,
-      CreatedBy: apiTask.createdBy,
-      TravelLocation: apiTask.travelLocation,
-      TravelDuration: apiTask.travelDuration,
-      TravelLabel: apiTask.travelLabel,
-      MeetingDuration: apiTask.meetingDuration,
-      Participants: apiTask.participants,
-      ParticipantNames: apiTask.participantNames,
-      CapacityLevel: apiTask.capacityLevel,
-      CheckerID: apiTask.checkerID,
-      CheckerName: apiTask.checkerName,
-      CheckerWorkload: apiTask.checkerWorkload,
-      checkerStatus: apiTask.checkerStatus as any,
-      ChiefDesignerID: apiTask.chiefDesignerID,
-      ChiefDesignerName: apiTask.chiefDesignerName,
-      ChiefDesignerWorkload: apiTask.chiefDesignerWorkload,
-      chiefDesignerStatus: apiTask.chiefDesignerStatus as any,
-      ApproverID: apiTask.approverID,
-      ApproverName: apiTask.approverName,
-      ApproverWorkload: apiTask.approverWorkload,
-      approverStatus: apiTask.approverStatus as any,
-      assigneeStatus: apiTask.assigneeStatus as any,
-      isForceAssessment: apiTask.isForceAssessment,
-      is_in_pool: apiTask.isInPool,
-      is_deleted: false,
-    }));
-
-    setUsers(convertedUsers);
-    setProjects(convertedProjects);
-    setTasks(convertedTasks);
+    // 直接使用API返回的camelCase数据，只进行枚举映射
+    setUsers(apiUsers as User[]);
+    setProjects(apiProjects as Project[]);
+    setTasks(apiTasks as Task[]);
 
     // Get task classes
     const apiTaskClasses = await apiDataService.getTaskClasses();
-    const convertedTaskClasses: TaskClass[] = apiTaskClasses.map((tc: any) => ({
-      id: tc.id,
-      name: tc.name,
-      code: tc.code,
-      description: tc.description,
-      notice: tc.notice,
-      is_deleted: false,
-    }));
-    setTaskClasses(convertedTaskClasses);
+    setTaskClasses(apiTaskClasses as TaskClass[]);
   };
 
   const handleChangeView = (view: string, taskId?: string) => {
@@ -246,24 +145,9 @@ const App: React.FC = () => {
 
     try {
       const result = await apiDataService.login(loginId, loginPwd);
-      console.log('App.tsx login result:', result);
       if (result) {
-        // Convert API user to frontend format (response is already camelCase)
-        const convertedUser: User = {
-          UserID: result.user.userID,
-          Name: result.user.name,
-          SystemRole: result.user.systemRole as SystemRole,
-          OfficeLocation: result.user.officeLocation as any,
-          Title: result.user.title,
-          JoinDate: result.user.joinDate,
-          Status: result.user.status as any,
-          Education: result.user.education,
-          School: result.user.school,
-          Remark: result.user.remark,
-          Gender: undefined,
-          Password: '',
-        };
-        setCurrentUser(convertedUser);
+        // 直接使用API返回的用户数据
+        setCurrentUser(result.user as User);
         await refreshData();
         setLoginError('');
       } else {
@@ -410,7 +294,7 @@ const App: React.FC = () => {
       onChangeView={setCurrentView}
     >
       {currentView === 'dashboard' && (
-        currentUser.SystemRole === SystemRole.MEMBER ? (
+        currentUser.systemRole === SystemRole.MEMBER ? (
           <PersonalWorkspaceView currentUser={currentUser} onRefresh={refreshData} onChangeView={handleChangeView} />
         ) : (
           <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} taskClasses={taskClasses} />

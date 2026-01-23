@@ -15,41 +15,41 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  const canEdit = currentUser.SystemRole === SystemRole.ADMIN || currentUser.SystemRole === SystemRole.LEADER;
+  const canEdit = currentUser.systemRole === SystemRole.ADMIN || currentUser.systemRole === SystemRole.LEADER;
 
   // Form State
   const [formData, setFormData] = useState<Partial<User>>({});
 
   const filteredUsers = users.filter(u => {
     // 排除系统管理员
-    if (u.UserID === 'admin') return false;
+    if (u.userId === 'admin') return false;
 
-    const matchesTab = u.Status === activeTab;
-    const matchesSearch = u.Name.includes(filterText) || u.OfficeLocation.includes(filterText) || (u.Title || '').includes(filterText);
+    const matchesTab = u.status === activeTab;
+    const matchesSearch = u.name.includes(filterText) || u.officeLocation.includes(filterText) || (u.title || '').includes(filterText);
     return matchesTab && matchesSearch;
   });
 
   // 计算各状态人员数量（排除系统管理员）
   const statusCounts = users
-    .filter(u => u.UserID !== 'admin')
+    .filter(u => u.userId !== 'admin')
     .reduce((acc, user) => {
-      acc[user.Status] = (acc[user.Status] || 0) + 1;
+      acc[user.status] = (acc[user.status] || 0) + 1;
       return acc;
     }, {} as Record<PersonnelStatus, number>);
 
   const handleExport = () => {
     const headers = ['工号', '姓名', '角色', '地点', '状态', '职称', '学历', '毕业学校', '备注', '入职时间'];
     const rows = filteredUsers.map(u => [
-      u.UserID,
-      u.Name,
-      u.SystemRole,
-      u.OfficeLocation,
-      u.Status,
-      u.Title || '',
-      u.Education || '',
-      u.School || '',
-      u.Remark || '',
-      u.JoinDate || ''
+      u.userId,
+      u.name,
+      u.systemRole,
+      u.officeLocation,
+      u.status,
+      u.title || '',
+      u.education || '',
+      u.school || '',
+      u.remark || '',
+      u.joinDate || ''
     ]);
 
     // 创建CSV内容
@@ -84,11 +84,11 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
     const userToSave: any = {
       ...(editingUser || {}),
       ...formData,
-      userID: isNew ? undefined : (editingUser?.UserID || ''),
+      userId: isNew ? undefined : (editingUser?.userId || ''),
       password: isNew ? '123456' : undefined, // Default password for new users
-      status: formData.Status || PersonnelStatus.ACTIVE,
-      officeLocation: formData.OfficeLocation === 'Chengdu' ? 'Chengdu' : formData.OfficeLocation === 'Deyang' ? 'Deyang' : 'Chengdu',
-      systemRole: formData.SystemRole || SystemRole.MEMBER,
+      status: formData.status || PersonnelStatus.ACTIVE,
+      officeLocation: formData.officeLocation === 'Chengdu' ? 'Chengdu' : formData.officeLocation === 'Deyang' ? 'Deyang' : 'Chengdu',
+      systemRole: formData.systemRole || SystemRole.MEMBER,
     };
 
     // Remove undefined values
@@ -104,11 +104,11 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
   const openModal = (user?: User) => {
     setEditingUser(user || null);
     setFormData(user || {
-      Name: '',
-      SystemRole: SystemRole.MEMBER,
-      OfficeLocation: OfficeLocation.CHENGDU,
-      Status: PersonnelStatus.ACTIVE,
-      JoinDate: new Date().toISOString().split('T')[0]
+      name: '',
+      systemRole: SystemRole.MEMBER,
+      officeLocation: OfficeLocation.CHENGDU,
+      status: PersonnelStatus.ACTIVE,
+      joinDate: new Date().toISOString().split('T')[0]
     });
     setIsModalOpen(true);
   };
@@ -192,26 +192,26 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredUsers.map(user => (
-              <tr key={user.UserID} className="hover:bg-blue-50 transition-colors">
-                <td className="px-6 py-4 font-mono text-slate-500">{user.UserID}</td>
-                <td className="px-6 py-4 font-medium text-slate-900">{user.Name}</td>
+              <tr key={user.userId} className="hover:bg-blue-50 transition-colors">
+                <td className="px-6 py-4 font-mono text-slate-500">{user.userId}</td>
+                <td className="px-6 py-4 font-medium text-slate-900">{user.name}</td>
                 <td className="px-6 py-4">
                   <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                    user.SystemRole === SystemRole.ADMIN ? 'bg-purple-100 text-purple-700' :
-                    user.SystemRole === SystemRole.LEADER ? 'bg-blue-100 text-blue-700' :
+                    user.systemRole === SystemRole.ADMIN ? 'bg-purple-100 text-purple-700' :
+                    user.systemRole === SystemRole.LEADER ? 'bg-blue-100 text-blue-700' :
                     'bg-slate-100 text-slate-700'
                   }`}>
-                    {user.SystemRole}
+                    {user.systemRole}
                   </span>
                 </td>
-                <td className="px-6 py-4">{user.Title || '-'}</td>
-                <td className="px-6 py-4">{user.OfficeLocation}</td>
-                <td className="px-6 py-4">{getWorkYears(user.JoinDate)}</td>
-                <td className="px-6 py-4">{user.Education || '-'}</td>
-                <td className="px-6 py-4">{user.School || '-'}</td>
+                <td className="px-6 py-4">{user.title || '-'}</td>
+                <td className="px-6 py-4">{user.officeLocation}</td>
+                <td className="px-6 py-4">{getWorkYears(user.joinDate)}</td>
+                <td className="px-6 py-4">{user.education || '-'}</td>
+                <td className="px-6 py-4">{user.school || '-'}</td>
                 <td className="px-6 py-4">
-                  <div className="max-w-xs truncate" title={user.Remark || ''}>
-                    {user.Remark || '-'}
+                  <div className="max-w-xs truncate" title={user.remark || ''}>
+                    {user.remark || '-'}
                   </div>
                 </td>
                 {canEdit && (
@@ -219,14 +219,14 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                     <button onClick={() => openModal(user)} className="text-blue-600 hover:text-blue-800 mr-3">
                       <Edit2 size={16} />
                     </button>
-                    {canEdit && (currentUser.UserID !== user.UserID) && (
+                    {canEdit && (currentUser.userId !== user.userId) && (
                       <button
                         onClick={() => {
                           const tempPassword = apiDataService.generateTemporaryPassword();
-                          if (confirm(`确定要重置 ${user.Name} 的密码吗？\n\n新密码将显示在下一步中。`)) {
-                            apiDataService.resetPassword(user.UserID, tempPassword).then(success => {
+                          if (confirm(`确定要重置 ${user.name} 的密码吗？\n\n新密码将显示在下一步中。`)) {
+                            apiDataService.resetPassword(user.userId, tempPassword).then(success => {
                               if (success) {
-                                alert(`密码重置成功！\n\n用户：${user.Name}\n新密码：${tempPassword}\n\n请将此密码告知用户。`);
+                                alert(`密码重置成功！\n\n用户：${user.name}\n新密码：${tempPassword}\n\n请将此密码告知用户。`);
                                 onRefresh();
                               } else {
                                 alert('密码重置失败，请稍后重试。');
@@ -240,10 +240,10 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
                         <Lock size={16} />
                       </button>
                     )}
-                    {(currentUser.UserID !== user.UserID) && (
+                    {(currentUser.userId !== user.userId) && (
                       <button onClick={() => {
                         if(confirm('确定删除该人员?')) {
-                          apiDataService.deleteUser(user.UserID);
+                          apiDataService.deleteUser(user.userId);
                           onRefresh();
                         }
                       }} className="text-red-500 hover:text-red-700">
@@ -274,46 +274,46 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">姓名 <span className="text-red-500">*</span></label>
                 <input required type="text" className="w-full border rounded p-2"
-                  value={formData.Name} onChange={e => setFormData({...formData, Name: e.target.value})} />
+                  value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               </div>
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">系统角色 <span className="text-red-500">*</span></label>
                 <select className="w-full border rounded p-2"
-                  value={formData.SystemRole} onChange={e => setFormData({...formData, SystemRole: e.target.value as SystemRole})}>
+                  value={formData.systemRole} onChange={e => setFormData({...formData, systemRole: e.target.value as SystemRole})}>
                   {Object.values(SystemRole).map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">办公地点 <span className="text-red-500">*</span></label>
                 <select className="w-full border rounded p-2"
-                  value={formData.OfficeLocation} onChange={e => setFormData({...formData, OfficeLocation: e.target.value as OfficeLocation})}>
+                  value={formData.officeLocation} onChange={e => setFormData({...formData, officeLocation: e.target.value as OfficeLocation})}>
                   {Object.values(OfficeLocation).map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">状态 <span className="text-red-500">*</span></label>
                 <select className="w-full border rounded p-2"
-                  value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value as PersonnelStatus})}>
+                  value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as PersonnelStatus})}>
                   {Object.values(PersonnelStatus).map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
                <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">职称</label>
                 <select className="w-full border rounded p-2"
-                  value={formData.Title || ''} onChange={e => setFormData({...formData, Title: e.target.value})}>
+                  value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})}>
                   <option value="">请选择</option>
                   {['见习生', '助理工程师', '工程师', '高级工程师', '副主工程师', '主任工程师', '高级主任工程师'].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">参加工作时间</label>
-                <input type="date" className="w-full border rounded p-2" 
-                  value={formData.JoinDate || ''} onChange={e => setFormData({...formData, JoinDate: e.target.value})} />
+                <input type="date" className="w-full border rounded p-2"
+                  value={formData.joinDate || ''} onChange={e => setFormData({...formData, joinDate: e.target.value})} />
               </div>
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">学历</label>
                 <select className="w-full border rounded p-2"
-                  value={formData.Education || ''} onChange={e => setFormData({...formData, Education: e.target.value})}>
+                  value={formData.education || ''} onChange={e => setFormData({...formData, education: e.target.value})}>
                   <option value="">请选择</option>
                   {['大学本科', '研究生', '博士'].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
@@ -321,7 +321,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">毕业学校</label>
                 <input type="text" className="w-full border rounded p-2"
-                  value={formData.School || ''} onChange={e => setFormData({...formData, School: e.target.value})}
+                  value={formData.school || ''} onChange={e => setFormData({...formData, school: e.target.value})}
                   placeholder="请输入毕业学校" />
               </div>
               <div className="col-span-1">
@@ -330,7 +330,7 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">备注</label>
                 <textarea className="w-full border rounded p-2"
-                  value={formData.Remark || ''} onChange={e => setFormData({...formData, Remark: e.target.value})}
+                  value={formData.remark || ''} onChange={e => setFormData({...formData, remark: e.target.value})}
                   placeholder="请输入备注信息"
                   rows={3}></textarea>
               </div>

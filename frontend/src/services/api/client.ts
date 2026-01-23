@@ -77,7 +77,7 @@ class ApiClient {
 
       // Log raw response for debugging
       const rawText = await response.text();
-      console.log(`API [${endpoint}] raw response:`, rawText.substring(0, 500));
+      // console.log(`API [${endpoint}] raw response:`, rawText.substring(0, 500));
       const data = rawText ? JSON.parse(rawText) : null;
 
       // 处理401未授权

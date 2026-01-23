@@ -41,7 +41,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
   const [equipmentModels, setEquipmentModels] = useState<string[]>([]);
   const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
 
-  const canEdit = currentUser.SystemRole === SystemRole.ADMIN || currentUser.SystemRole === SystemRole.LEADER;
+  const canEdit = currentUser.systemRole === SystemRole.ADMIN || currentUser.systemRole === SystemRole.LEADER;
 
   // 加载设置数据
   useEffect(() => {

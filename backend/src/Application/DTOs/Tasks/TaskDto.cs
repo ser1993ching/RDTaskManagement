@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using TaskManageSystem.Domain.Enums;
 
 namespace TaskManageSystem.Application.DTOs.Tasks;
 
@@ -21,7 +22,7 @@ public class TaskDto
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }
     public DateTime? CompletedDate { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public Domain.Enums.TaskStatus Status { get; set; }
     public decimal? Workload { get; set; }
     public decimal? Difficulty { get; set; }
     public string? Remark { get; set; }
@@ -57,7 +58,7 @@ public class TaskDto
     [JsonPropertyName("checkerWorkload")]
     public decimal? CheckerWorkload { get; set; }
     [JsonPropertyName("checkerStatus")]
-    public string? CheckerStatus { get; set; }
+    public RoleStatus? CheckerStatus { get; set; }
     [JsonPropertyName("chiefDesignerId")]
     public string? ChiefDesignerId { get; set; }
     [JsonPropertyName("chiefDesignerName")]
@@ -65,7 +66,7 @@ public class TaskDto
     [JsonPropertyName("chiefDesignerWorkload")]
     public decimal? ChiefDesignerWorkload { get; set; }
     [JsonPropertyName("chiefDesignerStatus")]
-    public string? ChiefDesignerStatus { get; set; }
+    public RoleStatus? ChiefDesignerStatus { get; set; }
     [JsonPropertyName("approverId")]
     public string? ApproverId { get; set; }
     [JsonPropertyName("approverName")]
@@ -73,9 +74,9 @@ public class TaskDto
     [JsonPropertyName("approverWorkload")]
     public decimal? ApproverWorkload { get; set; }
     [JsonPropertyName("approverStatus")]
-    public string? ApproverStatus { get; set; }
+    public RoleStatus? ApproverStatus { get; set; }
     [JsonPropertyName("assigneeStatus")]
-    public string? AssigneeStatus { get; set; }
+    public RoleStatus? AssigneeStatus { get; set; }
     [JsonPropertyName("isForceAssessment")]
     public bool IsForceAssessment { get; set; }
     [JsonPropertyName("isInPool")]

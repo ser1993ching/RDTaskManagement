@@ -48,8 +48,20 @@ public class ProjectsController : ControllerBase
     {
         var project = await _projectService.GetProjectByIdAsync(id);
         if (project == null)
-            return NotFound();
-        return Ok(project);
+        {
+            return NotFound(new
+            {
+                success = false,
+                error = new { code = "NOT_FOUND", message = $"项目 {id} 不存在" }
+            });
+        }
+        return Ok(new
+        {
+            success = true,
+            data = project,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>

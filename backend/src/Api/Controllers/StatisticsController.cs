@@ -25,11 +25,30 @@ public class StatisticsController : ControllerBase
     /// <summary>
     /// 获取个人统计
     /// </summary>
+    /// <param name="userId">用户ID (工号)</param>
+    /// <param name="period">时间周期: week, month, quarter, halfYear, year, yearAndHalf</param>
     [HttpGet("personal")]
-    public async Task<IActionResult> GetPersonalStats([FromQuery] string userId, [FromQuery] string period = "month")
+    public async Task<IActionResult> GetPersonalStats(
+        [FromQuery] string userId,
+        [FromQuery] string period = "month")
     {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new { code = "INVALID_PARAMETER", message = "userId参数为必填项" }
+            });
+        }
+
         var stats = await _statisticsService.GetPersonalStatsAsync(userId, period);
-        return Ok(stats);
+        return Ok(new
+        {
+            success = true,
+            data = stats,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -38,8 +57,23 @@ public class StatisticsController : ControllerBase
     [HttpGet("personal/tasks")]
     public async Task<IActionResult> GetPersonalTasks([FromQuery] string userId, [FromQuery] string period = "month", [FromQuery] string? status = null)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new { code = "INVALID_PARAMETER", message = "userId参数为必填项" }
+            });
+        }
+
         var tasks = await _statisticsService.GetPersonalTasksByStatusAsync(userId, period, status);
-        return Ok(tasks);
+        return Ok(new
+        {
+            success = true,
+            data = tasks,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -49,7 +83,13 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetTeamStats([FromQuery] string period = "month", [FromQuery] string? officeLocation = null)
     {
         var stats = await _statisticsService.GetTeamStatsAsync(period, officeLocation);
-        return Ok(stats);
+        return Ok(new
+        {
+            success = true,
+            data = stats,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -59,7 +99,13 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetWorkload([FromQuery] string period = "month")
     {
         var workload = await _statisticsService.GetWorkloadDistributionAsync(period);
-        return Ok(workload);
+        return Ok(new
+        {
+            success = true,
+            data = workload,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -69,7 +115,13 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetMonthlyTrend([FromQuery] string? userId, [FromQuery] int months = 12, [FromQuery] string period = "month")
     {
         var trend = await _statisticsService.GetMonthlyTrendAsync(userId, months, period);
-        return Ok(trend);
+        return Ok(new
+        {
+            success = true,
+            data = trend,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -80,10 +132,22 @@ public class StatisticsController : ControllerBase
     {
         if (string.IsNullOrEmpty(userId))
         {
-            return Ok(new List<object>());
+            return Ok(new
+            {
+                success = true,
+                data = new List<object>(),
+                message = (string?)null,
+                error = (object?)null
+            });
         }
         var trend = await _statisticsService.GetDailyTrendAsync(userId, days);
-        return Ok(trend);
+        return Ok(new
+        {
+            success = true,
+            data = trend,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -93,7 +157,13 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetDelayedTasks([FromQuery] string? userId, [FromQuery] int daysThreshold = 60)
     {
         var tasks = await _statisticsService.GetDelayedTasksAsync(userId, daysThreshold);
-        return Ok(tasks);
+        return Ok(new
+        {
+            success = true,
+            data = tasks,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -103,7 +173,13 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetOverdueTasks([FromQuery] string? userId)
     {
         var tasks = await _statisticsService.GetOverdueTasksAsync(userId);
-        return Ok(tasks);
+        return Ok(new
+        {
+            success = true,
+            data = tasks,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -113,7 +189,13 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetTravelStatistics([FromQuery] string? userId, [FromQuery] string period = "month", [FromQuery] string? projectId = null)
     {
         var stats = await _statisticsService.GetTravelStatisticsAsync(userId, period, projectId);
-        return Ok(stats);
+        return Ok(new
+        {
+            success = true,
+            data = stats,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -123,7 +205,13 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetMeetingStatistics([FromQuery] string? userId, [FromQuery] string period = "month")
     {
         var stats = await _statisticsService.GetMeetingStatisticsAsync(userId, period);
-        return Ok(stats);
+        return Ok(new
+        {
+            success = true,
+            data = stats,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -133,6 +221,92 @@ public class StatisticsController : ControllerBase
     public async Task<IActionResult> GetWorkDays([FromQuery] string period = "month")
     {
         var workDays = await _statisticsService.GetWorkDaysAsync(period);
-        return Ok(workDays);
+        return Ok(new
+        {
+            success = true,
+            data = workDays,
+            message = (string?)null,
+            error = (object?)null
+        });
+    }
+
+    /// <summary>
+    /// 获取用户差旅统计 (路由参数版本)
+    /// </summary>
+    /// <param name="userId">用户ID (工号)</param>
+    /// <param name="period">时间周期</param>
+    [HttpGet("travel/{userId}")]
+    public async Task<IActionResult> GetTravelStatsByUser(
+        string userId,
+        [FromQuery] string period = "month")
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new { code = "INVALID_PARAMETER", message = "userId参数为必填项" }
+            });
+        }
+
+        var stats = await _statisticsService.GetTravelStatisticsAsync(userId, period, null);
+        return Ok(new
+        {
+            success = true,
+            data = stats,
+            message = (string?)null,
+            error = (object?)null
+        });
+    }
+
+    /// <summary>
+    /// 获取用户会议统计 (路由参数版本)
+    /// </summary>
+    /// <param name="userId">用户ID (工号)</param>
+    /// <param name="period">时间周期</param>
+    [HttpGet("meeting/{userId}")]
+    public async Task<IActionResult> GetMeetingStatsByUser(
+        string userId,
+        [FromQuery] string period = "month")
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new { code = "INVALID_PARAMETER", message = "userId参数为必填项" }
+            });
+        }
+
+        var stats = await _statisticsService.GetMeetingStatisticsAsync(userId, period);
+        return Ok(new
+        {
+            success = true,
+            data = stats,
+            message = (string?)null,
+            error = (object?)null
+        });
+    }
+
+    /// <summary>
+    /// 获取月度趋势 (兼容旧路由)
+    /// </summary>
+    /// <param name="userId">用户ID (可选)</param>
+    /// <param name="months">查询月数，默认12</param>
+    /// <param name="period">时间周期</param>
+    [HttpGet("monthly-trend")]
+    public async Task<IActionResult> GetMonthlyTrendLegacy(
+        [FromQuery] string? userId,
+        [FromQuery] int months = 12,
+        [FromQuery] string period = "month")
+    {
+        var trend = await _statisticsService.GetMonthlyTrendAsync(userId, months, period);
+        return Ok(new
+        {
+            success = true,
+            data = trend,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 }

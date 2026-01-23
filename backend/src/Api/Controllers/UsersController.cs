@@ -38,8 +38,20 @@ public class UsersController : ControllerBase
     {
         var user = await _userService.GetUserByIdAsync(userId);
         if (user == null)
-            return NotFound();
-        return Ok(user);
+        {
+            return NotFound(new
+            {
+                success = false,
+                error = new { code = "NOT_FOUND", message = $"用户 {userId} 不存在" }
+            });
+        }
+        return Ok(new
+        {
+            success = true,
+            data = user,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>

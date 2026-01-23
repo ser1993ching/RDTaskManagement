@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TaskManageSystem.Application.DTOs.Users;
 
 /// <summary>
@@ -5,7 +7,8 @@ namespace TaskManageSystem.Application.DTOs.Users;
 /// </summary>
 public class UserDto
 {
-    public string UserID { get; set; } = string.Empty;
+    [JsonPropertyName("userId")]
+    public string UserId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string SystemRole { get; set; } = string.Empty;
     public string OfficeLocation { get; set; } = string.Empty;

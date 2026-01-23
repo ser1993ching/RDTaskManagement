@@ -18,6 +18,7 @@ public class AutoMapperProfile : Profile
     {
         // User mappings
         CreateMap<User, UserDto>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserID))
             .ForMember(dest => dest.SystemRole, opt => opt.MapFrom(src => src.SystemRole.ToString()))
             .ForMember(dest => dest.OfficeLocation, opt => opt.MapFrom(src => src.OfficeLocation.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
@@ -38,6 +39,14 @@ public class AutoMapperProfile : Profile
 
         // Task mappings
         CreateMap<TaskItem, TaskDto>()
+            .ForMember(dest => dest.TaskId, opt => opt.MapFrom(src => src.TaskID))
+            .ForMember(dest => dest.TaskClassId, opt => opt.MapFrom(src => src.TaskClassID))
+            .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.ProjectID))
+            .ForMember(dest => dest.AssigneeId, opt => opt.MapFrom(src => src.AssigneeID))
+            .ForMember(dest => dest.CheckerId, opt => opt.MapFrom(src => src.CheckerID))
+            .ForMember(dest => dest.ChiefDesignerId, opt => opt.MapFrom(src => src.ChiefDesignerID))
+            .ForMember(dest => dest.ApproverId, opt => opt.MapFrom(src => src.ApproverID))
+            .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedBy))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(src => src.CreatedDate.ToString("yyyy-MM-dd")))
             .ForMember(dest => dest.CheckerStatus, opt => opt.MapFrom(src => src.CheckerStatus.HasValue ? src.CheckerStatus.Value.ToString() : null))
@@ -54,6 +63,12 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.Code.ToString()));
 
         // TaskPoolItem mappings
-        CreateMap<TaskPoolItem, TaskPoolItemDto>();
+        CreateMap<TaskPoolItem, TaskPoolItemDto>()
+            .ForMember(dest => dest.TaskClassId, opt => opt.MapFrom(src => src.TaskClassID))
+            .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.ProjectID))
+            .ForMember(dest => dest.PersonInChargeId, opt => opt.MapFrom(src => src.PersonInChargeID))
+            .ForMember(dest => dest.CheckerId, opt => opt.MapFrom(src => src.CheckerID))
+            .ForMember(dest => dest.ChiefDesignerId, opt => opt.MapFrom(src => src.ChiefDesignerID))
+            .ForMember(dest => dest.ApproverId, opt => opt.MapFrom(src => src.ApproverID));
     }
 }

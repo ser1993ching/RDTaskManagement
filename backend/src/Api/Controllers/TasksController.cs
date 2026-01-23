@@ -154,8 +154,23 @@ public class TasksController : ControllerBase
     [HttpGet("personal/{userId}")]
     public async Task<IActionResult> GetPersonalTasks(string userId)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new { code = "INVALID_PARAMETER", message = "userId参数为必填项" }
+            });
+        }
+
         var tasks = await _taskService.GetPersonalTasksAsync(userId);
-        return Ok(tasks);
+        return Ok(new
+        {
+            success = true,
+            data = tasks,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>

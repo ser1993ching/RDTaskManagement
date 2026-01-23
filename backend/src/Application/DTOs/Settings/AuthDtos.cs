@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using TaskManageSystem.Application.DTOs.Users;
 
 namespace TaskManageSystem.Application.DTOs.Settings;
@@ -9,9 +10,11 @@ namespace TaskManageSystem.Application.DTOs.Settings;
 public class LoginRequest
 {
     [Required]
+    [JsonPropertyName("userId")]
     public string UserId { get; set; } = string.Empty;
 
     [Required]
+    [JsonPropertyName("password")]
     public string Password { get; set; } = string.Empty;
 }
 
@@ -64,4 +67,22 @@ public class TokenResponse
 public class RefreshTokenRequest
 {
     public string? RefreshToken { get; set; }
+}
+
+/// <summary>
+/// 系统初始化请求
+/// </summary>
+public class SetupRequest
+{
+    [Required]
+    [JsonPropertyName("adminUserId")]
+    public string AdminUserId { get; set; } = string.Empty;
+
+    [Required]
+    [JsonPropertyName("adminName")]
+    public string AdminName { get; set; } = string.Empty;
+
+    [Required]
+    [JsonPropertyName("adminPassword")]
+    public string AdminPassword { get; set; } = string.Empty;
 }

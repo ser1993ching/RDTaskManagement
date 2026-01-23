@@ -154,6 +154,55 @@ public class AuthController : ControllerBase
             : BadRequest(new ApiResponse<object> { Success = false, Error = new ApiError { Code = "USER_NOT_FOUND", Message = "用户不存在" } });
     }
 
+    /// <summary>
+    /// 初始化系统（创建管理员用户）- 仅在无用户时可用
+    /// </summary>
+    [HttpPost("setup")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Setup([FromBody] SetupRequest request)
+    {
+        // 检查是否已有用户
+        var existingUsers = await _userService.GetUsersAsync(new UserQueryParams { PageSize = 1 });
+        if (existingUsers.Data.Any())
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError { Code = "ALREADY_SETUP", Message = "系统已初始化，不能再创建初始用户" }
+            });
+        }
+
+        // 创建管理员用户
+        var createRequest = new CreateUserRequest
+        {
+            UserID = request.AdminUserId,
+            Name = request.AdminName,
+            Password = request.AdminPassword,
+            SystemRole = "ADMIN",
+            OfficeLocation = "HEADQUARTERS",
+            Status = "ACTIVE"
+        };
+
+        try
+        {
+            var user = await _userService.CreateUserAsync(createRequest);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "管理员用户创建成功",
+                Data = new { userId = user.UserID, name = user.Name }
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Error = new ApiError { Code = "CREATE_FAILED", Message = $"创建用户失败: {ex.Message}" }
+            });
+        }
+    }
+
     private string GenerateJwtToken(UserDto user)
     {
         var secretKey = _configuration["Jwt:SecretKey"] ?? "YourSecretKeyHere12345678901234567890";

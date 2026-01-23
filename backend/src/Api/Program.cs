@@ -39,6 +39,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = null; // 使用原始属性名
         options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
         options.JsonSerializerOptions.WriteIndented = false;
+        // 允许不区分大小写的属性名匹配（支持前端 PascalCase 属性名）
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

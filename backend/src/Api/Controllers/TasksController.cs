@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using TaskManageSystem.Application.DTOs.Tasks;
 using TaskManageSystem.Application.Interfaces;
 
@@ -8,7 +9,6 @@ namespace TaskManageSystem.Api.Controllers;
 /// <summary>
 /// 任务控制器
 /// </summary>
-[ApiController]
 [Route("api/[controller]")]
 [Authorize]
 public class TasksController : ControllerBase
@@ -46,20 +46,54 @@ public class TasksController : ControllerBase
     /// 创建任务
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> CreateTask([FromBody] CreateTaskRequest request)
+    public async Task<IActionResult> CreateTask()
     {
-        var task = await _taskService.CreateTaskAsync(request);
-        return Ok(task);
+        try
+        {
+            using var reader = new StreamReader(Request.Body);
+            var body = await reader.ReadToEndAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var request = JsonSerializer.Deserialize<CreateTaskRequest>(body, options);
+
+            if (request == null)
+            {
+                return BadRequest(new { success = false, error = "无法解析请求体" });
+            }
+
+            var task = await _taskService.CreateTaskAsync(request);
+            return Ok(task);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, error = ex.Message });
+        }
     }
 
     /// <summary>
     /// 更新任务
     /// </summary>
     [HttpPut("{taskId}")]
-    public async Task<IActionResult> UpdateTask(string taskId, [FromBody] CreateTaskRequest request)
+    public async Task<IActionResult> UpdateTask(string taskId)
     {
-        var task = await _taskService.UpdateTaskAsync(taskId, request);
-        return Ok(task);
+        try
+        {
+            using var reader = new StreamReader(Request.Body);
+            var body = await reader.ReadToEndAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var request = JsonSerializer.Deserialize<CreateTaskRequest>(body, options);
+
+            if (request == null)
+            {
+                return BadRequest(new { success = false, error = "无法解析请求体" });
+            }
+
+            var task = await _taskService.UpdateTaskAsync(taskId, request);
+            return Ok(task);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, error = ex.Message });
+        }
     }
 
     /// <summary>

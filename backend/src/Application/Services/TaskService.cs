@@ -23,6 +23,20 @@ public class TaskService : ITaskService
         _mapper = mapper;
     }
 
+    // 辅助方法：解析 JSON 字符串为列表
+    private List<string> ParseJsonList(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new List<string>();
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
     public async Task<PaginatedResponse<TaskDto>> GetTasksAsync(TaskQueryParams query)
     {
         List<TaskItem> tasks;
@@ -70,9 +84,17 @@ public class TaskService : ITaskService
 
         tasks = tasks.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
 
+        // 手动映射以处理 Participants JSON
+        var taskDtos = tasks.Select(t =>
+        {
+            var dto = _mapper.Map<TaskDto>(t);
+            dto.Participants = ParseJsonList(t.Participants);
+            return dto;
+        }).ToList();
+
         return new PaginatedResponse<TaskDto>
         {
-            Data = _mapper.Map<List<TaskDto>>(tasks),
+            Data = taskDtos,
             Total = total,
             Page = query.Page,
             PageSize = query.PageSize,

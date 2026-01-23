@@ -216,12 +216,13 @@ public class ExceptionHandlingMiddleware
     {
         context.Response.ContentType = "application/json";
 
-        var (statusCode, message) = exception switch
+        var (statusCode, message, details) = exception switch
         {
-            KeyNotFoundException => (404, exception.Message),
-            UnauthorizedAccessException => (401, "未授权访问"),
-            ArgumentException => (400, exception.Message),
-            _ => (500, "服务器内部错误")
+            KeyNotFoundException => (404, exception.Message, exception.Message),
+            UnauthorizedAccessException => (401, "未授权访问", exception.Message),
+            ArgumentException => (400, exception.Message, exception.Message),
+            AutoMapper.AutoMapperMappingException => (500, "数据映射错误", exception.Message),
+            _ => (500, "服务器内部错误", exception.Message)
         };
 
         context.Response.StatusCode = statusCode;
@@ -234,7 +235,8 @@ public class ExceptionHandlingMiddleware
             Error = new
             {
                 Code = exception.GetType().Name,
-                Message = message
+                Message = message,
+                Details = details
             }
         };
 

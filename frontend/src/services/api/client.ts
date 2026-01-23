@@ -23,6 +23,23 @@ function convertToCamelCase(obj: any): any {
   return obj;
 }
 
+// 辅助函数：将camelCase转换为PascalCase（用于POST/PUT请求）
+function convertToPascalCase(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(convertToPascalCase);
+  }
+  if (typeof obj === 'object') {
+    const converted: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
+      const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
+      converted[pascalKey] = convertToPascalCase(obj[key]);
+    }
+    return converted;
+  }
+  return obj;
+}
+
 // 辅助函数：处理API响应（提取Data，处理PascalCase）
 function processApiResponse(data: any): any {
   if (!data) return data;
@@ -154,17 +171,19 @@ class ApiClient {
 
   // POST请求
   async post<T>(endpoint: string, data?: unknown): Promise<T> {
+    const pascalData = data ? convertToPascalCase(data) : undefined;
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: pascalData ? JSON.stringify(pascalData) : undefined,
     });
   }
 
   // PUT请求
   async put<T>(endpoint: string, data?: unknown): Promise<T> {
+    const pascalData = data ? convertToPascalCase(data) : undefined;
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: pascalData ? JSON.stringify(pascalData) : undefined,
     });
   }
 

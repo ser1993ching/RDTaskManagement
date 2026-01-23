@@ -186,6 +186,63 @@ public class ApiLoggingMiddleware
 }
 
 /// <summary>
+/// 全局异常处理中间件
+/// </summary>
+public class ExceptionHandlingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        context.Response.ContentType = "application/json";
+
+        var (statusCode, message) = exception switch
+        {
+            KeyNotFoundException => (404, exception.Message),
+            UnauthorizedAccessException => (401, "未授权访问"),
+            ArgumentException => (400, exception.Message),
+            _ => (500, "服务器内部错误")
+        };
+
+        context.Response.StatusCode = statusCode;
+
+        var response = new
+        {
+            Success = false,
+            Data = (string?)null,
+            Message = (string?)null,
+            Error = new
+            {
+                Code = exception.GetType().Name,
+                Message = message
+            }
+        };
+
+        await context.Response.WriteAsJsonAsync(response);
+    }
+}
+
+/// <summary>
 /// 扩展方法，方便注册中间件
 /// </summary>
 public static class ApiLoggingMiddlewareExtensions
@@ -193,5 +250,10 @@ public static class ApiLoggingMiddlewareExtensions
     public static IApplicationBuilder UseApiLogging(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<ApiLoggingMiddleware>();
+    }
+
+    public static IApplicationBuilder UseExceptionHandling(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<ExceptionHandlingMiddleware>();
     }
 }

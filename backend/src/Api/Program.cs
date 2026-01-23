@@ -150,6 +150,9 @@ app.UseAuthorization();
 // API日志中间件 - 记录所有API请求到数据库
 app.UseApiLogging();
 
+// 全局异常处理中间件 - 确保返回JSON错误而不是HTML
+app.UseExceptionHandling();
+
 // Health check endpoint - 检测后端服务和数据库连接状态
 app.MapGet("/api/health", (AppDbContext context) => {
     try {

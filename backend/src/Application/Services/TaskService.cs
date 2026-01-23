@@ -17,13 +17,10 @@ public class TaskService : ITaskService
     private readonly IMapper _mapper;
     private static readonly List<TaskItem> DefaultTasks = new();
 
-    public TaskService(ITaskRepository? taskRepository = null, IMapper? mapper = null)
+    public TaskService(ITaskRepository? taskRepository, IMapper mapper)
     {
         _taskRepository = taskRepository;
-        _mapper = mapper ?? new MapperConfiguration(cfg => {
-            cfg.CreateMap<TaskItem, TaskDto>();
-            cfg.CreateMap<CreateTaskRequest, TaskItem>();
-        }).CreateMapper();
+        _mapper = mapper;
     }
 
     public async Task<PaginatedResponse<TaskDto>> GetTasksAsync(TaskQueryParams query)

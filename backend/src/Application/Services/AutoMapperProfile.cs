@@ -37,6 +37,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.ChiefDesignerStatus, opt => opt.MapFrom(src => src.ChiefDesignerStatus.HasValue ? src.ChiefDesignerStatus.Value.ToString() : null))
             .ForMember(dest => dest.ApproverStatus, opt => opt.MapFrom(src => src.ApproverStatus.HasValue ? src.ApproverStatus.Value.ToString() : null))
             .ForMember(dest => dest.AssigneeStatus, opt => opt.MapFrom(src => src.AssigneeStatus.HasValue ? src.AssigneeStatus.Value.ToString() : null));
+        CreateMap<CreateTaskRequest, TaskItem>();
 
         // TaskClass mappings
         CreateMap<TaskClass, TaskClassDto>()

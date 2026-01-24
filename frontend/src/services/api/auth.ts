@@ -42,6 +42,12 @@ export interface User {
   remark?: string;
 }
 
+export interface ChangePasswordRequest {
+  userId: string;
+  currentPassword: string;
+  newPassword: string;
+}
+
 class AuthService {
   private refreshTokenTimeout: number | null = null;
 
@@ -186,6 +192,22 @@ class AuthService {
   private clearAuthData(): void {
     localStorage.removeItem('rd_current_user');
     localStorage.removeItem('auth_token');
+  }
+
+  /**
+   * 修改密码
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+    try {
+      const response = await apiClient.post<ApiResponse<object>>(
+        '/api/auth/change-password',
+        { userId, currentPassword, newPassword }
+      );
+      return response.success || false;
+    } catch (error) {
+      console.error('修改密码失败:', error);
+      return false;
+    }
   }
 }
 

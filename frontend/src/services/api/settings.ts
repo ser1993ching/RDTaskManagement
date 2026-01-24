@@ -4,53 +4,53 @@
  */
 import { apiClient, ApiClient } from './client';
 
-// DTO 类型定义
+// DTO 类型定义 (camelCase，与后端保持一致)
 export interface EquipmentModelsResponse {
-  Models: string[];
+  models: string[];
 }
 
 export interface CapacityLevelsResponse {
-  Levels: string[];
+  levels: string[];
 }
 
 export interface TravelLabelsResponse {
-  Labels: string[];
+  labels: string[];
 }
 
 export interface UserAvatarResponse {
-  UserId: string;
-  Avatar: string | null;
+  userId: string;
+  avatar: string | null;
 }
 
 export interface TaskCategoriesResponse {
-  Categories: Record<string, string[]>;
+  categories: Record<string, string[]>;
 }
 
 export interface SettingsApiResponse<T = unknown> {
-  Success: boolean;
-  Data?: T;
-  Message?: string;
-  Error?: string;
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
 }
 
 export interface AddEquipmentModelRequest {
-  Model: string;
+  model: string;
 }
 
 export interface AddCapacityLevelRequest {
-  Level: string;
+  level: string;
 }
 
 export interface AddTravelLabelRequest {
-  Label: string;
+  label: string;
 }
 
 export interface SaveUserAvatarRequest {
-  Avatar: string;
+  avatar: string;
 }
 
 export interface UpdateTaskCategoriesRequest {
-  Categories: string[];
+  categories: string[];
 }
 
 // 设置服务类
@@ -69,7 +69,7 @@ export class SettingsService {
   async getEquipmentModels(): Promise<string[]> {
     try {
       const response = await this.client.get<any>('/api/settings/equipment-models');
-      return response.data?.data?.Models || response.data?.Models || [];
+      return response.data?.models || response.models || [];
     } catch (error) {
       console.error('获取设备型号失败:', error);
       return [];
@@ -85,7 +85,7 @@ export class SettingsService {
         '/api/settings/equipment-models',
         { model }
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('添加设备型号失败:', error);
       return false;
@@ -100,7 +100,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/equipment-models/${encodeURIComponent(model)}`
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('删除设备型号失败:', error);
       return false;
@@ -115,7 +115,7 @@ export class SettingsService {
   async getCapacityLevels(): Promise<string[]> {
     try {
       const response = await this.client.get<any>('/api/settings/capacity-levels');
-      return response.data?.data?.Levels || response.data?.Levels || [];
+      return response.data?.levels || response.levels || [];
     } catch (error) {
       console.error('获取容量等级失败:', error);
       return [];
@@ -131,7 +131,7 @@ export class SettingsService {
         '/api/settings/capacity-levels',
         { level }
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('添加容量等级失败:', error);
       return false;
@@ -146,7 +146,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/capacity-levels/${encodeURIComponent(level)}`
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('删除容量等级失败:', error);
       return false;
@@ -161,7 +161,7 @@ export class SettingsService {
   async getTravelLabels(): Promise<string[]> {
     try {
       const response = await this.client.get<any>('/api/settings/travel-labels');
-      return response.data?.data?.Labels || response.data?.Labels || [];
+      return response.data?.labels || response.labels || [];
     } catch (error) {
       console.error('获取差旅标签失败:', error);
       return [];
@@ -177,7 +177,7 @@ export class SettingsService {
         '/api/settings/travel-labels',
         { label }
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('添加差旅标签失败:', error);
       return false;
@@ -192,7 +192,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/travel-labels/${encodeURIComponent(label)}`
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('删除差旅标签失败:', error);
       return false;
@@ -207,7 +207,7 @@ export class SettingsService {
   async getUserAvatar(userId: string): Promise<string | null> {
     try {
       const response = await this.client.get<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`);
-      return response.data?.data?.Avatar || response.data?.Avatar || null;
+      return response.data?.avatar || response.avatar || null;
     } catch (error) {
       console.error('获取用户头像失败:', error);
       return null;
@@ -223,7 +223,7 @@ export class SettingsService {
         `/api/settings/avatars/${encodeURIComponent(userId)}`,
         { avatar }
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('保存用户头像失败:', error);
       return false;
@@ -238,7 +238,7 @@ export class SettingsService {
       const response = await this.client.delete<SettingsApiResponse>(
         `/api/settings/avatars/${encodeURIComponent(userId)}`
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('删除用户头像失败:', error);
       return false;
@@ -253,7 +253,7 @@ export class SettingsService {
   async getTaskCategories(): Promise<Record<string, string[]>> {
     try {
       const response = await this.client.get<any>('/api/settings/task-categories');
-      return response.data?.data?.Categories || response.data?.Categories || {};
+      return response.data?.categories || response.categories || {};
     } catch (error) {
       console.error('获取任务分类失败:', error);
       return {};
@@ -269,7 +269,7 @@ export class SettingsService {
         `/api/settings/task-categories/${code}`,
         { categories }
       );
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('更新任务分类失败:', error);
       return false;
@@ -284,7 +284,7 @@ export class SettingsService {
   async resetAllData(): Promise<boolean> {
     try {
       const response = await this.client.post<SettingsApiResponse>('/api/settings/reset-all-data');
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('重置数据失败:', error);
       return false;
@@ -297,7 +297,7 @@ export class SettingsService {
   async refreshTasks(): Promise<boolean> {
     try {
       const response = await this.client.post<SettingsApiResponse>('/api/settings/refresh-tasks');
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('刷新任务失败:', error);
       return false;
@@ -310,7 +310,7 @@ export class SettingsService {
   async migrateData(): Promise<boolean> {
     try {
       const response = await this.client.post<SettingsApiResponse>('/api/settings/migrate');
-      return response.Success || false;
+      return response.success || false;
     } catch (error) {
       console.error('数据迁移失败:', error);
       return false;

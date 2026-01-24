@@ -113,9 +113,9 @@ public class TasksController : ControllerBase
     /// </summary>
     [HttpPut("{taskId}/status")]
     [HttpPatch("{taskId}/status")]
-    public async Task<IActionResult> UpdateTaskStatus(string taskId, [FromBody] string status)
+    public async Task<IActionResult> UpdateTaskStatus(string taskId, [FromBody] UpdateTaskStatusRequest request)
     {
-        var task = await _taskService.UpdateTaskStatusAsync(taskId, status);
+        var task = await _taskService.UpdateTaskStatusAsync(taskId, request.Status);
         return Ok(task);
     }
 

@@ -274,18 +274,18 @@ class ApiDataService {
     } else {
       result = await taskService.createTask(task as any);
     }
-    clearCache('tasks__'); // 清除任务缓存（不带参数的主缓存）
+    clearCache('tasks___'); // 清除任务主缓存（三个下划线，与getTasks的cacheKey一致）
     return result;
   }
 
   async deleteTask(taskId: string): Promise<void> {
     await taskService.deleteTask(taskId);
-    clearCache('tasks__'); // 清除任务缓存
+    clearCache('tasks___'); // 清除任务主缓存
   }
 
   async updateTaskStatus(taskId: string, status: string): Promise<void> {
     await taskService.updateTaskStatus(taskId, status);
-    clearCache('tasks__'); // 清除任务缓存
+    clearCache('tasks___'); // 清除任务主缓存
   }
 
   async completeAllRoles(taskId: string): Promise<boolean> {
@@ -311,7 +311,7 @@ class ApiDataService {
   async batchOperation(operation: string, taskIds: string[]): Promise<boolean> {
     try {
       await taskService.batchOperation(operation, taskIds);
-      clearCache('tasks__'); // 清除任务缓存
+      clearCache('tasks___'); // 清除任务主缓存
       return true;
     } catch (error) {
       console.error('批量操作任务失败:', error);
@@ -740,8 +740,8 @@ class ApiDataService {
       completed: [] as TaskDto[],
     };
 
-    const inProgressStatuses = ['IN_PROGRESS', 'REVISING', 'REJECTED'];
-    const completedStatuses = ['COMPLETED'];
+    const inProgressStatuses = ['进行中', '修改中', '已驳回'];
+    const completedStatuses = ['已完成'];
 
     for (const task of tasks) {
       // 确定用户在任务中的角色状态

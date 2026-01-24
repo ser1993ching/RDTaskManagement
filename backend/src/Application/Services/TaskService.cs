@@ -1,4 +1,5 @@
 using AutoMapper;
+using System.ComponentModel.DataAnnotations;
 using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Tasks;
 using TaskManageSystem.Application.Interfaces;
@@ -138,7 +139,45 @@ public class TaskService : ITaskService
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        _mapper.Map(request, task);
+        // 手动更新每个字段，避免值类型默认值覆盖问题
+        task.TaskName = request.TaskName;
+        task.TaskClassID = request.TaskClassID;
+        task.Category = request.Category;
+        task.ProjectID = request.ProjectID;
+        task.AssigneeID = request.AssigneeID;
+        task.AssigneeName = request.AssigneeName;
+        task.StartDate = request.StartDate;
+        task.DueDate = request.DueDate;
+        task.Difficulty = request.Difficulty;
+        task.Remark = request.Remark;
+
+        // 只更新IsForceAssessment当它被明确传递时（不为null）
+        if (request.IsForceAssessment.HasValue)
+        {
+            task.IsForceAssessment = request.IsForceAssessment.Value;
+        }
+
+        // 角色分配
+        task.CheckerID = request.CheckerID;
+        task.ChiefDesignerID = request.ChiefDesignerID;
+        task.ApproverID = request.ApproverID;
+
+        // 差旅任务
+        task.TravelLocation = request.TravelLocation;
+        task.TravelDuration = request.TravelDuration;
+        task.TravelLabel = request.TravelLabel;
+
+        // 会议任务
+        task.MeetingDuration = request.MeetingDuration;
+        task.Participants = request.Participants != null
+            ? System.Text.Json.JsonSerializer.Serialize(request.Participants)
+            : null;
+
+        // 市场任务
+        task.RelatedProject = request.RelatedProject;
+
+        // 工作量
+        task.Workload = request.Workload;
 
         if (_taskRepository != null)
         {
@@ -169,7 +208,23 @@ public class TaskService : ITaskService
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        if (Enum.TryParse<Domain.Enums.TaskStatus>(status, ignoreCase: true, out var newStatus))
+        // 使用中文 Display Name 进行匹配
+        var newStatus = Domain.Enums.TaskStatus.NotStarted;
+        var matched = false;
+        foreach (Domain.Enums.TaskStatus s in Enum.GetValues(typeof(Domain.Enums.TaskStatus)))
+        {
+            var displayAttr = s.GetType().GetField(s.ToString())?
+                .GetCustomAttributes(typeof(DisplayAttribute), false)
+                .FirstOrDefault() as DisplayAttribute;
+            if (displayAttr != null && displayAttr.Name == status)
+            {
+                newStatus = s;
+                matched = true;
+                break;
+            }
+        }
+
+        if (matched)
         {
             task.Status = newStatus;
             if (newStatus == Domain.Enums.TaskStatus.Completed)

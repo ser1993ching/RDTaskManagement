@@ -32,7 +32,7 @@ export enum TaskStatus {
   DRAFTING = '编制中',
   REVISING = '修改中',
   REVIEWING = '校核中',
-  REVIEWING2 = '审查中',
+  APPROVING = '审查中',
   COMPLETED = '已完成'
 }
 
@@ -101,7 +101,7 @@ export interface Task {
   startDate?: string;
   dueDate?: string;
   completedDate?: string; // 完成时间
-  status: TaskStatus;
+  status: string; // 改为 string，与 API 返回格式一致
   workload?: number; // 预估工作量（小时）
   difficulty?: number; // 0.5 - 3.0
   remark?: string;

@@ -111,6 +111,7 @@ public class TasksController : ControllerBase
     /// <summary>
     /// 更新任务状态
     /// </summary>
+    [HttpPut("{taskId}/status")]
     [HttpPatch("{taskId}/status")]
     public async Task<IActionResult> UpdateTaskStatus(string taskId, [FromBody] string status)
     {
@@ -121,6 +122,7 @@ public class TasksController : ControllerBase
     /// <summary>
     /// 更新角色状态
     /// </summary>
+    [HttpPut("{taskId}/role-status")]
     [HttpPatch("{taskId}/role-status")]
     public async Task<IActionResult> UpdateRoleStatus(string taskId, [FromBody] UpdateRoleStatusRequest request)
     {

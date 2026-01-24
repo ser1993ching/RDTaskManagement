@@ -149,6 +149,9 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
+// 请求体 camelCase 转 PascalCase 中间件 - 必须放在模型绑定之前
+app.UseCamelCaseToPascalCase();
+
 // 全局异常处理中间件 - 必须放在最前面，捕获所有异常
 app.UseExceptionHandling();
 

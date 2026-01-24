@@ -286,22 +286,22 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   // Clear project and label when travel task category changes
   useEffect(() => {
-    if (isTravel && formData.Category) {
+    if (isTravel && formData.category) {
       // Check if current project belongs to the selected category
-      const availableProjects = getProjectsForTravelTask(formData.Category);
+      const availableProjects = getProjectsForTravelTask(formData.category);
       const currentProject = projects.find(p => p.id === formData.projectId);
       const isProjectValid = currentProject && availableProjects.some(p => p.id === currentProject.id);
 
       // Clear project and label if they don't match the new category
-      if (!isProjectValid || formData.TravelLabel) {
+      if (!isProjectValid || formData.travelLabel) {
         setFormData(prev => ({
           ...prev,
-          ProjectID: '',
+          projectId: '',
           TravelLabel: ''
         }));
       }
     }
-  }, [formData.Category, isTravel, projects]);
+  }, [formData.category, isTravel, projects]);
 
   // Helper function to get filtered tasks for sidebar count (consistent with main content)
   const getSidebarTaskCount = (taskClassId: string) => {
@@ -833,7 +833,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div>
                 <label className="block text-sm font-medium mb-1">开始日期</label>
                 <input type="date" className="w-full border rounded p-2"
-                  value={formData.startDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+                  value={formData.startDate || ''} onChange={e => setFormData({...formData, startDate: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">出差天数(天)</label>
@@ -842,7 +842,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     const newTravelDuration = parseFloat(e.target.value) || 0;
                     const startDate = formData.startDate || '';
                     const newDueDate = calculateDueDate(startDate, newTravelDuration);
-                    setFormData({...formData, TravelDuration: newTravelDuration, DueDate: newDueDate});
+                    setFormData({...formData, travelDuration: newTravelDuration, dueDate: newDueDate});
                   }} />
               </div>
             </div>
@@ -862,7 +862,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     if (user) {
                       setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     } else {
-                      setFormData({...formData, AssigneeID: '', AssigneeName: value});
+                      setFormData({...formData, assigneeId: '', assigneeName: value});
                     }
                   }}
                   onSelect={(value) => {
@@ -878,12 +878,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div>
                 <label className="block text-sm font-medium mb-1">会议日期</label>
                 <input type="date" className="w-full border rounded p-2"
-                  value={formData.startDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+                  value={formData.startDate || ''} onChange={e => setFormData({...formData, startDate: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">会议时长(小时)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.meetingDuration || ''} onChange={e => setFormData({...formData, MeetingDuration: parseFloat(e.target.value)})} />
+                  value={formData.meetingDuration || ''} onChange={e => setFormData({...formData, meetingDuration: parseFloat(e.target.value)})} />
               </div>
             </div>
           </div>
@@ -902,7 +902,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     if (user) {
                       setFormData({...formData, assigneeId: user.userId, assigneeName: user.name});
                     } else {
-                      setFormData({...formData, AssigneeID: '', AssigneeName: value});
+                      setFormData({...formData, assigneeId: '', assigneeName: value});
                     }
                   }}
                   onSelect={(value) => {
@@ -919,14 +919,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">校核人</label>
                 <AutocompleteInput
                   id="reviewer-autocomplete"
-                  value={users.find(u => u.userId === formData.ReviewerID)?.name || formData.ReviewerName || ''}
+                  value={users.find(u => u.userId === formData.checkerId)?.name || formData.checkerName || ''}
                   options={users.filter(u => u.Status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
                     const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
                       setFormData({...formData, checkerId: user.userId, checkerName: user.name});
                     } else {
-                      setFormData({...formData, ReviewerID: '', ReviewerName: value});
+                      setFormData({...formData, checkerId: '', checkerName: value});
                     }
                   }}
                   onSelect={(value) => {
@@ -943,14 +943,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">审查人</label>
                 <AutocompleteInput
                   id="reviewer2-autocomplete"
-                  value={users.find(u => u.userId === formData.ReviewerID2)?.name || formData.Reviewer2Name || ''}
+                  value={users.find(u => u.userId === formData.chiefDesignerId)?.name || formData.chiefDesignerName || ''}
                   options={users.filter(u => u.Status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
                     const user = users.find(u => u.name === value && u.Status !== '离岗' && u.userId !== 'admin');
                     if (user) {
                       setFormData({...formData, chiefDesignerId: user.userId, chiefDesignerName: user.name});
                     } else {
-                      setFormData({...formData, ReviewerID2: '', Reviewer2Name: value});
+                      setFormData({...formData, chiefDesignerId: '', chiefDesignerName: value});
                     }
                   }}
                   onSelect={(value) => {
@@ -973,7 +973,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <div>
               <label className="block text-sm font-medium mb-1">任务状态</label>
               <select className="w-full border rounded p-2"
-                 value={formData.Status} onChange={e => setFormData({...formData, Status: e.target.value as TaskStatus})}>
+                 value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as TaskStatus})}>
                  {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -982,14 +982,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             <div>
               <label className="block text-sm font-medium mb-1">任务开始日期</label>
               <input type="date" className="w-full border rounded p-2"
-                value={formData.startDate || ''} onChange={e => setFormData({...formData, StartDate: e.target.value})} />
+                value={formData.startDate || ''} onChange={e => setFormData({...formData, startDate: e.target.value})} />
             </div>
           )}
           {!isMeeting && !isTravel && (
             <div>
               <label className="block text-sm font-medium mb-1">截止日期</label>
               <input type="date" className="w-full border rounded p-2"
-                value={formData.dueDate || ''} onChange={e => setFormData({...formData, DueDate: e.target.value})} />
+                value={formData.dueDate || ''} onChange={e => setFormData({...formData, dueDate: e.target.value})} />
             </div>
           )}
         </div>
@@ -1001,17 +1001,17 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div>
                 <label className="block text-sm font-medium mb-1">负责人工时(h)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.Workload || ''} onChange={e => setFormData({...formData, Workload: parseFloat(e.target.value)})} />
+                  value={formData.workload || ''} onChange={e => setFormData({...formData, workload: parseFloat(e.target.value)})} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">校核人工时(h)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.ReviewerWorkload || ''} onChange={e => setFormData({...formData, ReviewerWorkload: parseFloat(e.target.value)})} />
+                  value={formData.checkerWorkload || ''} onChange={e => setFormData({...formData, checkerWorkload: parseFloat(e.target.value)})} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">审查人工时(h)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.Reviewer2Workload || ''} onChange={e => setFormData({...formData, Reviewer2Workload: parseFloat(e.target.value)})} />
+                  value={formData.chiefDesignerWorkload || ''} onChange={e => setFormData({...formData, chiefDesignerWorkload: parseFloat(e.target.value)})} />
               </div>
             </div>
           </div>
@@ -1022,7 +1022,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           <div className="col-span-2">
             <label className="block text-sm font-medium mb-1">出差地点</label>
             <input type="text" className="w-full border rounded p-2"
-              value={formData.TravelLocation || ''} onChange={e => setFormData({...formData, TravelLocation: e.target.value})}
+              value={formData.travelLocation || ''} onChange={e => setFormData({...formData, travelLocation: e.target.value})}
               placeholder="多个城市请用逗号分隔，如：北京,上海,广州" />
           </div>
         )}
@@ -1089,7 +1089,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                             newNames.push(allUserNames[index]);
                           }
                         });
-                        setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
+                        setFormData({...formData, participants: newIds, participantNames: newNames});
                       }
                     } else {
                       // 如果没有搜索词，对所有班组长和组员进行全选/反选（排除管理员）
@@ -1104,9 +1104,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                         u.userId !== 'admin'
                       ).map(u => u.name);
                       if (formData.participants?.length === allUserIdsFull.length) {
-                        setFormData({...formData, Participants: [], ParticipantNames: []});
+                        setFormData({...formData, participants: [], participantNames: []});
                       } else {
-                        setFormData({...formData, Participants: allUserIdsFull, ParticipantNames: allUserNamesFull});
+                        setFormData({...formData, participants: allUserIdsFull, participantNames: allUserNamesFull});
                       }
                     }
                   }}
@@ -1139,8 +1139,8 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                             if (user) {
                               setFormData({
                                 ...formData,
-                                Participants: formData.participants?.filter(id => id !== user.userId) || [],
-                                ParticipantNames: formData.participantNames?.filter(n => n !== name) || []
+                                participants: formData.participants?.filter(id => id !== user.userId) || [],
+                                participantNames: formData.participantNames?.filter(n => n !== name) || []
                               });
                             }
                           }}
@@ -1207,7 +1207,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                                         newNames.push(user.name);
                                       }
                                     });
-                                    setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
+                                    setFormData({...formData, participants: newIds, participantNames: newNames});
                                   } else {
                                     // 移除所有过滤后的班组长
                                     setFormData({
@@ -1279,7 +1279,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                                         newNames.push(user.name);
                                       }
                                     });
-                                    setFormData({...formData, Participants: newIds, ParticipantNames: newNames});
+                                    setFormData({...formData, participants: newIds, participantNames: newNames});
                                   } else {
                                     // 移除所有过滤后的组员
                                     setFormData({
@@ -1620,7 +1620,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1"><span className="text-red-500">*</span> 任务名称</label>
                 <div className="flex items-center gap-3">
                   <input required type="text" className="flex-1 border rounded p-2 bg-slate-50"
-                    value={formData.taskName} onChange={e => setFormData({...formData, TaskName: e.target.value})} />
+                    value={formData.taskName} onChange={e => setFormData({...formData, taskName: e.target.value})} />
                   {!isMeeting && !isTravel && (
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" className="hidden" checked={formData.isForceAssessment || false} onChange={e => setFormData({...formData, isForceAssessment: e.target.checked})} />
@@ -1638,7 +1638,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">备注</label>
                 <textarea className="w-full border rounded p-2 h-20"
-                  value={formData.remark || ''} onChange={e => setFormData({...formData, Remark: e.target.value})} />
+                  value={formData.remark || ''} onChange={e => setFormData({...formData, remark: e.target.value})} />
               </div>
 
               <div className="col-span-2 flex justify-end gap-3 mt-3 pt-3 border-t">

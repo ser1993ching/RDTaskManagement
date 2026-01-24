@@ -36,10 +36,7 @@ public class BatchAssignRequest
     public List<string> PoolItemIds { get; set; } = new();
 
     [Required]
-    public string AssigneeId { get; set; } = string.Empty;
-
-    public DateTime? StartDate { get; set; }
-    public DateTime? DueDate { get; set; }
+    public AssignTaskRequest TaskData { get; set; } = new();
 }
 
 public class AssignTaskResponse

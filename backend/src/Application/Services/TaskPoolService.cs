@@ -159,15 +159,7 @@ public class TaskPoolService : ITaskPoolService
 
         foreach (var poolItemId in request.PoolItemIds)
         {
-            var assignRequest = new AssignTaskRequest
-            {
-                AssignToPoolItemId = poolItemId,
-                AssigneeId = request.AssigneeId,
-                StartDate = request.StartDate,
-                DueDate = request.DueDate
-            };
-
-            var result = await AssignTaskAsync(poolItemId, assignRequest);
+            var result = await AssignTaskAsync(poolItemId, request.TaskData);
             if (result.Success)
             {
                 assignedCount++;

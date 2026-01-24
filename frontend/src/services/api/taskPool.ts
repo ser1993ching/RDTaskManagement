@@ -53,10 +53,10 @@ export interface AssignTaskRequest {
   assigneeName?: string;
   reviewerId?: string;
   reviewerName?: string;
-  reviewerId2?: string;
-  reviewer2Name?: string;
+  approverId?: string;
+  approverName?: string;
   reviewerWorkload?: number;
-  reviewer2Workload?: number;
+  approverWorkload?: number;
   startDate?: string;
   dueDate?: string;
   workload?: number;

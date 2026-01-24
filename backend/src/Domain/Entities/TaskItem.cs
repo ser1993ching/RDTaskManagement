@@ -35,7 +35,8 @@ public class TaskItem : BaseEntity<string>
     public string? ParticipantNames { get; set; }       // JSON: 参会人员姓名列表
 
     // 市场任务字段
-    public string? CapacityLevel { get; set; }          // 容量等级
+    public string? RelatedProject { get; set; }           // 关联项目名称
+    public bool IsIndependentBusinessUnit { get; set; }   // 是否支持独立经营体
 
     // 校核人（Checker）
     public string? CheckerID { get; set; }

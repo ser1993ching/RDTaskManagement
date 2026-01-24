@@ -41,7 +41,7 @@ export enum RoleStatus {
   NOT_STARTED = '未开始',
   IN_PROGRESS = '进行中',
   REVISING = '修改中',
-  REJECTED = '驳回中',
+  REJECTED = '已驳回',
   COMPLETED = '已完成'
 }
 

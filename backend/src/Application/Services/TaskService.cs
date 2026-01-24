@@ -169,7 +169,7 @@ public class TaskService : ITaskService
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        if (Enum.TryParse<Domain.Enums.TaskStatus>(status, out var newStatus))
+        if (Enum.TryParse<Domain.Enums.TaskStatus>(status, ignoreCase: true, out var newStatus))
         {
             task.Status = newStatus;
             if (newStatus == Domain.Enums.TaskStatus.Completed)
@@ -194,7 +194,7 @@ public class TaskService : ITaskService
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        if (Enum.TryParse<RoleStatus>(request.Status, out var status))
+        if (Enum.TryParse<RoleStatus>(request.Status, ignoreCase: true, out var status))
         {
             switch (request.Role.ToLower())
             {

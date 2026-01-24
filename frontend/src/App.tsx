@@ -55,12 +55,12 @@ const mapProjectCategory = (apiCategory: string): ProjectCategory => {
 
 const mapTaskStatus = (apiStatus: string): TaskStatus => {
   const map: Record<string, TaskStatus> = {
-    'NotStarted': TaskStatus.NOT_STARTED,
-    'Drafting': TaskStatus.DRAFTING,
-    'Revising': TaskStatus.REVISING,
-    'Reviewing': TaskStatus.REVIEWING,
-    'Reviewing2': TaskStatus.REVIEWING2,
-    'Completed': TaskStatus.COMPLETED,
+    '未开始': TaskStatus.NOT_STARTED,
+    '编制中': TaskStatus.DRAFTING,
+    '修改中': TaskStatus.REVISING,
+    '校核中': TaskStatus.REVIEWING,
+    '审查中': TaskStatus.REVIEWING2,
+    '已完成': TaskStatus.COMPLETED,
   };
   return map[apiStatus] || TaskStatus.NOT_STARTED;
 };

@@ -15,20 +15,8 @@ interface TaskViewProps {
 }
 
 // Default task categories (fallback when API fails) - 修复 Bug 2
-// 支持多种key格式：UPPERCASE, camelCase, PascalCase
+// 使用 camelCase，与后端返回格式一致
 const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
-  // UPPERCASE keys (原格式)
-  'MARKET': ['技术支持', '商务配合', '技术方案', '项目管理', '其他'],
-  'EXECUTION': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
-  'NUCLEAR': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
-  'PRODUCT_DEV': ['研发工作', '测试工作', '设计工作', '技术支持', '其他'],
-  'RESEARCH': ['理论研究', '试验工作', '数据分析', '报告编写', '其他'],
-  'RENOVATION': ['现场服务', '技术支持', '设计工作', '项目管理', '其他'],
-  'ADMIN_PARTY': ['党建活动', '行政事务', '会议组织', '其他'],
-  'MEETING_TRAINING': ['学习与培训', '党建会议', '班务会', '设计评审会', '资料讨论会', '其他'],
-  'TRAVEL': ['市场配合出差', '常规项目执行出差', '核电项目执行出差', '科研出差', '改造服务出差', '其他'],
-  'OTHER': ['其他'],
-  // camelCase keys (API返回格式经convertToCamelCase转换后)
   'market': ['技术支持', '商务配合', '技术方案', '项目管理', '其他'],
   'execution': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
   'nuclear': ['设计工作', '计算工作', '图纸工作', '项目管理', '技术支持', '其他'],
@@ -166,25 +154,25 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
 
-  // Helper variables for task type detection
-  const isMeeting = activeTaskClass?.code === 'MEETING_TRAINING';
-  const isTravel = activeTaskClass?.code === 'TRAVEL';
+  // Helper variables for task type detection (使用 camelCase，与后端返回格式一致)
+  const isMeeting = activeTaskClass?.code === 'MeetingTraining';
+  const isTravel = activeTaskClass?.code === 'Travel';
 
-  // Map task class codes to project categories
+  // Map task class codes to project categories (使用 camelCase)
   const getProjectCategoryForTaskClass = (taskClassCode: string): ProjectCategory | null => {
     switch (taskClassCode) {
-      case 'MARKET':
+      case 'market':
         return ProjectCategory.MARKET;
-      case 'EXECUTION':
+      case 'execution':
         return ProjectCategory.EXECUTION;
-      case 'NUCLEAR':
+      case 'nuclear':
         return ProjectCategory.NUCLEAR;
-      case 'PRODUCT_DEV':
-      case 'RESEARCH':
+      case 'productDev':
+      case 'research':
         return ProjectCategory.RESEARCH;
-      case 'RENOVATION':
+      case 'renovation':
         return ProjectCategory.RENOVATION;
-      case 'OTHER':
+      case 'other':
         return ProjectCategory.OTHER;
       default:
         return null;
@@ -194,20 +182,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   // Get allowed project categories for task class (some task types can relate to multiple project types)
   const getAllowedProjectCategoriesForTaskClass = (taskClassCode: string): ProjectCategory[] => {
     switch (taskClassCode) {
-      case 'MARKET':
+      case 'market':
         return [ProjectCategory.MARKET];
-      case 'EXECUTION':
+      case 'execution':
         return [ProjectCategory.EXECUTION];
-      case 'NUCLEAR':
+      case 'nuclear':
         return [ProjectCategory.NUCLEAR];
-      case 'PRODUCT_DEV':
+      case 'productDev':
         // 产品研发可以关联常规项目、核电项目、科研项目、改造项目
         return [ProjectCategory.EXECUTION, ProjectCategory.NUCLEAR, ProjectCategory.RESEARCH, ProjectCategory.RENOVATION];
-      case 'RESEARCH':
+      case 'research':
         return [ProjectCategory.RESEARCH];
-      case 'RENOVATION':
+      case 'renovation':
         return [ProjectCategory.RENOVATION];
-      case 'OTHER':
+      case 'other':
         return [ProjectCategory.OTHER];
       default:
         return [];
@@ -217,7 +205,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   // Get projects filtered by task class
   const getProjectsForTaskClass = (taskClassCode: string): Project[] => {
     // 产品研发任务可以从常规项目、核电项目、科研项目、改造项目中获取
-    if (taskClassCode === 'PRODUCT_DEV') {
+    if (taskClassCode === 'productDev') {
       return projects.filter(p =>
         p.category === ProjectCategory.EXECUTION ||
         p.category === ProjectCategory.NUCLEAR ||
@@ -228,7 +216,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
 
     // 差旅任务、行政与党建任务和会议培训任务可以从所有项目中获取
-    if (taskClassCode === 'TRAVEL' || taskClassCode === 'ADMIN_PARTY' || taskClassCode === 'MEETING_TRAINING') {
+    if (taskClassCode === 'travel' || taskClassCode === 'adminParty' || taskClassCode === 'meetingTraining') {
       return projects;
     }
 
@@ -264,6 +252,18 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         return projects.filter(p => p.category === ProjectCategory.OTHER);
       default:
         return projects;
+    }
+  };
+
+  // 格式化日期为 YYYY-MM-DD 格式（兼容 DateTime 和字符串）
+  const formatDateForInput = (dateValue: string | Date | undefined | null): string => {
+    if (!dateValue) return '';
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0];
+    } catch {
+      return '';
     }
   };
 
@@ -434,7 +434,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       const category = formData.category || '';
       const travelLabel = formData.travelLabel || '';
 
-      if (activeTaskClass?.code !== 'MEETING_TRAINING') { // Meeting usually custom name
+      if (activeTaskClass?.code !== 'meetingTraining') { // Meeting usually custom name
         let taskName = '';
 
         // 差旅任务特殊命名格式：[项目名]-[分类]-[标签]
@@ -478,6 +478,19 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       }
     }
   }, [formData.travelLabel, isModalOpen, isTravel, formData.projectId, formData.category, projects]);
+
+  // 差旅任务专用：当开始日期或差旅时长变化时自动更新截止日期
+  useEffect(() => {
+    if (isModalOpen && isTravel && formData.startDate && formData.travelDuration) {
+      const calculatedDueDate = calculateDueDate(formData.startDate, formData.travelDuration);
+      if (calculatedDueDate && formData.dueDate !== calculatedDueDate) {
+        setFormData(prev => ({
+          ...prev,
+          dueDate: calculatedDueDate
+        }));
+      }
+    }
+  }, [formData.startDate, formData.travelDuration, isModalOpen, isTravel]);
 
   // Auto-match project based on task name (only for matching categories)
   useEffect(() => {
@@ -649,16 +662,16 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       }
     }
 
-    // 如果是差旅任务，自动计算截止日期
-    if (task && task.taskClassId === 'TC009' && task.startDate && task.travelDuration) {
-      const calculatedDueDate = calculateDueDate(task.startDate, task.travelDuration);
-      taskData.dueDate = calculatedDueDate;
+    // 确保时间字段被正确复制（所有任务类型），并格式化为 YYYY-MM-DD
+    if (task) {
+      taskData.startDate = formatDateForInput(task.startDate);
+      taskData.dueDate = formatDateForInput(task.dueDate);
     }
 
-    // 确保时间字段被正确复制（所有任务类型）
-    if (task) {
-      if (task.startDate) taskData.startDate = task.startDate;
-      if (task.dueDate) taskData.dueDate = task.dueDate;
+    // 如果是差旅任务，根据开始日期和时长自动计算截止日期（仅当没有原始截止日期时）
+    if (task && task.taskClassId === 'TC009' && task.startDate && task.travelDuration && !formatDateForInput(task.dueDate)) {
+      const calculatedDueDate = calculateDueDate(formatDateForInput(task.startDate), task.travelDuration);
+      taskData.dueDate = calculatedDueDate;
     }
 
     setFormData(taskData);
@@ -702,7 +715,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   setFormData({...formData, projectId: project?.id || ''});
                   // 仅市场配合任务支持自动创建项目
-                  if (activeTaskClass?.code === 'MARKET' && value.trim() && !project) {
+                  if (activeTaskClass?.code === 'market' && value.trim() && !project) {
                     openProjectModal(value.trim());
                   }
                 }}
@@ -716,7 +729,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 className="w-full border rounded p-2"
               />
               {/* 仅市场配合任务显示新建项目按钮 */}
-              {activeTaskClass?.code === 'MARKET' && (
+              {activeTaskClass?.code === 'market' && (
                 <button
                   type="button"
                   onClick={() => openProjectModal()}
@@ -1524,112 +1537,158 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           </div>
         </div>
 
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-10 shadow-sm">
-              <tr>
-                <th className="px-6 py-4">任务名称</th>
-                <th className="px-6 py-4">分类</th>
-                {/* 差旅任务显示标签列 */}
-                {isTravel && <th className="px-6 py-4">标签</th>}
-                <th className="px-6 py-4">容量等级</th>
-                {/* 会议培训任务和差旅任务不显示状态列 */}
-                {!isMeeting && !isTravel && <th className="px-6 py-4">状态</th>}
-                <th className="px-6 py-4">负责人</th>
-                {/* 差旅任务和会议培训任务不显示校核人列 */}
-                {filteredTasks.length > 0 && !filteredTasks.every(t => t.taskClassId === 'TC009' || t.taskClassId === 'TC007') && (
+        {/* 会议培训任务专用表格 */}
+        {isMeeting && (
+          <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-10 shadow-sm">
+                <tr>
+                  <th className="px-6 py-4">任务名称</th>
+                  <th className="px-6 py-4">分类</th>
+                  <th className="px-6 py-4">负责人</th>
+                  <th className="px-6 py-4">会议日期</th>
+                  <th className="px-6 py-4">会议时长</th>
+                  <th className="px-6 py-4">参会人数</th>
+                  <th className="px-6 py-4 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredTasks.map(t => (
+                  <tr
+                    key={t.taskId}
+                    className="hover:bg-blue-50 transition-colors cursor-pointer"
+                    onDoubleClick={() => handleDoubleClick(t)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-slate-900">{t.taskName}</div>
+                      <div className="text-xs text-slate-400">{t.taskId}</div>
+                    </td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.category}</span></td>
+                    <td className="px-6 py-4">{users.find(u => u.userId === t.assigneeId)?.name || t.assigneeName || '-'}</td>
+                    <td className="px-6 py-4 text-slate-500">{formatDate(t.startDate)}</td>
+                    <td className="px-6 py-4 text-slate-500">{t.meetingDuration ? `${t.meetingDuration}h` : '-'}</td>
+                    <td className="px-6 py-4 text-slate-500">{t.participants?.length || 0}人</td>
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
+                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredTasks.length === 0 && (
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 差旅任务专用表格 */}
+        {isTravel && (
+          <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-10 shadow-sm">
+                <tr>
+                  <th className="px-6 py-4">任务名称</th>
+                  <th className="px-6 py-4">分类</th>
+                  <th className="px-6 py-4">标签</th>
+                  <th className="px-6 py-4">负责人</th>
+                  <th className="px-6 py-4">出差地点</th>
+                  <th className="px-6 py-4">开始日期</th>
+                  <th className="px-6 py-4">出差天数</th>
+                  <th className="px-6 py-4 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredTasks.map(t => (
+                  <tr
+                    key={t.taskId}
+                    className="hover:bg-blue-50 transition-colors cursor-pointer"
+                    onDoubleClick={() => handleDoubleClick(t)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-slate-900">{t.taskName}</div>
+                      <div className="text-xs text-slate-400">{t.taskId}</div>
+                    </td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.category}</span></td>
+                    <td className="px-6 py-4">{t.travelLabel || '-'}</td>
+                    <td className="px-6 py-4">{users.find(u => u.userId === t.assigneeId)?.name || t.assigneeName || '-'}</td>
+                    <td className="px-6 py-4 text-slate-500">{t.travelLocation || '-'}</td>
+                    <td className="px-6 py-4 text-slate-500">{formatDate(t.startDate)}</td>
+                    <td className="px-6 py-4 text-slate-500">{t.travelDuration ? `${t.travelDuration}天` : '-'}</td>
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
+                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredTasks.length === 0 && (
+                  <tr><td colSpan={8} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 普通任务表格 */}
+        {!isMeeting && !isTravel && (
+          <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto min-h-0">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-10 shadow-sm">
+                <tr>
+                  <th className="px-6 py-4">任务名称</th>
+                  <th className="px-6 py-4">分类</th>
+                  <th className="px-6 py-4">容量等级</th>
+                  <th className="px-6 py-4">状态</th>
+                  <th className="px-6 py-4">负责人</th>
                   <th className="px-6 py-4">校核人</th>
-                )}
-                {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
-                <th className="px-6 py-4">{isMeeting ? '会议日期' : '开始日'}</th>
-                {/* 会议培训任务和差旅任务不显示截止日 */}
-                {!isMeeting && !isTravel && <th className="px-6 py-4">截止日</th>}
-                {/* 差旅任务显示出差天数 */}
-                {isTravel && <th className="px-6 py-4">出差天数</th>}
-                {/* 会议培训任务显示会议时长和参会人数 */}
-                {isMeeting && (
-                  <>
-                    <th className="px-6 py-4">会议时长</th>
-                    <th className="px-6 py-4">参会人数</th>
-                  </>
-                )}
-                <th className="px-6 py-4 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredTasks.map(t => {
-                const isMeetingTask = t.taskClassId === 'TC007';
-                return (
+                  <th className="px-6 py-4">开始日</th>
+                  <th className="px-6 py-4">截止日</th>
+                  <th className="px-6 py-4 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredTasks.map(t => (
                   <tr
                     key={t.taskId}
                     className="hover:bg-blue-50 transition-colors cursor-pointer"
                     onDoubleClick={() => handleDoubleClick(t)}
                   >
                     <td className="px-6 py-4 relative">
-                      {t.isForceAssessment && t.taskClassId !== 'TC009' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
-                      <div className={`font-medium ${t.isForceAssessment && t.taskClassId !== 'TC009' ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.taskName}</div>
+                      {t.isForceAssessment && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
+                      <div className={`font-medium ${t.isForceAssessment ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.taskName}</div>
                       <div className="text-xs text-slate-400">{t.taskId}</div>
                     </td>
                     <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.category}</span></td>
-                    {/* 差旅任务显示标签列 */}
-                    {t.taskClassId === 'TC009' && (
-                      <td className="px-6 py-4">{t.travelLabel || '-'}</td>
-                    )}
-                                        <td className="px-6 py-4">{projects.find(p => p.id === t.projectId)?.capacity || '-'}</td>
-                    {/* 会议培训任务和差旅任务不显示状态列 */}
-                    {!isMeetingTask && t.taskClassId !== 'TC009' && (
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          t.status === '已完成' ? 'bg-green-100 text-green-700' :
-                          t.status === '编制中' ? 'bg-blue-100 text-blue-700' :
-                          t.status === '校核中' ? 'bg-yellow-100 text-yellow-700' :
-                          t.status === '审查中' ? 'bg-purple-100 text-purple-700' :
-                          t.status === '修改中' ? 'bg-orange-100 text-orange-700' :
-                          'bg-slate-100 text-slate-600'
-                        }`}>
-                          {t.status}
-                        </span>
-                      </td>
-                    )}
+                    <td className="px-6 py-4">{projects.find(p => p.id === t.projectId)?.capacity || '-'}</td>
                     <td className="px-6 py-4">
-                      {users.find(u => u.userId === t.assigneeId)?.name || t.assigneeName || '-'}
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        t.status === '已完成' ? 'bg-green-100 text-green-700' :
+                        t.status === '编制中' ? 'bg-blue-100 text-blue-700' :
+                        t.status === '校核中' ? 'bg-yellow-100 text-yellow-700' :
+                        t.status === '审查中' ? 'bg-purple-100 text-purple-700' :
+                        t.status === '修改中' ? 'bg-orange-100 text-orange-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {t.status}
+                      </span>
                     </td>
-                    {/* 差旅任务和会议培训任务不显示校核人列 */}
-                    {t.taskClassId !== 'TC009' && t.taskClassId !== 'TC007' && (
-                      <td className="px-6 py-4">
-                        {users.find(u => u.userId === t.checkerId)?.name || t.checkerName || '-'}
-                      </td>
-                    )}
-                    {/* 会议培训任务显示会议日期，其他任务显示开始日 */}
+                    <td className="px-6 py-4">{users.find(u => u.userId === t.assigneeId)?.name || t.assigneeName || '-'}</td>
+                    <td className="px-6 py-4">{users.find(u => u.userId === t.checkerId)?.name || t.checkerName || '-'}</td>
                     <td className="px-6 py-4 text-slate-500">{formatDate(t.startDate)}</td>
-                    {/* 会议培训任务和差旅任务不显示截止日 */}
-                    {!isMeetingTask && t.taskClassId !== 'TC009' && (
-                      <td className="px-6 py-4 text-slate-500">{formatDate(t.dueDate)}</td>
-                    )}
-                    {/* 差旅任务显示出差天数 */}
-                    {t.taskClassId === 'TC009' && (
-                      <td className="px-6 py-4 text-slate-500">{t.travelDuration ? `${t.travelDuration}天` : '-'}</td>
-                    )}
-                    {/* 会议培训任务显示会议时长和参会人数 */}
-                    {isMeetingTask && (
-                      <>
-                        <td className="px-6 py-4 text-slate-500">{t.meetingDuration ? `${t.meetingDuration}h` : '-'}</td>
-                        <td className="px-6 py-4 text-slate-500">{t.participants?.length || 0}人</td>
-                      </>
-                    )}
+                    <td className="px-6 py-4 text-slate-500">{formatDate(t.dueDate)}</td>
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
                       <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                     </td>
                   </tr>
-                );
-              })}
-              {filteredTasks.length === 0 && (
-                <tr><td colSpan={isMeeting ? 8 : (isTravel ? 9 : 9)} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+                {filteredTasks.length === 0 && (
+                  <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-400">该分类下暂无任务</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

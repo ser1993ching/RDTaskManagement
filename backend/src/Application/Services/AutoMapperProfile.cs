@@ -55,6 +55,7 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.AssigneeStatus, opt => opt.MapFrom(src => src.AssigneeStatus.HasValue ? src.AssigneeStatus.Value.ToString() : null))
             .ForMember(dest => dest.RelatedProject, opt => opt.MapFrom(src => src.RelatedProject))
             .ForMember(dest => dest.IsIndependentBusinessUnit, opt => opt.MapFrom(src => src.IsIndependentBusinessUnit))
+            .ForMember(dest => dest.IsForceAssessment, opt => opt.MapFrom(src => src.IsForceAssessment))
             // Participants 存储为JSON字符串，在TaskService中手动解析
             .ForMember(dest => dest.Participants, opt => opt.Ignore())
             .ForMember(dest => dest.ParticipantNames, opt => opt.Ignore());

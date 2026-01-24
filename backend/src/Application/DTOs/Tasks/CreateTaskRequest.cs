@@ -27,7 +27,7 @@ public class CreateTaskRequest
     public decimal? Difficulty { get; set; }
 
     public string? Remark { get; set; }
-    public bool IsForceAssessment { get; set; }
+    public bool? IsForceAssessment { get; set; }
 
     // 角色分配
     public string? CheckerID { get; set; }
@@ -45,6 +45,8 @@ public class CreateTaskRequest
 
     // 市场任务
     public string? CapacityLevel { get; set; }
+    public string? RelatedProject { get; set; }
+    public bool IsIndependentBusinessUnit { get; set; }
 
     // 工作量
     public decimal? Workload { get; set; }

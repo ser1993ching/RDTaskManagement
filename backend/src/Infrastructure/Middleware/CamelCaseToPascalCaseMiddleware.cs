@@ -108,8 +108,13 @@ public class CamelCaseToPascalCaseMiddleware
             foreach (var key in keysToConvert)
             {
                 var pascalKey = ToPascalCase(key);
-                obj[pascalKey] = obj[key];
+                // 先获取值（深拷贝以避免节点父节点问题），再删除旧键，最后设置新键
+                var value = obj[key];
                 obj.Remove(key);
+                if (value != null)
+                {
+                    obj[pascalKey] = value.DeepClone();
+                }
             }
         }
         else if (node is JsonArray arr)

@@ -110,7 +110,8 @@ export interface Task {
   travelLocation?: string; // For Travel tasks
   travelDuration?: number; // For Travel tasks
   meetingDuration?: number; // For Meeting tasks
-  capacityLevel?: string; // 容量等级 (For Market tasks)
+  relatedProject?: string; // 关联项目名称 (For Market tasks)
+  isIndependentBusinessUnit?: boolean; // 是否支持独立经营体 (For Market tasks)
   travelLabel?: string; // For Travel tasks (差旅标签)
   // 校核人（Checker）
   checkerId?: string;

@@ -197,9 +197,9 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("Database connection successful");
             await LogDatabaseEventAsync(logService, "Database connection", true, "Connected to MySQL database");
 
-            // Ensure database is created
-            context.Database.EnsureCreated();
-            logger.LogInformation("Database schema verified/created");
+            // Ensure database is created (runs all migrations)
+            context.Database.Migrate();
+            logger.LogInformation("Database schema verified/created with migrations");
         }
         else
         {

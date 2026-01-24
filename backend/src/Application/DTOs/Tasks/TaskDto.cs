@@ -47,8 +47,10 @@ public class TaskDto
     public List<string>? ParticipantNames { get; set; }
 
     // 市场任务字段
-    [JsonPropertyName("capacityLevel")]
-    public string? CapacityLevel { get; set; }
+    [JsonPropertyName("relatedProject")]
+    public string? RelatedProject { get; set; }
+    [JsonPropertyName("isIndependentBusinessUnit")]
+    public bool IsIndependentBusinessUnit { get; set; }
 
     // 角色字段
     [JsonPropertyName("checkerId")]

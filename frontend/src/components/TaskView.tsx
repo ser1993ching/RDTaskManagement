@@ -14,18 +14,6 @@ interface TaskViewProps {
   onClearTargetTaskName?: () => void;
 }
 
-// Config for Capacity Level (Market tasks only)
-const CAPACITY_LEVEL_OPTIONS = [
-  '300MW等级',
-  '600MW等级',
-  '1000MW等级',
-  '华龙一号',
-  'F级燃机',
-  'J型燃机',
-  '空冷发电机',
-  '调相机'
-];
-
 // Default task categories (fallback when API fails) - 修复 Bug 2
 // 支持多种key格式：UPPERCASE, camelCase, PascalCase
 const DEFAULT_TASK_CATEGORIES: Record<string, string[]> = {
@@ -70,7 +58,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState<Partial<Task>>({});
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -78,6 +65,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectFormData, setProjectFormData] = useState<Partial<Project>>({});
   const [equipmentModels, setEquipmentModels] = useState<string[]>([]);
+  const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
 
   // Load task classes
   useEffect(() => {
@@ -100,7 +88,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     loadCategories();
   }, []);
 
-  // Load equipment models and capacity levels
+  // Load equipment models and capacity levels (for project form)
   useEffect(() => {
     const loadSettings = async () => {
       const [models, levels] = await Promise.all([
@@ -167,7 +155,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
-  const [filterCapacityLevel, setFilterCapacityLevel] = useState('');
   const [filterStartDateFrom, setFilterStartDateFrom] = useState('');
   const [filterStartDateTo, setFilterStartDateTo] = useState('');
   const [filterThisWeek, setFilterThisWeek] = useState(false);
@@ -234,12 +221,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         p.category === ProjectCategory.EXECUTION ||
         p.category === ProjectCategory.NUCLEAR ||
         p.category === ProjectCategory.RESEARCH ||
-        p.category === ProjectCategory.RENOVATION
+        p.category === ProjectCategory.RENOVATION ||
+        p.category === ProjectCategory.OTHER
       );
     }
 
-    // 行政与党建任务和会议培训任务可以从所有项目中获取
-    if (taskClassCode === 'ADMIN_PARTY' || taskClassCode === 'MEETING_TRAINING') {
+    // 差旅任务、行政与党建任务和会议培训任务可以从所有项目中获取
+    if (taskClassCode === 'TRAVEL' || taskClassCode === 'ADMIN_PARTY' || taskClassCode === 'MEETING_TRAINING') {
       return projects;
     }
 
@@ -350,7 +338,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       ((isMeetingTask || isTravelTask) ? true : (filterStatus ? t.status === filterStatus : true)) &&
       (filterCategory ? t.category === filterCategory : true) &&
       (filterAssignee ? t.assigneeId === filterAssignee : true) &&
-      (filterCapacityLevel ? (t.capacityLevel || '').toLowerCase().includes(filterCapacityLevel.toLowerCase()) : true) &&
       (filterTaskName ? t.taskName.toLowerCase().includes(filterTaskName.toLowerCase()) : true) &&
       (filterStartDateFrom ? (t.startDate ? new Date(t.startDate) >= new Date(filterStartDateFrom) : true) : true) &&
       (filterStartDateTo ? (t.startDate ? new Date(t.startDate) <= new Date(filterStartDateTo) : true) : true) &&
@@ -367,11 +354,11 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     // 根据任务类型决定列头
     let headers;
     if (hasMeetingTask) {
-      headers = ['ID', '任务名称', '负责人', '容量等级', '会议日期', '会议时长', '参会人数'];
+      headers = ['ID', '任务名称', '负责人', '会议日期', '会议时长', '参会人数'];
     } else if (hasTravelTask) {
-      headers = ['ID', '任务名称', '状态', '负责人', '容量等级', '截止日期'];
+      headers = ['ID', '任务名称', '状态', '负责人', '截止日期'];
     } else {
-      headers = ['ID', '任务名称', '状态', '负责人', '校核人', '审查人', '容量等级', '截止日期'];
+      headers = ['ID', '任务名称', '状态', '负责人', '校核人', '审查人', '截止日期'];
     }
 
     // 根据任务类型决定行数据
@@ -389,7 +376,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           t.taskId,
           t.taskName,
           assigneeName,
-          t.capacityLevel || '-',
           t.startDate ? formatDate(t.startDate) : '-',
           t.meetingDuration ? `${t.meetingDuration}h` : '-',
           `${t.participants?.length || 0}人`
@@ -400,7 +386,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           t.taskName,
           t.status,
           assigneeName,
-          t.capacityLevel || '-',
           t.dueDate || ''
         ];
 
@@ -560,7 +545,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
     // If creating from task view, auto-associate with current task
     if (isModalOpen) {
-      setFormData(prev => ({ ...prev, projectId: newProject.id, capacityLevel: newProject.capacity }));
+      setFormData(prev => ({ ...prev, projectId: newProject.id }));
     }
 
     setIsProjectModalOpen(false);
@@ -599,13 +584,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       taskToSave.completedDate = undefined;
     }
 
-    // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级（始终覆盖）
-    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && formData.projectId) {
-      const project = projects.find(p => p.id === formData.projectId);
-      if (project) {
-        taskToSave.capacityLevel = project.capacity;
-      }
-    }
     // 修复 Bug 4: 添加保存操作的错误处理
     try {
       await apiDataService.saveTask(taskToSave);
@@ -662,14 +640,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       }
     }
 
-    // 如果是支持容量等级的任务且有关联项目，从项目中获取容量等级
-    if (task && task.projectId && ['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '')) {
-      const project = projects.find(p => p.id === task.projectId);
-      if (project) {
-        taskData.capacityLevel = project.capacity;
-      }
-    }
-
     // 如果是差旅任务，自动计算截止日期
     if (task && task.taskClassId === 'TC009' && task.startDate && task.travelDuration) {
       const calculatedDueDate = calculateDueDate(task.startDate, task.travelDuration);
@@ -717,17 +687,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 options={getProjectsForTaskClass(activeTaskClass?.code || '').map(p => p.name)}
                 onChange={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
-                  const newFormData = {...formData, projectId: project?.id || ''};
-
-                  // 如果是支持容量等级的任务且选择了项目，自动获取容量等级（始终覆盖）
-                  if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && project) {
-                    newFormData.capacityLevel = project.capacity;
-                  } else if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '') && !project && value.trim()) {
-                    // 如果清除项目选择，清空容量等级
-                    newFormData.capacityLevel = '';
-                  }
-
-                  setFormData(newFormData);
+                  setFormData({...formData, projectId: project?.id || ''});
                   // 仅市场配合任务支持自动创建项目
                   if (activeTaskClass?.code === 'MARKET' && value.trim() && !project) {
                     openProjectModal(value.trim());
@@ -736,12 +696,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 onSelect={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   if (project) {
-                    const newFormData = {...formData, projectId: project.id};
-                    // 如果是支持容量等级的任务，自动获取容量等级（始终覆盖）
-                    if (['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass?.code || '')) {
-                      newFormData.capacityLevel = project.capacity;
-                    }
-                    setFormData(newFormData);
+                    setFormData({...formData, projectId: project.id});
                   }
                 }}
                 placeholder="搜索或输入项目名称..."
@@ -760,17 +715,22 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
             </div>
           )}
 
-          {['MARKET', 'EXECUTION', 'NUCLEAR', 'PRODUCT_DEV', 'RESEARCH', 'RENOVATION', 'ADMIN_PARTY', 'MEETING_TRAINING', 'OTHER'].includes(activeTaskClass.code) && (
+          {/* 市场配合任务：关联项目 + 是否支持独立经营体 */}
+          {activeTaskClass?.code === 'MARKET' && (
             <div>
-              <label className="block text-sm font-medium mb-1">容量等级</label>
-              <AutocompleteInput
-                value={formData.capacityLevel || ''}
-                options={capacityLevels}
-                onChange={(value) => setFormData({...formData, capacityLevel: value})}
-                placeholder="选择或输入容量等级"
-                className="w-full border rounded p-2"
-                id="capacity-level-autocomplete"
-              />
+              <label className="block text-sm font-medium mb-1">是否支持独立经营体</label>
+              <div className="flex items-center mt-2">
+                <input
+                  type="checkbox"
+                  id="isIndependentBusinessUnit"
+                  checked={formData.isIndependentBusinessUnit || false}
+                  onChange={(e) => setFormData({...formData, isIndependentBusinessUnit: e.target.checked})}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="isIndependentBusinessUnit" className="ml-2 text-sm text-gray-700">
+                  支持独立经营体
+                </label>
+              </div>
             </div>
           )}
         </div>
@@ -1480,17 +1440,6 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <option value="">所有分类</option>
                 {activeTaskClass && getCategoriesForTaskClass(activeTaskClass.code).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-            </div>
-            <div className="min-w-[130px]">
-              <label className="block text-xs text-slate-600 mb-1">容量等级</label>
-              <AutocompleteInput
-                value={filterCapacityLevel}
-                options={capacityLevels}
-                onChange={(value) => setFilterCapacityLevel(value)}
-                placeholder="搜索容量等级"
-                className="w-full border rounded px-2 py-2 text-sm"
-                id="filter-capacity-autocomplete"
-              />
             </div>
             {/* 会议培训任务和差旅任务不显示状态筛选器 */}
             {!isMeeting && !isTravel && (

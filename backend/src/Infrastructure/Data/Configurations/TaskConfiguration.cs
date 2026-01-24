@@ -26,7 +26,8 @@ public class TaskConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.Property(t => t.AssigneeName).HasMaxLength(100);
         builder.Property(t => t.TravelLocation).HasMaxLength(200);
         builder.Property(t => t.TravelLabel).HasMaxLength(50);
-        builder.Property(t => t.CapacityLevel).HasMaxLength(50);
+        builder.Property(t => t.RelatedProject).HasMaxLength(255);
+        builder.Property(t => t.IsIndependentBusinessUnit).HasColumnType("tinyint(1)");
         builder.Property(t => t.Remark).HasColumnType("LONGTEXT");
         builder.Property(t => t.Participants).HasColumnType("LONGTEXT");
         builder.Property(t => t.ParticipantNames).HasColumnType("LONGTEXT");

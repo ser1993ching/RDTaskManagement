@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Project, ProjectCategory, User, SystemRole } from '../types';
+import { Project, ProjectCategory, User } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, X, RefreshCw } from 'lucide-react';
 import { apiDataService } from '../services/apiDataService';
 import AutocompleteInput from './AutocompleteInput';
@@ -41,7 +41,8 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
   const [equipmentModels, setEquipmentModels] = useState<string[]>([]);
   const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
 
-  const canEdit = currentUser.systemRole === SystemRole.ADMIN || currentUser.systemRole === SystemRole.LEADER;
+  // 直接使用后端返回的中文值进行权限判断
+  const canEdit = currentUser.systemRole === '管理员' || currentUser.systemRole === '班组长';
 
   // 加载设置数据
   useEffect(() => {
@@ -172,14 +173,39 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const projectToSave: Project = {
-      ...(editingProject || {}),
-      ...formData as Project,
-      id: editingProject?.id || `PRJ-${Date.now()}`,
-    };
-    await apiDataService.saveProject(projectToSave);
-    setIsModalOpen(false);
-    onRefresh();
+    try {
+      // 构建符合后端DTO的数据结构
+      const projectData: any = {
+        id: formData.id,
+        name: formData.name,
+        category: formData.category,
+        workNo: formData.workNo ?? '',
+        capacity: formData.capacity ?? '',
+        model: formData.model ?? '',
+        startDate: formData.startDate ?? '',
+        endDate: formData.endDate ?? '',
+        remark: formData.remark ?? '',
+        isKeyProject: formData.isKeyProject ?? false,
+        isWon: formData.isWon ?? false,
+        isForeign: formData.isForeign ?? false,
+        isCommissioned: formData.isCommissioned ?? false,
+        isCompleted: formData.isCompleted ?? false,
+      };
+
+      // 移除 null/undefined/空字符串值
+      Object.keys(projectData).forEach(key => {
+        if (projectData[key] === null || projectData[key] === undefined || projectData[key] === '') {
+          delete projectData[key];
+        }
+      });
+
+      await apiDataService.saveProject(projectData);
+      setIsModalOpen(false);
+      onRefresh();
+    } catch (error) {
+      console.error('保存项目失败:', error);
+      alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
   };
 
   return (
@@ -411,12 +437,12 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
             <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-20 shadow-sm">
               <tr>
                 <th className="px-6 py-4 w-[22%]">项目名称</th>
-                <th className="px-6 py-4 w-[11%]">工作号/ID</th>
+                <th className="px-6 py-4 w-[12%]">工作号/ID</th>
                 <th className="px-6 py-4 w-[10%]">容量等级</th>
-                <th className="px-6 py-4 w-[10%]">机型</th>
+                <th className="px-6 py-4 w-[13%]">机型</th>
                 <th className="px-6 py-4 w-[10%]">启动时间</th>
                 <th className="px-6 py-4 w-[12%]">特殊属性</th>
-                <th className="px-6 py-4 w-[19%]">备注</th>
+                <th className="px-6 py-4 w-[15%]">备注</th>
                 {canEdit && <th className="px-6 py-4 w-[6%] text-right">操作</th>}
               </tr>
             </thead>
@@ -439,7 +465,9 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                     <div className="truncate" title={p.model || '-'}>{p.model || '-'}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="truncate" title={p.startDate}>{p.startDate}</div>
+                    <div className="truncate" title={p.startDate}>
+                      {p.startDate ? (p.startDate.includes('T') ? p.startDate.split('T')[0] : p.startDate) : '-'}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-xs">
                     {/* 市场配合项目：中标/外贸 */}
@@ -482,7 +510,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                   {canEdit && (
                     <td className="px-6 py-4 text-right">
                       <button onClick={() => openModal(p)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16} /></button>
-                      <button onClick={() => { if(confirm('删除项目?')) { apiDataService.deleteProject(p.id); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                      <button onClick={async () => { if(confirm('删除项目?')) { await apiDataService.deleteProject(p.id); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
                     </td>
                   )}
                 </tr>

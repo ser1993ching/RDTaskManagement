@@ -154,20 +154,21 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   const activeTaskClass = taskClasses.find(tc => tc.id === activeTaskClassId);
 
-  // Helper variables for task type detection (使用 camelCase，与后端返回格式一致)
-  const isMeeting = activeTaskClass?.code === 'MeetingTraining';
-  const isTravel = activeTaskClass?.code === 'Travel';
+  // Helper variables for task type detection (使用 lowercase，与后端返回格式一致)
+  const isMeeting = activeTaskClass?.code?.toLowerCase() === 'meetingtraining';
+  const isTravel = activeTaskClass?.code?.toLowerCase() === 'travel';
 
-  // Map task class codes to project categories (使用 camelCase)
+  // Map task class codes to project categories (使用 lowercase)
   const getProjectCategoryForTaskClass = (taskClassCode: string): ProjectCategory | null => {
-    switch (taskClassCode) {
+    const code = taskClassCode?.toLowerCase();
+    switch (code) {
       case 'market':
         return ProjectCategory.MARKET;
       case 'execution':
         return ProjectCategory.EXECUTION;
       case 'nuclear':
         return ProjectCategory.NUCLEAR;
-      case 'productDev':
+      case 'productdev':
       case 'research':
         return ProjectCategory.RESEARCH;
       case 'renovation':
@@ -181,14 +182,15 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   // Get allowed project categories for task class (some task types can relate to multiple project types)
   const getAllowedProjectCategoriesForTaskClass = (taskClassCode: string): ProjectCategory[] => {
-    switch (taskClassCode) {
+    const code = taskClassCode?.toLowerCase();
+    switch (code) {
       case 'market':
         return [ProjectCategory.MARKET];
       case 'execution':
         return [ProjectCategory.EXECUTION];
       case 'nuclear':
         return [ProjectCategory.NUCLEAR];
-      case 'productDev':
+      case 'productdev':
         // 产品研发可以关联常规项目、核电项目、科研项目、改造项目
         return [ProjectCategory.EXECUTION, ProjectCategory.NUCLEAR, ProjectCategory.RESEARCH, ProjectCategory.RENOVATION];
       case 'research':
@@ -204,8 +206,9 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
 
   // Get projects filtered by task class
   const getProjectsForTaskClass = (taskClassCode: string): Project[] => {
+    const code = taskClassCode?.toLowerCase();
     // 产品研发任务可以从常规项目、核电项目、科研项目、改造项目中获取
-    if (taskClassCode === 'productDev') {
+    if (code === 'productdev') {
       return projects.filter(p =>
         p.category === ProjectCategory.EXECUTION ||
         p.category === ProjectCategory.NUCLEAR ||
@@ -216,7 +219,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     }
 
     // 差旅任务、行政与党建任务和会议培训任务可以从所有项目中获取
-    if (taskClassCode === 'travel' || taskClassCode === 'adminParty' || taskClassCode === 'meetingTraining') {
+    if (code === 'travel' || code === 'adminparty' || code === 'meetingtraining') {
       return projects;
     }
 
@@ -359,7 +362,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     } else if (hasTravelTask) {
       headers = ['ID', '任务名称', '状态', '负责人', '截止日期'];
     } else {
-      headers = ['ID', '任务名称', '状态', '负责人', '校核人', '审查人', '截止日期'];
+      headers = ['ID', '任务名称', '状态', '负责人', '校核人', '主任设计', '关联项目', '审查人', '开始日期', '截止日期', '完成日期', '是否逾期'];
     }
 
     // 根据任务类型决定行数据
@@ -368,6 +371,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
       const assigneeName = t.assigneeName || users.find(u => u.userId === t.assigneeId)?.name || '-';
       const reviewerName = t.checkerName || users.find(u => u.userId === t.checkerId)?.name || '-';
       const reviewer2Name = t.chiefDesignerName || users.find(u => u.userId === t.chiefDesignerId)?.name || '-';
+      const approverName = t.approverName || users.find(u => u.userId === t.approverId)?.name || '-';
+      const projectName = projects.find(p => p.id === t.projectId)?.name || '-';
+
+      // 判断是否逾期
+      const isOverdue = t.dueDate && t.status !== '已完成'
+        ? (new Date(t.dueDate) < new Date())
+        : (t.completedDate && t.dueDate && new Date(t.completedDate) > new Date(t.dueDate));
 
       let baseRow;
 
@@ -390,11 +400,19 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
           t.dueDate || ''
         ];
 
-        // 如果不是差旅任务，添加校核人和审查人
+        // 如果不是差旅任务，添加校核人和主任设计
         if (t.taskClassId !== 'TC009') {
           baseRow.splice(4, 0, reviewerName);
           baseRow.splice(5, 0, reviewer2Name);
         }
+
+        // 添加额外字段：关联项目、审查人、开始日期、截止日期、完成日期、是否逾期
+        baseRow.push(projectName);
+        baseRow.push(approverName);
+        baseRow.push(t.startDate ? formatDate(t.startDate) : '-');
+        baseRow.push(t.dueDate ? formatDate(t.dueDate) : '-');
+        baseRow.push(t.completedDate ? formatDate(t.completedDate) : '-');
+        baseRow.push(t.status === '已完成' ? (isOverdue ? '是' : '否') : (isOverdue ? '是' : '否'));
       }
 
       return baseRow;
@@ -584,7 +602,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
     const taskToSave: Task = {
       ...editingTask,
       ...formData,
-      taskId: editingTask?.taskId || `TSK-${Date.now()}`,
+      taskId: editingTask?.taskId || '', // 空 taskId 表示新建，让 saveTask 判断调用 createTask
       createdDate: editingTask?.createdDate || new Date().toISOString().split('T')[0],
       createdBy: editingTask?.createdBy || currentUser.userId,
       // 明确从 formData 获取 status，确保用户修改生效
@@ -655,10 +673,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
         taskData.checkerName = reviewer.name;
       }
     }
-    if (task && task.chiefDesignerId) {
-      const reviewer2 = users.find(u => u.userId === task.chiefDesignerId);
+    if (task && task.approverId) {
+      const reviewer2 = users.find(u => u.userId === task.approverId);
       if (reviewer2) {
-        taskData.chiefDesignerName = reviewer2.name;
+        taskData.approverName = reviewer2.name;
       }
     }
 
@@ -713,23 +731,23 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 options={getProjectsForTaskClass(activeTaskClass?.code || '').map(p => p.name)}
                 onChange={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
-                  setFormData({...formData, projectId: project?.id || ''});
+                  setFormData({...formData, projectId: project?.id || '', relatedProject: value});
                   // 仅市场配合任务支持自动创建项目
-                  if (activeTaskClass?.code === 'market' && value.trim() && !project) {
+                  if (activeTaskClass?.code?.toLowerCase() === 'market' && value.trim() && !project) {
                     openProjectModal(value.trim());
                   }
                 }}
                 onSelect={(value) => {
                   const project = getProjectsForTaskClass(activeTaskClass?.code || '').find(p => p.name === value);
                   if (project) {
-                    setFormData({...formData, projectId: project.id});
+                    setFormData({...formData, projectId: project.id, relatedProject: project.name});
                   }
                 }}
                 placeholder="搜索或输入项目名称..."
                 className="w-full border rounded p-2"
               />
               {/* 仅市场配合任务显示新建项目按钮 */}
-              {activeTaskClass?.code === 'market' && (
+              {activeTaskClass?.code?.toLowerCase() === 'market' && (
                 <button
                   type="button"
                   onClick={() => openProjectModal()}
@@ -792,12 +810,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 options={getProjectsForTravelTask(formData.category || '').map(p => p.name)}
                 onChange={(value) => {
                   const project = getProjectsForTravelTask(formData.category || '').find(p => p.name === value);
-                  setFormData({...formData, projectId: project?.id || ''});
+                  setFormData({...formData, projectId: project?.id || '', relatedProject: value});
                 }}
                 onSelect={(value) => {
                   const project = getProjectsForTravelTask(formData.category || '').find(p => p.name === value);
                   if (project) {
-                    setFormData({...formData, projectId: project.id});
+                    setFormData({...formData, projectId: project.id, relatedProject: project.name});
                   }
                 }}
                 placeholder="搜索或输入项目名称..."
@@ -904,12 +922,12 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 options={projects.map(p => p.name)}
                 onChange={(value) => {
                   const project = projects.find(p => p.name === value);
-                  setFormData({...formData, projectId: project?.id || ''});
+                  setFormData({...formData, projectId: project?.id || '', relatedProject: value});
                 }}
                 onSelect={(value) => {
                   const project = projects.find(p => p.name === value);
                   if (project) {
-                    setFormData({...formData, projectId: project.id});
+                    setFormData({...formData, projectId: project.id, relatedProject: project.name});
                   }
                 }}
                 placeholder="搜索或输入项目名称..."
@@ -973,20 +991,20 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                 <label className="block text-sm font-medium mb-1">审查人</label>
                 <AutocompleteInput
                   id="reviewer2-autocomplete"
-                  value={users.find(u => u.userId === formData.chiefDesignerId)?.name || formData.chiefDesignerName || ''}
+                  value={users.find(u => u.userId === formData.approverId)?.name || formData.approverName || ''}
                   options={users.filter(u => u.status !== '离岗' && u.userId !== 'admin').map(u => u.name)}
                   onChange={(value) => {
                     const user = users.find(u => u.name === value && u.status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, chiefDesignerId: user.userId, chiefDesignerName: user.name});
+                      setFormData({...formData, approverId: user.userId, approverName: user.name});
                     } else {
-                      setFormData({...formData, chiefDesignerId: '', chiefDesignerName: value});
+                      setFormData({...formData, approverId: '', approverName: value});
                     }
                   }}
                   onSelect={(value) => {
                     const user = users.find(u => u.name === value && u.status !== '离岗' && u.userId !== 'admin');
                     if (user) {
-                      setFormData({...formData, chiefDesignerId: user.userId, chiefDesignerName: user.name});
+                      setFormData({...formData, approverId: user.userId, approverName: user.name});
                     }
                   }}
                   placeholder="搜索或输入审查人姓名..."
@@ -1041,7 +1059,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
               <div>
                 <label className="block text-sm font-medium mb-1">审查人工时(h)</label>
                 <input type="number" step="0.5" className="w-full border rounded p-2"
-                  value={formData.chiefDesignerWorkload || ''} onChange={e => setFormData({...formData, chiefDesignerWorkload: parseFloat(e.target.value)})} />
+                  value={formData.approverWorkload || ''} onChange={e => setFormData({...formData, approverWorkload: parseFloat(e.target.value)})} />
               </div>
             </div>
           </div>
@@ -1570,7 +1588,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <td className="px-6 py-4 text-slate-500">{t.participants?.length || 0}人</td>
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
-                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                      <button onClick={async () => { if(confirm('删除任务?')) { await apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                     </td>
                   </tr>
                 ))}
@@ -1617,7 +1635,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <td className="px-6 py-4 text-slate-500">{t.travelDuration ? `${t.travelDuration}天` : '-'}</td>
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
-                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                      <button onClick={async () => { if(confirm('删除任务?')) { await apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                     </td>
                   </tr>
                 ))}
@@ -1678,7 +1696,7 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                     <td className="px-6 py-4 text-slate-500">{formatDate(t.dueDate)}</td>
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openModal(t)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16}/></button>
-                      <button onClick={() => { if(confirm('删除任务?')) { apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
+                      <button onClick={async () => { if(confirm('删除任务?')) { await apiDataService.deleteTask(t.taskId); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                     </td>
                   </tr>
                 ))}

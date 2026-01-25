@@ -18,6 +18,29 @@ public class TaskService : ITaskService
     private readonly IMapper _mapper;
     private static readonly List<TaskItem> DefaultTasks = new();
 
+    // 会议培训任务类别ID
+    private const string MeetingTrainingTaskClassId = "TC007";
+    // 差旅任务类别ID
+    private const string TravelTaskClassId = "TC009";
+
+    // 缓存 RoleStatus 枚举的 Display Name 映射，避免每次反射
+    private static readonly Dictionary<string, RoleStatus> RoleStatusMap;
+
+    static TaskService()
+    {
+        RoleStatusMap = new Dictionary<string, RoleStatus>(StringComparer.Ordinal);
+        foreach (RoleStatus s in Enum.GetValues(typeof(RoleStatus)))
+        {
+            var displayAttr = s.GetType().GetField(s.ToString())?
+                .GetCustomAttributes(typeof(DisplayAttribute), false)
+                .FirstOrDefault() as DisplayAttribute;
+            if (displayAttr?.Name != null)
+            {
+                RoleStatusMap[displayAttr.Name] = s;
+            }
+        }
+    }
+
     public TaskService(ITaskRepository? taskRepository, IMapper mapper)
     {
         _taskRepository = taskRepository;
@@ -35,6 +58,28 @@ public class TaskService : ITaskService
         catch
         {
             return new List<string>();
+        }
+    }
+
+    /// <summary>
+    /// 判断是否为会议培训或差旅任务
+    /// </summary>
+    private bool IsMeetingOrTravelTask(string taskClassId)
+    {
+        return taskClassId == MeetingTrainingTaskClassId || taskClassId == TravelTaskClassId;
+    }
+
+    /// <summary>
+    /// 清除会议培训或差旅任务的非负责人角色字段
+    /// 会议培训任务(TC007)和差旅任务(TC009)只能分配负责人
+    /// </summary>
+    private void ClearNonAssigneeFieldsForMeetingOrTravelTask(CreateTaskRequest request)
+    {
+        if (IsMeetingOrTravelTask(request.TaskClassID))
+        {
+            request.CheckerID = null;
+            request.ChiefDesignerID = null;
+            request.ApproverID = null;
         }
     }
 
@@ -116,26 +161,49 @@ public class TaskService : ITaskService
 
     public async Task<TaskDto> CreateTaskAsync(CreateTaskRequest request)
     {
+        // 会议培训或差旅任务：清除非负责人角色字段
+        ClearNonAssigneeFieldsForMeetingOrTravelTask(request);
+
+        // 判断是否为会议培训或差旅任务
+        bool isMeetingOrTravel = IsMeetingOrTravelTask(request.TaskClassID);
+
         if (_taskRepository == null)
         {
             var task = _mapper.Map<TaskItem>(request);
             task.TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
-            task.Status = Domain.Enums.TaskStatus.NotStarted;
+            // 会议培训或差旅任务自动设置为已完成状态
+            task.Status = isMeetingOrTravel ? Domain.Enums.TaskStatus.Completed : Domain.Enums.TaskStatus.NotStarted;
             task.CreatedDate = DateTime.UtcNow;
+            // 会议培训或差旅任务自动设置负责人完成状态和完成时间
+            if (isMeetingOrTravel)
+            {
+                task.AssigneeStatus = RoleStatus.Completed;
+                task.CompletedDate = DateTime.UtcNow;
+            }
             DefaultTasks.Add(task);
             return _mapper.Map<TaskDto>(task);
         }
 
         var dbTask = _mapper.Map<TaskItem>(request);
         dbTask.TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
-        dbTask.Status = Domain.Enums.TaskStatus.NotStarted;
+        // 会议培训或差旅任务自动设置为已完成状态
+        dbTask.Status = isMeetingOrTravel ? Domain.Enums.TaskStatus.Completed : Domain.Enums.TaskStatus.NotStarted;
         dbTask.CreatedDate = DateTime.UtcNow;
+        // 会议培训或差旅任务自动设置负责人完成状态和完成时间
+        if (isMeetingOrTravel)
+        {
+            dbTask.AssigneeStatus = RoleStatus.Completed;
+            dbTask.CompletedDate = DateTime.UtcNow;
+        }
         dbTask = await _taskRepository.CreateAsync(dbTask);
         return _mapper.Map<TaskDto>(dbTask);
     }
 
     public async Task<TaskDto> UpdateTaskAsync(string taskId, CreateTaskRequest request)
     {
+        // 会议培训或差旅任务：清除非负责人角色字段
+        ClearNonAssigneeFieldsForMeetingOrTravelTask(request);
+
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
@@ -249,22 +317,44 @@ public class TaskService : ITaskService
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        if (Enum.TryParse<RoleStatus>(request.Status, ignoreCase: true, out var status))
+        // 使用缓存的映射进行匹配，避免每次反射
+        var matched = RoleStatusMap.TryGetValue(request.Status, out var newStatus);
+        if (!matched)
+        {
+            newStatus = RoleStatus.NotStarted;
+        }
+
+        if (matched)
         {
             switch (request.Role.ToLower())
             {
                 case "assignee":
-                    task.AssigneeStatus = status;
+                    task.AssigneeStatus = newStatus;
                     break;
                 case "checker":
-                    task.CheckerStatus = status;
+                    task.CheckerStatus = newStatus;
                     break;
                 case "chiefdesigner":
-                    task.ChiefDesignerStatus = status;
+                    task.ChiefDesignerStatus = newStatus;
                     break;
                 case "approver":
-                    task.ApproverStatus = status;
+                    task.ApproverStatus = newStatus;
                     break;
+            }
+
+            // 如果所有角色状态都是已完成，更新全局任务状态
+            // 对于会议/差旅任务，只需负责人完成即可
+            bool allRolesCompleted = IsMeetingOrTravelTask(task.TaskClassID)
+                ? task.AssigneeStatus == RoleStatus.Completed
+                : task.AssigneeStatus == RoleStatus.Completed &&
+                  task.CheckerStatus == RoleStatus.Completed &&
+                  task.ChiefDesignerStatus == RoleStatus.Completed &&
+                  task.ApproverStatus == RoleStatus.Completed;
+
+            if (allRolesCompleted)
+            {
+                task.Status = Domain.Enums.TaskStatus.Completed;
+                task.CompletedDate = DateTime.UtcNow;
             }
         }
 
@@ -286,10 +376,20 @@ public class TaskService : ITaskService
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        task.AssigneeStatus = RoleStatus.Completed;
-        task.CheckerStatus = RoleStatus.Completed;
-        task.ChiefDesignerStatus = RoleStatus.Completed;
-        task.ApproverStatus = RoleStatus.Completed;
+        // 会议培训或差旅任务：只设置负责人状态
+        if (IsMeetingOrTravelTask(task.TaskClassID))
+        {
+            task.AssigneeStatus = RoleStatus.Completed;
+        }
+        else
+        {
+            // 普通任务：设置所有角色状态
+            task.AssigneeStatus = RoleStatus.Completed;
+            task.CheckerStatus = RoleStatus.Completed;
+            task.ChiefDesignerStatus = RoleStatus.Completed;
+            task.ApproverStatus = RoleStatus.Completed;
+        }
+
         task.Status = Domain.Enums.TaskStatus.Completed;
         task.CompletedDate = DateTime.UtcNow;
 
@@ -347,22 +447,45 @@ public class TaskService : ITaskService
             }
             catch
             {
-                tasks = DefaultTasks.Where(t => t.AssigneeID == userId).ToList();
+                tasks = DefaultTasks.Where(t => t.AssigneeID == userId && !t.IsDeleted).ToList();
             }
         }
         else
         {
-            tasks = DefaultTasks.Where(t => t.AssigneeID == userId).ToList();
+            tasks = DefaultTasks.Where(t => t.AssigneeID == userId && !t.IsDeleted).ToList();
         }
+
+        // 已完成：全局状态为已完成
+        // 对于会议/差旅任务，完成条件是 AssigneeStatus == Completed
+        // 对于普通任务，任一角色状态为已完成即算完成
+        var completedTasks = tasks.Where(t =>
+            t.Status == Domain.Enums.TaskStatus.Completed ||
+            (IsMeetingOrTravelTask(t.TaskClassID) && t.AssigneeStatus == RoleStatus.Completed) ||
+            (!IsMeetingOrTravelTask(t.TaskClassID) &&
+                (t.AssigneeStatus == RoleStatus.Completed ||
+                 t.CheckerStatus == RoleStatus.Completed ||
+                 t.ChiefDesignerStatus == RoleStatus.Completed ||
+                 t.ApproverStatus == RoleStatus.Completed))).ToList();
+
+        // 进行中：全局状态为 Drafting/Revising，或任一角色状态为进行中/修改中/已驳回，且不在已完成中
+        var inProgressTasks = tasks.Where(t =>
+            !completedTasks.Contains(t) && (
+            t.Status == Domain.Enums.TaskStatus.Drafting || t.Status == Domain.Enums.TaskStatus.Revising ||
+            t.AssigneeStatus == RoleStatus.InProgress || t.AssigneeStatus == RoleStatus.Revising || t.AssigneeStatus == RoleStatus.Rejected ||
+            t.CheckerStatus == RoleStatus.InProgress || t.CheckerStatus == RoleStatus.Revising || t.CheckerStatus == RoleStatus.Rejected ||
+            t.ChiefDesignerStatus == RoleStatus.InProgress || t.ChiefDesignerStatus == RoleStatus.Revising || t.ChiefDesignerStatus == RoleStatus.Rejected ||
+            t.ApproverStatus == RoleStatus.InProgress || t.ApproverStatus == RoleStatus.Revising || t.ApproverStatus == RoleStatus.Rejected)).ToList();
+
+        // 未开始：剩下的任务（全局状态为 NotStarted，且所有角色状态都不是进行中/已完成）
+        var pendingTasks = tasks.Where(t =>
+            !completedTasks.Contains(t) &&
+            !inProgressTasks.Contains(t)).ToList();
 
         var response = new PersonalTasksResponse
         {
-            InProgress = _mapper.Map<List<TaskDto>>(tasks.Where(t =>
-                t.Status == Domain.Enums.TaskStatus.Drafting || t.Status == Domain.Enums.TaskStatus.Revising ||
-                t.AssigneeStatus == RoleStatus.InProgress || t.CheckerStatus == RoleStatus.InProgress ||
-                t.ChiefDesignerStatus == RoleStatus.InProgress || t.ApproverStatus == RoleStatus.InProgress)),
-            Pending = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.NotStarted)),
-            Completed = _mapper.Map<List<TaskDto>>(tasks.Where(t => t.Status == Domain.Enums.TaskStatus.Completed))
+            InProgress = _mapper.Map<List<TaskDto>>(inProgressTasks),
+            Pending = _mapper.Map<List<TaskDto>>(pendingTasks),
+            Completed = _mapper.Map<List<TaskDto>>(completedTasks)
         };
 
         return response;
@@ -380,12 +503,12 @@ public class TaskService : ITaskService
             }
             catch
             {
-                tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC009").ToList();
+                tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC009" && !t.IsDeleted).ToList();
             }
         }
         else
         {
-            tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC009").ToList();
+            tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC009" && !t.IsDeleted).ToList();
         }
 
         var totalDays = tasks.Sum(t => t.TravelDuration ?? 0);
@@ -409,12 +532,12 @@ public class TaskService : ITaskService
             }
             catch
             {
-                tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC007").ToList();
+                tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC007" && !t.IsDeleted).ToList();
             }
         }
         else
         {
-            tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC007").ToList();
+            tasks = DefaultTasks.Where(t => t.AssigneeID == userId && t.TaskClassID == "TC007" && !t.IsDeleted).ToList();
         }
 
         var totalHours = tasks.Sum(t => t.MeetingDuration ?? 0);

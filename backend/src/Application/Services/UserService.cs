@@ -1,5 +1,7 @@
 using AutoMapper;
 using BCrypt.Net;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Users;
 using TaskManageSystem.Application.Interfaces;
@@ -28,6 +30,30 @@ public class UserService : IUserService
             cfg.CreateMap<UpdateUserRequest, User>();
         });
         _mapper = config.CreateMapper();
+    }
+
+    /// <summary>
+    /// 根据 Display(Name) 属性值解析枚举
+    /// </summary>
+    private static TEnum? ParseEnumByDisplayName<TEnum>(string? displayName) where TEnum : struct, Enum
+    {
+        if (string.IsNullOrEmpty(displayName)) return null;
+
+        foreach (TEnum value in Enum.GetValues<TEnum>())
+        {
+            var field = value.GetType().GetField(value.ToString());
+            var attr = field?.GetCustomAttribute<DisplayAttribute>();
+            if (attr?.Name == displayName)
+            {
+                return value;
+            }
+        }
+
+        // 如果找不到匹配，尝试直接解析（兼容英文值）
+        if (Enum.TryParse<TEnum>(displayName, ignoreCase: true, out var result))
+            return result;
+
+        return null;
     }
 
     public async Task<PaginatedResponse<UserDto>> GetUsersAsync(UserQueryParams query)
@@ -76,7 +102,26 @@ public class UserService : IUserService
 
     public async Task<UserDto> CreateUserAsync(CreateUserRequest request)
     {
-        var user = _mapper.Map<User>(request);
+        var user = new User { UserID = request.UserID };
+
+        // 使用根据 Display Name 解析枚举的方法
+        var systemRole = ParseEnumByDisplayName<SystemRole>(request.SystemRole);
+        user.SystemRole = systemRole ?? SystemRole.Member;
+
+        var officeLocation = ParseEnumByDisplayName<OfficeLocation>(request.OfficeLocation);
+        user.OfficeLocation = officeLocation ?? OfficeLocation.Chengdu;
+
+        var status = ParseEnumByDisplayName<PersonnelStatus>(request.Status);
+        user.Status = status ?? PersonnelStatus.Active;
+
+        // 设置其他属性
+        user.Name = request.Name;
+        user.Title = request.Title;
+        user.JoinDate = request.JoinDate;
+        user.Education = request.Education;
+        user.School = request.School;
+        user.Remark = request.Remark;
+
         if (!string.IsNullOrEmpty(request.Password))
         {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -85,6 +130,7 @@ public class UserService : IUserService
         {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123");
         }
+
         user = await _userRepository.CreateAsync(user);
         return _mapper.Map<UserDto>(user);
     }
@@ -94,7 +140,24 @@ public class UserService : IUserService
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) throw new KeyNotFoundException($"User {userId} not found");
 
-        _mapper.Map(request, user);
+        // 使用根据 Display Name 解析枚举的方法
+        var systemRole = ParseEnumByDisplayName<SystemRole>(request.SystemRole);
+        if (systemRole.HasValue) user.SystemRole = systemRole.Value;
+
+        var officeLocation = ParseEnumByDisplayName<OfficeLocation>(request.OfficeLocation);
+        if (officeLocation.HasValue) user.OfficeLocation = officeLocation.Value;
+
+        var status = ParseEnumByDisplayName<PersonnelStatus>(request.Status);
+        if (status.HasValue) user.Status = status.Value;
+
+        // 处理其他属性
+        if (!string.IsNullOrEmpty(request.Name)) user.Name = request.Name;
+        if (!string.IsNullOrEmpty(request.Title)) user.Title = request.Title;
+        if (!string.IsNullOrEmpty(request.Education)) user.Education = request.Education;
+        if (!string.IsNullOrEmpty(request.School)) user.School = request.School;
+        if (!string.IsNullOrEmpty(request.Remark)) user.Remark = request.Remark;
+        if (request.JoinDate.HasValue) user.JoinDate = request.JoinDate;
+
         user = await _userRepository.UpdateAsync(user);
 
         return _mapper.Map<UserDto>(user);

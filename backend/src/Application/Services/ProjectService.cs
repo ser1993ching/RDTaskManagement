@@ -115,15 +115,42 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectDto> CreateProjectAsync(CreateProjectRequest request)
     {
+        var project = new Project();
+
+        // 手动处理 Category 枚举转换
+        if (!string.IsNullOrEmpty(request.Category))
+        {
+            if (Enum.TryParse<ProjectCategory>(request.Category, out var category))
+                project.Category = category;
+            else
+                project.Category = ProjectCategory.Execution;
+        }
+        else
+        {
+            project.Category = ProjectCategory.Execution;
+        }
+
+        // 设置其他属性
+        project.Name = request.Name;
+        project.WorkNo = request.WorkNo;
+        project.Capacity = request.Capacity;
+        project.Model = request.Model;
+        project.StartDate = request.StartDate;
+        project.EndDate = request.EndDate;
+        project.Remark = request.Remark;
+        project.IsKeyProject = request.IsKeyProject;
+        project.IsWon = request.IsWon;
+        project.IsForeign = request.IsForeign;
+        project.IsCommissioned = request.IsCommissioned;
+        project.IsCompleted = request.IsCompleted;
+
         if (_projectRepository == null)
         {
-            var project = _mapper.Map<Project>(request);
             project.Id = $"PRJ{(DefaultProjects.Count + 1):D3}";
             DefaultProjects.Add(project);
             return _mapper.Map<ProjectDto>(project);
         }
 
-        var dbProject = _mapper.Map<Project>(request);
         // 手动分配ID，确保与数据库中的种子数据不冲突
         var maxId = await _projectRepository.GetMaxProjectIdAsync();
         var counter = 1;
@@ -135,9 +162,9 @@ public class ProjectService : IProjectService
                 counter = num + 1;
             }
         }
-        dbProject.Id = $"PRJ{counter:D3}";
-        dbProject = await _projectRepository.CreateAsync(dbProject);
-        return _mapper.Map<ProjectDto>(dbProject);
+        project.Id = $"PRJ{counter:D3}";
+        project = await _projectRepository.CreateAsync(project);
+        return _mapper.Map<ProjectDto>(project);
     }
 
     public async Task<ProjectDto> UpdateProjectAsync(string id, UpdateProjectRequest request)
@@ -145,7 +172,27 @@ public class ProjectService : IProjectService
         var project = await GetProjectEntityByIdAsync(id);
         if (project == null) throw new KeyNotFoundException($"Project {id} not found");
 
-        _mapper.Map(request, project);
+        // 手动处理 Category 枚举转换
+        if (!string.IsNullOrEmpty(request.Category))
+        {
+            if (Enum.TryParse<ProjectCategory>(request.Category, out var category))
+                project.Category = category;
+        }
+
+        // 更新其他属性
+        if (!string.IsNullOrEmpty(request.Name)) project.Name = request.Name;
+        if (!string.IsNullOrEmpty(request.WorkNo)) project.WorkNo = request.WorkNo;
+        if (!string.IsNullOrEmpty(request.Capacity)) project.Capacity = request.Capacity;
+        if (!string.IsNullOrEmpty(request.Model)) project.Model = request.Model;
+        if (!string.IsNullOrEmpty(request.Remark)) project.Remark = request.Remark;
+        if (request.StartDate.HasValue) project.StartDate = request.StartDate.Value;
+        if (request.EndDate.HasValue) project.EndDate = request.EndDate.Value;
+        // 使用 HasValue 判断属性是否在请求中发送了
+        if (request.IsKeyProject.HasValue) project.IsKeyProject = request.IsKeyProject.Value;
+        if (request.IsWon.HasValue) project.IsWon = request.IsWon.Value;
+        if (request.IsForeign.HasValue) project.IsForeign = request.IsForeign.Value;
+        if (request.IsCommissioned.HasValue) project.IsCommissioned = request.IsCommissioned.Value;
+        if (request.IsCompleted.HasValue) project.IsCompleted = request.IsCompleted.Value;
 
         if (_projectRepository != null)
         {

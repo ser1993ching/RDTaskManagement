@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TaskPoolItem, TaskClass, User, Project, Task, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Edit2, Trash2, User as UserIcon, Calendar, X, CheckCircle, FolderOpen, Copy } from 'lucide-react';
 import { apiDataService } from '../services/apiDataService';
+import { cn } from '@/utils/classnames';
+import { useTaskCategories, useTaskClasses } from '../context/ConfigContext';
 import AutocompleteInput from './AutocompleteInput';
 
 interface TaskPoolViewProps {
@@ -27,8 +29,11 @@ const formatDate = (dateStr: string | undefined | null): string => {
 };
 
 export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, projects, users, onRefresh }) => {
+  // 从全局配置获取数据
+  const { taskCategories } = useTaskCategories();
+  const { taskClasses: globalTaskClasses, refreshTaskClasses } = useTaskClasses();
+
   const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
-  const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
   const [poolItems, setPoolItems] = useState<TaskPoolItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -50,8 +55,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
   // Load task classes on mount
   useEffect(() => {
     const loadData = async () => {
-      const classes = await apiDataService.getTaskClasses();
-      const filteredClasses = classes.filter((tc: any) => ALLOWED_TASK_CLASS_IDS.includes(tc.id));
+      // 过滤允许的任务类别
+      const filteredClasses = globalTaskClasses.filter((tc: any) => ALLOWED_TASK_CLASS_IDS.includes(tc.id));
       setTaskClasses(filteredClasses.map((tc: any) => ({
         id: tc.id,
         name: tc.name,
@@ -61,13 +66,13 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
         isDeleted: false,
       })));
 
-      const categories = await apiDataService.getTaskCategories();
-      setTaskCategories(categories);
-
       await loadPoolItems();
     };
-    loadData();
-  }, []);
+
+    if (globalTaskClasses.length > 0) {
+      loadData();
+    }
+  }, [globalTaskClasses]);
 
   // Load pool items (sorted by CreatedDate descending - newest first)
   const loadPoolItems = async () => {
@@ -81,19 +86,37 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
   const activeTaskClass = taskClasses.find(tc => tc.id === formData.taskClassId);
 
   // Get categories for selected task class
+  // 参考 TaskView.tsx 的实现，使用多种 key 格式匹配
   const getCategoriesForTaskClass = (taskClassCode: string): string[] => {
+    // API返回的categories key是PascalCase格式: Market, Execution, ProductDev, etc.
     const codeMap: Record<string, string> = {
-      'TC001': 'MARKET',
-      'TC002': 'EXECUTION',
-      'TC003': 'NUCLEAR',
-      'TC004': 'PRODUCT_DEV',
-      'TC005': 'RESEARCH',
-      'TC006': 'RENOVATION',
-      'TC008': 'ADMIN_PARTY',
-      'TC010': 'OTHER'
+      'TC001': 'Market',
+      'TC002': 'Execution',
+      'TC003': 'Nuclear',
+      'TC004': 'ProductDev',
+      'TC005': 'Research',
+      'TC006': 'Renovation',
+      'TC008': 'AdminParty',
+      'TC010': 'Other'
     };
     const categoryCode = codeMap[taskClassCode];
-    return categoryCode ? (taskCategories[categoryCode] || []) : [];
+    if (!categoryCode) return [];
+
+    // 尝试多种key格式匹配API返回的数据
+    const keyVariants = [
+      categoryCode,  // PascalCase (如 Market) - API返回的格式
+      categoryCode.toLowerCase(),  // lowercase (如 market)
+      categoryCode.toUpperCase(),  // UPPERCASE (如 MARKET)
+    ];
+
+    // 查找 API 数据
+    for (const key of keyVariants) {
+      if (taskCategories[key] && taskCategories[key].length > 0) {
+        return taskCategories[key];
+      }
+    }
+
+    return [];
   };
 
   // Get projects for task class
@@ -162,16 +185,16 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     setEditingItem(null);
     setFormData({
       taskName: '',
-      TaskClassID: taskClasses[0]?.id || '',
-      Category: '',
-      ProjectID: '',
-      ProjectName: '',
-      PersonInChargeID: '',
-      PersonInChargeName: '',
+      taskClassId: taskClasses[0]?.id || '',
+      category: '',
+      projectId: '',
+      projectName: '',
+      personInChargeId: '',
+      personInChargeName: '',
       reviewerId: '',
       reviewerName: '',
-      ReviewerID2: '',
-      Reviewer2Name: '',
+      reviewerId2: '',
+      reviewer2Name: '',
       startDate: '',
       dueDate: '',
       isForceAssessment: false,
@@ -184,7 +207,21 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
   const handleOpenEditModal = (item: TaskPoolItem) => {
     setEditingItem(item);
     setFormData({
-      ...item
+      taskName: item.taskName,
+      taskClassId: item.taskClassId,
+      category: item.category || '',
+      projectId: item.projectId || '',
+      projectName: item.projectName || '',
+      personInChargeId: item.personInChargeId || '',
+      personInChargeName: item.personInChargeName || '',
+      reviewerId: item.checkerId || '',
+      reviewerName: item.checkerName || '',
+      reviewerId2: item.chiefDesignerId || '',
+      reviewer2Name: item.chiefDesignerName || '',
+      startDate: item.startDate || '',
+      dueDate: item.dueDate || '',
+      isForceAssessment: item.isForceAssessment || false,
+      remark: item.remark || ''
     });
     setIsModalOpen(true);
   };
@@ -193,9 +230,21 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
   const handleOpenCopyModal = (item: TaskPoolItem) => {
     setEditingItem(null);
     setFormData({
-      ...item,
-      id: apiDataService.generateId('TP'),
-      createdDate: new Date().toISOString().split('T')[0]
+      taskName: item.taskName,
+      taskClassId: item.taskClassId,
+      category: item.category || '',
+      projectId: item.projectId || '',
+      projectName: item.projectName || '',
+      personInChargeId: item.personInChargeId || '',
+      personInChargeName: item.personInChargeName || '',
+      reviewerId: item.checkerId || '',
+      reviewerName: item.checkerName || '',
+      reviewerId2: item.chiefDesignerId || '',
+      reviewer2Name: item.chiefDesignerName || '',
+      startDate: item.startDate || '',
+      dueDate: item.dueDate || '',
+      isForceAssessment: item.isForceAssessment || false,
+      remark: item.remark || ''
     });
     setIsModalOpen(true);
   };
@@ -205,24 +254,24 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
     setAssigningItem(item);
     setOriginalPoolTaskName(item.taskName);
     setAssignFormData({
-      TaskName: item.taskName,
-      TaskClassID: item.TaskClassID,
-      Category: item.Category,
-      ProjectID: item.projectId || '',
-      ProjectName: item.ProjectName || '',
+      taskName: item.taskName,
+      taskClassId: item.taskClassId,
+      category: item.category || '',
+      projectId: item.projectId || '',
+      projectName: item.projectName || '',
       assigneeId: item.personInChargeId || '',
       assigneeName: item.personInChargeName || '',
-      reviewerId: item.reviewerId || '',
-      reviewerId2: item.reviewerId2 || '',
-      reviewerName: item.reviewerName || '',
-      reviewer2Name: item.reviewer2Name || '',
+      reviewerId: item.checkerId || '',
+      reviewerName: item.checkerName || '',
+      approverId: item.chiefDesignerId || '',
+      approverName: item.chiefDesignerName || '',
       reviewerWorkload: undefined,
-      reviewer2Workload: undefined,
+      approverWorkload: undefined,
       startDate: item.startDate || '',
       dueDate: item.dueDate || '',
       workload: undefined,
       isForceAssessment: false,
-      remark: item.Remark || ''
+      remark: item.remark || ''
     });
     setIsAssignModalOpen(true);
   };
@@ -255,7 +304,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       if (projName && category) {
         setFormData(prev => ({
           ...prev,
-          TaskName: `${projName}-${category}`
+          taskName: `${projName}-${category}`
         }));
       }
     }
@@ -270,24 +319,25 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
 
     const item: any = {
       id: editingItem?.id || apiDataService.generateId('TP'),
-      TaskName: formData.taskName,
-      TaskClassID: formData.taskClassId,
-      Category: formData.category || '',
-      ProjectID: formData.projectId,
-      ProjectName: formData.projectId ? getProjectName(formData.projectId) : undefined,
-      PersonInChargeID: formData.PersonInChargeID,
-      PersonInChargeName: formData.PersonInChargeName,
-      reviewerId: formData.reviewerId,
-      ReviewerID2: formData.reviewerId2,
-      reviewerName: formData.ReviewerName,
-      Reviewer2Name: formData.Reviewer2Name,
-      startDate: formData.StartDate,
-      dueDate: formData.DueDate,
+      taskName: formData.taskName,
+      taskClassId: formData.taskClassId,
+      category: formData.category || '',
+      projectId: formData.projectId,
+      projectName: formData.projectId ? getProjectName(formData.projectId) : undefined,
+      personInChargeId: formData.personInChargeId,
+      personInChargeName: formData.personInChargeName,
+      checkerId: formData.reviewerId,
+      checkerName: formData.reviewerName,
+      chiefDesignerId: formData.reviewerId2,
+      chiefDesignerName: formData.reviewer2Name,
+      // 修复：日期为空时发送null而不是空字符串
+      startDate: formData.startDate && formData.startDate.trim() ? formData.startDate : null,
+      dueDate: formData.dueDate && formData.dueDate.trim() ? formData.dueDate : null,
       createdBy: editingItem?.createdBy || currentUser.userId,
       createdByName: editingItem?.createdByName || currentUser.name,
-      createdDate: editingItem?.CreatedDate || new Date().toISOString().split('T')[0],
+      createdDate: editingItem?.createdDate || new Date().toISOString().split('T')[0],
       isForceAssessment: formData.isForceAssessment || false,
-      remark: formData.Remark,
+      remark: formData.remark,
     };
 
     if (editingItem?.id) {
@@ -315,12 +365,12 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
   const handleAssign = async () => {
     if (!assigningItem) return;
 
-    if (!assignFormData.AssigneeID && !assignFormData.AssigneeName) {
+    if (!assignFormData.assigneeId && !assignFormData.assigneeName) {
       alert('请选择负责人或输入负责人姓名');
       return;
     }
 
-    if (!assignFormData.TaskName) {
+    if (!assignFormData.taskName) {
       alert('请填写任务名称');
       return;
     }
@@ -361,7 +411,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       return false;
     }
     // Project name filter
-    if (filters.projectName && !item.ProjectName?.toLowerCase().includes(filters.projectName.toLowerCase())) {
+    if (filters.projectName && !item.projectName?.toLowerCase().includes(filters.projectName.toLowerCase())) {
       return false;
     }
     // Person in charge filter
@@ -373,11 +423,11 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
       return false;
     }
     // Start date from filter
-    if (filters.startDateFrom && item.StartDate && item.StartDate < filters.startDateFrom) {
+    if (filters.startDateFrom && item.startDate && item.startDate < filters.startDateFrom) {
       return false;
     }
     // Start date to filter
-    if (filters.startDateTo && item.StartDate && item.StartDate > filters.startDateTo) {
+    if (filters.startDateTo && item.startDate && item.startDate > filters.startDateTo) {
       return false;
     }
     // Force assessment filter
@@ -413,8 +463,14 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
         <input type="checkbox" className="hidden" checked={checked === true} onChange={e => {
           onChange(e.target.checked ? true : '');
         }} />
-        <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${checked === true ? 'bg-blue-600' : 'bg-slate-300'}`}>
-          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked === true ? 'translate-x-6' : 'translate-x-0'}`}></span>
+        <span className={cn(
+          'relative inline-block w-12 h-6 rounded-full transition-colors',
+          checked === true ? 'bg-blue-600' : 'bg-slate-300'
+        )}>
+          <span className={cn(
+            'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+            checked === true ? 'translate-x-6' : 'translate-x-0'
+          )}></span>
         </span>
         <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
       </label>
@@ -537,7 +593,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredPoolItems
-                .sort((a, b) => new Date(b.CreatedDate).getTime() - new Date(a.CreatedDate).getTime())
+                .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())
                 .map(item => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">
@@ -548,14 +604,14 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                      {getTaskClassName(item.TaskClassID)} - {item.Category}
+                      {getTaskClassName(item.taskClassId)} - {item.category}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{item.ProjectName || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{item.projectName || '-'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{item.personInChargeName || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{item.ReviewerName || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.StartDate)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.DueDate)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{item.checkerName || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.startDate)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.dueDate)}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{item.createdByName || '-'}</td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
@@ -617,7 +673,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <input
                     type="text"
                     value={formData.taskName || ''}
-                    onChange={e => setFormData({ ...formData, TaskName: e.target.value })}
+                    onChange={e => setFormData({ ...formData, taskName: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="请输入任务名称"
                   />
@@ -630,8 +686,14 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       checked={formData.isForceAssessment || false}
                       onChange={e => setFormData({ ...formData, isForceAssessment: e.target.checked })}
                     />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
                   </label>
@@ -650,7 +712,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       const tcId = e.target.value;
                       setFormData({
                         ...formData,
-                        TaskClassID: tcId,
+                        taskClassId: tcId,
                         Category: '',
                         ProjectID: '',
                         ProjectName: ''
@@ -667,7 +729,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">二级分类</label>
                   <select
                     value={formData.category || ''}
-                    onChange={e => setFormData({ ...formData, Category: e.target.value })}
+                    onChange={e => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">请选择</option>
@@ -686,8 +748,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       const project = getFilteredProjects(formData.taskClassId || '').find(p => p.name === value);
                       setFormData({
                         ...formData,
-                        ProjectID: project?.id || '',
-                        ProjectName: value
+                        projectId: project?.id || '',
+                        projectName: value
                       });
                     }}
                     onSelect={(value) => {
@@ -695,8 +757,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       if (project) {
                         setFormData({
                           ...formData,
-                          ProjectID: project.id,
-                          ProjectName: project.name
+                          projectId: project.id,
+                          projectName: project.name
                         });
                       }
                     }}
@@ -712,21 +774,21 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">负责人</label>
                   <AutocompleteInput
                     id="pool-person-in-charge-autocomplete"
-                    value={formData.PersonInChargeName || ''}
+                    value={formData.personInChargeName || ''}
                     options={getAvailableUsers().map(u => u.name)}
                     onChange={(value) => {
                       const user = getAvailableUsers().find(u => u.name === value);
                       if (user) {
                         setFormData({
                           ...formData,
-                          PersonInChargeID: user.userId,
-                          PersonInChargeName: user.name
+                          personInChargeId: user.userId,
+                          personInChargeName: user.name
                         });
                       } else {
                         setFormData({
                           ...formData,
-                          PersonInChargeID: '',
-                          PersonInChargeName: value
+                          personInChargeId: '',
+                          personInChargeName: value
                         });
                       }
                     }}
@@ -735,8 +797,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       if (user) {
                         setFormData({
                           ...formData,
-                          PersonInChargeID: user.userId,
-                          PersonInChargeName: user.name
+                          personInChargeId: user.userId,
+                          personInChargeName: user.name
                         });
                       }
                     }}
@@ -748,7 +810,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">校核人</label>
                   <AutocompleteInput
                     id="pool-reviewer-autocomplete"
-                    value={formData.ReviewerName || ''}
+                    value={formData.reviewerName || ''}
                     options={getAvailableUsers().map(u => u.name)}
                     onChange={(value) => {
                       const user = getAvailableUsers().find(u => u.name === value);
@@ -784,21 +846,21 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">审查人</label>
                   <AutocompleteInput
                     id="pool-reviewer2-autocomplete"
-                    value={formData.Reviewer2Name || ''}
+                    value={formData.reviewer2Name || ''}
                     options={getAvailableUsers().map(u => u.name)}
                     onChange={(value) => {
                       const user = getAvailableUsers().find(u => u.name === value);
                       if (user) {
                         setFormData({
                           ...formData,
-                          ReviewerID2: user.userId,
-                          Reviewer2Name: user.name
+                          reviewerId2: user.userId,
+                          reviewer2Name: user.name
                         });
                       } else {
                         setFormData({
                           ...formData,
-                          ReviewerID2: '',
-                          Reviewer2Name: value
+                          reviewerId2: '',
+                          reviewer2Name: value
                         });
                       }
                     }}
@@ -807,8 +869,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       if (user) {
                         setFormData({
                           ...formData,
-                          ReviewerID2: user.userId,
-                          Reviewer2Name: user.name
+                          reviewerId2: user.userId,
+                          reviewer2Name: user.name
                         });
                       }
                     }}
@@ -824,8 +886,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">开始时间</label>
                   <input
                     type="date"
-                    value={formData.StartDate || ''}
-                    onChange={e => setFormData({ ...formData, StartDate: e.target.value })}
+                    value={formData.startDate || ''}
+                    onChange={e => setFormData({ ...formData, startDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -833,8 +895,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">截止时间</label>
                   <input
                     type="date"
-                    value={formData.DueDate || ''}
-                    onChange={e => setFormData({ ...formData, DueDate: e.target.value })}
+                    value={formData.dueDate || ''}
+                    onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -844,8 +906,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
                 <textarea
-                  value={formData.Remark || ''}
-                  onChange={e => setFormData({ ...formData, Remark: e.target.value })}
+                  value={formData.remark || ''}
+                  onChange={e => setFormData({ ...formData, remark: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                   placeholder="请输入备注信息"
@@ -891,8 +953,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   </label>
                   <input
                     type="text"
-                    value={assignFormData.TaskName || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, TaskName: e.target.value })}
+                    value={assignFormData.taskName || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, taskName: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="请输入任务名称"
                   />
@@ -905,8 +967,14 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       checked={assignFormData.isForceAssessment || false}
                       onChange={e => setAssignFormData({ ...assignFormData, isForceAssessment: e.target.checked })}
                     />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${assignFormData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${assignFormData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      assignFormData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        assignFormData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
                   </label>
@@ -920,15 +988,15 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                     任务类别 <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={assignFormData.TaskClassID || ''}
+                    value={assignFormData.taskClassId || ''}
                     onChange={e => {
                       const tcId = e.target.value;
                       setAssignFormData({
                         ...assignFormData,
-                        TaskClassID: tcId,
-                        Category: '',
-                        ProjectID: '',
-                        ProjectName: ''
+                        taskClassId: tcId,
+                        category: '',
+                        projectId: '',
+                        projectName: ''
                       });
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -945,11 +1013,11 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   </label>
                   <select
                     value={assignFormData.category || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, Category: e.target.value })}
+                    onChange={e => setAssignFormData({ ...assignFormData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">请选择</option>
-                    {getCategoriesForTaskClass(assignFormData.TaskClassID || '').map(cat => (
+                    {getCategoriesForTaskClass(assignFormData.taskClassId || '').map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
@@ -960,23 +1028,23 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   </label>
                   <AutocompleteInput
                     id="assign-project-autocomplete"
-                    value={assignFormData.ProjectName || ''}
-                  options={getFilteredProjects(assignFormData.TaskClassID || '').map(p => p.name)}
+                    value={assignFormData.projectName || ''}
+                  options={getFilteredProjects(assignFormData.taskClassId || '').map(p => p.name)}
                   onChange={(value) => {
-                    const project = getFilteredProjects(assignFormData.TaskClassID || '').find(p => p.name === value);
+                    const project = getFilteredProjects(assignFormData.taskClassId || '').find(p => p.name === value);
                     setAssignFormData({
                       ...assignFormData,
-                      ProjectID: project?.id || '',
-                      ProjectName: value
+                      projectId: project?.id || '',
+                      projectName: value
                     });
                   }}
                   onSelect={(value) => {
-                    const project = getFilteredProjects(assignFormData.TaskClassID || '').find(p => p.name === value);
+                    const project = getFilteredProjects(assignFormData.taskClassId || '').find(p => p.name === value);
                     if (project) {
                       setAssignFormData({
                         ...assignFormData,
-                        ProjectID: project.id,
-                        ProjectName: project.name
+                        projectId: project.id,
+                        projectName: project.name
                       });
                     }
                   }}
@@ -994,7 +1062,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   </label>
                   <AutocompleteInput
                     id="assign-assignee-autocomplete"
-                    value={assignFormData.AssigneeName || ''}
+                    value={assignFormData.assigneeName || ''}
                     options={getAvailableUsers().map(u => u.name)}
                     onChange={(value) => {
                       const user = getAvailableUsers().find(u => u.name === value);
@@ -1030,7 +1098,7 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">校核人</label>
                   <AutocompleteInput
                     id="assign-reviewer-autocomplete"
-                    value={assignFormData.ReviewerName || ''}
+                    value={assignFormData.reviewerName || ''}
                     options={getAvailableUsers().map(u => u.name)}
                     onChange={(value) => {
                       const user = getAvailableUsers().find(u => u.name === value);
@@ -1066,21 +1134,21 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">审查人</label>
                   <AutocompleteInput
                     id="assign-reviewer2-autocomplete"
-                    value={assignFormData.Reviewer2Name || ''}
+                    value={assignFormData.approverName || ''}
                     options={getAvailableUsers().map(u => u.name)}
                     onChange={(value) => {
                       const user = getAvailableUsers().find(u => u.name === value);
                       if (user) {
                         setAssignFormData({
                           ...assignFormData,
-                          ReviewerID2: user.userId,
-                          Reviewer2Name: user.name
+                          approverId: user.userId,
+                          approverName: user.name
                         });
                       } else {
                         setAssignFormData({
                           ...assignFormData,
-                          ReviewerID2: '',
-                          Reviewer2Name: value
+                          approverId: '',
+                          approverName: value
                         });
                       }
                     }}
@@ -1089,8 +1157,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                       if (user) {
                         setAssignFormData({
                           ...assignFormData,
-                          ReviewerID2: user.userId,
-                          Reviewer2Name: user.name
+                          approverId: user.userId,
+                          approverName: user.name
                         });
                       }
                     }}
@@ -1106,8 +1174,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">开始时间</label>
                   <input
                     type="date"
-                    value={assignFormData.StartDate || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, StartDate: e.target.value })}
+                    value={assignFormData.startDate || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, startDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -1115,8 +1183,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">截止时间</label>
                   <input
                     type="date"
-                    value={assignFormData.DueDate || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, DueDate: e.target.value })}
+                    value={assignFormData.dueDate || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, dueDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -1128,8 +1196,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">预估工作量（人天）</label>
                   <input
                     type="number"
-                    value={assignFormData.Workload || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, Workload: parseFloat(e.target.value) })}
+                    value={assignFormData.workload || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, workload: parseFloat(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="0"
                     step="0.5"
@@ -1139,8 +1207,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">校核人工时</label>
                   <input
                     type="number"
-                    value={assignFormData.ReviewerWorkload || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, ReviewerWorkload: parseFloat(e.target.value) })}
+                    value={assignFormData.reviewerWorkload || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, reviewerWorkload: parseFloat(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="0"
                     step="0.5"
@@ -1150,8 +1218,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
                   <label className="block text-sm font-medium text-gray-700 mb-1">审查人工时</label>
                   <input
                     type="number"
-                    value={assignFormData.Reviewer2Workload || ''}
-                    onChange={e => setAssignFormData({ ...assignFormData, Reviewer2Workload: parseFloat(e.target.value) })}
+                    value={assignFormData.approverWorkload || ''}
+                    onChange={e => setAssignFormData({ ...assignFormData, approverWorkload: parseFloat(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="0"
                     step="0.5"
@@ -1163,8 +1231,8 @@ export const TaskPoolView: React.FC<TaskPoolViewProps> = ({ currentUser, project
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
                 <textarea
-                  value={assignFormData.Remark || ''}
-                  onChange={e => setAssignFormData({ ...assignFormData, Remark: e.target.value })}
+                  value={assignFormData.remark || ''}
+                  onChange={e => setAssignFormData({ ...assignFormData, remark: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={2}
                 />

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TaskManageSystem.Application.DTOs.TaskClasses;
 
 /// <summary>
@@ -5,6 +7,9 @@ namespace TaskManageSystem.Application.DTOs.TaskClasses;
 /// </summary>
 public class TaskClassListResponse
 {
+    [JsonPropertyName("taskClasses")]
     public List<TaskClassDto> TaskClasses { get; set; } = new();
+
+    [JsonPropertyName("categories")]
     public Dictionary<string, List<string>> Categories { get; set; } = new();
 }

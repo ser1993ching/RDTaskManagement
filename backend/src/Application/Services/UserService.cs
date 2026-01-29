@@ -102,7 +102,7 @@ public class UserService : IUserService
 
     public async Task<UserDto> CreateUserAsync(CreateUserRequest request)
     {
-        var user = new User { UserID = request.UserID };
+        var user = new User { UserID = request.UserId };
 
         // 使用根据 Display Name 解析枚举的方法
         var systemRole = ParseEnumByDisplayName<SystemRole>(request.SystemRole);

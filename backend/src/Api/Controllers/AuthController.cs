@@ -175,7 +175,7 @@ public class AuthController : ControllerBase
         // 创建管理员用户
         var createRequest = new CreateUserRequest
         {
-            UserID = request.AdminUserId,
+            UserId = request.AdminUserId,
             Name = request.AdminName,
             Password = request.AdminPassword,
             SystemRole = "ADMIN",

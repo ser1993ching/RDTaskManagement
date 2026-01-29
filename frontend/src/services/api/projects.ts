@@ -26,10 +26,14 @@ export interface CreateProjectRequest {
   workNo?: string;
   capacity?: string;
   model?: string;
-  isWon?: boolean;
-  isForeign?: boolean;
   startDate?: string;
   endDate?: string;
+  remark?: string;
+  isKeyProject?: boolean;
+  isWon?: boolean;
+  isForeign?: boolean;
+  isCommissioned?: boolean;
+  isCompleted?: boolean;
 }
 
 export interface UpdateProjectRequest {
@@ -38,14 +42,14 @@ export interface UpdateProjectRequest {
   workNo?: string;
   capacity?: string;
   model?: string;
-  isWon?: boolean;
-  isForeign?: boolean;
   startDate?: string;
   endDate?: string;
   remark?: string;
+  isKeyProject?: boolean;
+  isWon?: boolean;
+  isForeign?: boolean;
   isCommissioned?: boolean;
   isCompleted?: boolean;
-  isKeyProject?: boolean;
 }
 
 export interface ProjectQueryParams {
@@ -82,22 +86,18 @@ class ProjectService {
    * 创建项目
    */
   async createProject(data: CreateProjectRequest): Promise<Project> {
-    const response = await apiClient.post<ApiResponse<Project>>('/api/projects', data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '创建项目失败');
+    // 后端直接返回Project对象，未包装为ApiResponse格式
+    const project = await apiClient.post<Project>('/api/projects', data);
+    return project;
   }
 
   /**
    * 更新项目
    */
   async updateProject(projectId: string, data: UpdateProjectRequest): Promise<Project> {
-    const response = await apiClient.put<ApiResponse<Project>>(`/api/projects/${projectId}`, data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '更新项目失败');
+    // 后端直接返回Project对象，未包装为ApiResponse格式
+    const project = await apiClient.put<Project>(`/api/projects/${projectId}`, data);
+    return project;
   }
 
   /**

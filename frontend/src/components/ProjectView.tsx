@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Project, ProjectCategory, User } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, X, RefreshCw } from 'lucide-react';
 import { apiDataService } from '../services/apiDataService';
+import { cn } from '@/utils/classnames';
 import AutocompleteInput from './AutocompleteInput';
 
 interface ProjectViewProps {
@@ -451,7 +452,10 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                 <tr key={p.id} className="hover:bg-blue-50 transition-colors">
                   <td className="px-6 py-4 relative">
                     {p.isKeyProject && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 z-0"></div>}
-                    <div className={`font-medium ${p.isKeyProject ? 'font-bold text-slate-900' : 'text-slate-900'}`}>
+                    <div className={cn(
+                      'font-medium text-slate-900',
+                      p.isKeyProject && 'font-bold'
+                    )}>
                       <div className="truncate" title={p.name}>{p.name}</div>
                     </div>
                   </td>
@@ -474,7 +478,9 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                     {activeTab === ProjectCategory.MARKET && (
                       <div className="truncate" title={p.isWon !== undefined ? (p.isWon ? '已中标' : '未中标') + (p.isForeign ? ' 外贸' : '') : ''}>
                         {p.isWon !== undefined && (
-                          <span className={p.isWon ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                          <span className={cn(
+                            p.isWon ? 'text-green-600 font-medium' : 'text-slate-500'
+                          )}>
                             {p.isWon ? '✓ 中标' : '未中标'}
                           </span>
                         )}
@@ -484,7 +490,9 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                     {/* 常规项目/核电项目：已投运 */}
                     {(activeTab === ProjectCategory.EXECUTION || activeTab === ProjectCategory.NUCLEAR) && (
                       <div className="truncate" title={p.isCommissioned ? '已投运' : '未投运'}>
-                        <span className={p.isCommissioned ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                        <span className={cn(
+                          p.isCommissioned ? 'text-green-600 font-medium' : 'text-slate-500'
+                        )}>
                           {p.isCommissioned ? '✓ 投运' : '未投运'}
                         </span>
                       </div>
@@ -492,7 +500,9 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                     {/* 科研/改造/其他项目：已完成 */}
                     {(activeTab === ProjectCategory.RESEARCH || activeTab === ProjectCategory.RENOVATION || activeTab === ProjectCategory.OTHER) && (
                       <div className="truncate" title={p.isCompleted ? '已完成' : '进行中'}>
-                        <span className={p.isCompleted ? 'text-green-600 font-medium' : 'text-slate-500'}>
+                        <span className={cn(
+                          p.isCompleted ? 'text-green-600 font-medium' : 'text-slate-500'
+                        )}>
                           {p.isCompleted ? '✓ 完成' : '进行中'}
                         </span>
                       </div>
@@ -574,15 +584,27 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                 <div className="col-span-2 flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="hidden" checked={formData.isWon || false} onChange={e => setFormData({...formData, isWon: e.target.checked})} />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isWon ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isWon ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      formData.isWon ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        formData.isWon ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm font-medium text-slate-700 whitespace-nowrap">已中标</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="hidden" checked={formData.isForeign || false} onChange={e => setFormData({...formData, isForeign: e.target.checked})} />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForeign ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForeign ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      formData.isForeign ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        formData.isForeign ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm font-medium text-slate-700 whitespace-nowrap">外贸项目</span>
                   </label>
@@ -593,15 +615,27 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                 <div className="col-span-2 flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="hidden" checked={formData.isKeyProject || false} onChange={e => setFormData({...formData, isKeyProject: e.target.checked})} />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isKeyProject ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isKeyProject ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      formData.isKeyProject ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        formData.isKeyProject ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm font-medium text-slate-700 whitespace-nowrap">重点项目</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="hidden" checked={formData.isCommissioned || false} onChange={e => setFormData({...formData, isCommissioned: e.target.checked})} />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isCommissioned ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isCommissioned ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      formData.isCommissioned ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        formData.isCommissioned ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm font-medium text-slate-700 whitespace-nowrap">已投运</span>
                   </label>
@@ -612,15 +646,27 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                 <div className="col-span-2 flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="hidden" checked={formData.isKeyProject || false} onChange={e => setFormData({...formData, isKeyProject: e.target.checked})} />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isKeyProject ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isKeyProject ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      formData.isKeyProject ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        formData.isKeyProject ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm font-medium text-slate-700 whitespace-nowrap">重点项目</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="hidden" checked={formData.isCompleted || false} onChange={e => setFormData({...formData, isCompleted: e.target.checked})} />
-                    <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isCompleted ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isCompleted ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                    <span className={cn(
+                      'relative inline-block w-12 h-6 rounded-full transition-colors',
+                      formData.isCompleted ? 'bg-blue-600' : 'bg-slate-300'
+                    )}>
+                      <span className={cn(
+                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                        formData.isCompleted ? 'translate-x-6' : 'translate-x-0'
+                      )}></span>
                     </span>
                     <span className="text-sm font-medium text-slate-700 whitespace-nowrap">已完成</span>
                   </label>

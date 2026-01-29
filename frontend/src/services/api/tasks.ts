@@ -74,6 +74,8 @@ export interface CreateTaskRequest {
   participants?: string[];
   // 市场任务
   capacityLevel?: string;
+  relatedProject?: string;
+  isIndependentBusinessUnit?: boolean;
 }
 
 export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {

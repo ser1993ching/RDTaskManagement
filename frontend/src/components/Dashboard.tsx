@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { User, Task, Project, TaskStatus, TaskClass, SystemRole, ProjectCategory } from '../types';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { User, Task, Project, TaskStatus, TaskClass, ProjectCategory } from '../types';
 import { apiDataService } from '../services/apiDataService';
+import { cn } from '@/utils/classnames';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
@@ -96,7 +97,7 @@ const ForceAssessmentPanel: React.FC<{
         return 'bg-yellow-100 text-yellow-700';
       case TaskStatus.REVIEWING:
         return 'bg-purple-100 text-purple-700';
-      case TaskStatus.REVIEWING2:
+      case TaskStatus.APPROVING:
         return 'bg-orange-100 text-orange-700';
       case TaskStatus.COMPLETED:
         return 'bg-green-100 text-green-700';
@@ -156,7 +157,7 @@ const ForceAssessmentPanel: React.FC<{
               task.status !== TaskStatus.DRAFTING &&
               task.status !== TaskStatus.REVISING &&
               task.status !== TaskStatus.REVIEWING &&
-              task.status !== TaskStatus.REVIEWING2) return false;
+              task.status !== TaskStatus.APPROVING) return false;
           if (statusFilter === 'completed' && task.status !== TaskStatus.COMPLETED) return false;
         }
         return true;
@@ -264,7 +265,10 @@ const ForceAssessmentPanel: React.FC<{
                     return (
                       <tr
                         key={task.taskId}
-                        className={`${isOverdue ? 'bg-red-50' : 'hover:bg-slate-50'} transition-colors`}
+                        className={cn(
+                          'transition-colors',
+                          isOverdue ? 'bg-red-50' : 'hover:bg-slate-50'
+                        )}
                       >
                         <td className="px-3 py-2 w-64">
                           <div className="flex items-center gap-2">
@@ -285,7 +289,10 @@ const ForceAssessmentPanel: React.FC<{
                           </span>
                         </td>
                         <td className="px-3 py-2 w-24 text-sm text-slate-600">{formatDate(task.startDate)}</td>
-                        <td className={`px-3 py-2 w-24 text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
+                        <td className={cn(
+                          'px-3 py-2 w-24 text-sm',
+                          isOverdue ? 'text-red-600 font-medium' : 'text-slate-600'
+                        )}>
                           {formatDate(task.dueDate)}
                         </td>
                       </tr>
@@ -330,7 +337,7 @@ const DelayedTaskPanel: React.FC<{
         return 'bg-yellow-100 text-yellow-700';
       case TaskStatus.REVIEWING:
         return 'bg-purple-100 text-purple-700';
-      case TaskStatus.REVIEWING2:
+      case TaskStatus.APPROVING:
         return 'bg-orange-100 text-orange-700';
       case TaskStatus.COMPLETED:
         return 'bg-green-100 text-green-700';
@@ -589,7 +596,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
   // Statistics Logic
   const stats = useMemo(() => {
     const filteredVisibleTasks = getFilteredTasks.filter(t =>
-      currentUser.systemRole === SystemRole.ADMIN || currentUser.systemRole === SystemRole.LEADER
+      currentUser.systemRole === '管理员' || currentUser.systemRole === '班组长'
         ? true
         : t.assigneeId === currentUser.userId
     );
@@ -600,7 +607,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       t.status === TaskStatus.DRAFTING ||
       t.status === TaskStatus.REVISING ||
       t.status === TaskStatus.REVIEWING ||
-      t.status === TaskStatus.REVIEWING2
+      t.status === TaskStatus.APPROVING
     ).length;
     const completed = filteredVisibleTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
     const total = filteredVisibleTasks.length;
@@ -830,19 +837,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-xl shadow-sm border ${
+        <div className={cn(
+          'p-6 rounded-xl shadow-sm border',
           stats.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'
-        }`}>
+        )}>
           <div className="flex justify-between items-start">
             <div>
-              <p className={`text-sm font-medium ${stats.overdueCount > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+              <p className={cn(
+                'text-sm font-medium',
+                stats.overdueCount > 0 ? 'text-red-600' : 'text-gray-500'
+              )}>
                 逾期任务
               </p>
-              <h3 className={`text-3xl font-bold mt-2 ${stats.overdueCount > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+              <h3 className={cn(
+                'text-3xl font-bold mt-2',
+                stats.overdueCount > 0 ? 'text-red-600' : 'text-gray-900'
+              )}>
                 {stats.overdueCount}
               </h3>
             </div>
-            <div className={`p-2 rounded-lg ${stats.overdueCount > 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+            <div className={cn(
+              'p-2 rounded-lg',
+              stats.overdueCount > 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+            )}>
               <AlertCircle size={20} />
             </div>
           </div>

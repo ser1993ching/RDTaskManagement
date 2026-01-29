@@ -50,6 +50,9 @@ public class CamelCaseToPascalCaseMiddleware
                     var newBody = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(convertedBody));
                     context.Request.Body = newBody;
 
+                    // 重置位置到开头，以便后续模型绑定可以读取
+                    context.Request.Body.Position = 0;
+
                     // 更新 Content-Length
                     context.Request.ContentLength = newBody.Length;
                 }

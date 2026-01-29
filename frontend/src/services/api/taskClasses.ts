@@ -9,9 +9,9 @@ export interface TaskClass {
   code: string;
   description?: string;
   notice?: string;
-  is_deleted?: boolean;
-  created_at?: string;
-  updated_at?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TaskClassWithCategories extends TaskClass {
@@ -52,30 +52,31 @@ class TaskClassService {
 
   /**
    * 获取单个任务分类
+   * 统一使用 /api/TaskClasses（PascalCase，与后端路由一致）
    */
   async getTaskClass(taskClassId: string): Promise<TaskClass> {
-    return apiClient.get<TaskClass>(`/api/taskclasses/${taskClassId}`);
+    return apiClient.get<TaskClass>(`/api/TaskClasses/${taskClassId}`);
   }
 
   /**
    * 创建任务分类
    */
   async createTaskClass(data: Partial<TaskClass>): Promise<TaskClass> {
-    return apiClient.post<TaskClass>('/api/taskclasses', data);
+    return apiClient.post<TaskClass>('/api/TaskClasses', data);
   }
 
   /**
    * 更新任务分类
    */
   async updateTaskClass(taskClassId: string, data: Partial<TaskClass>): Promise<TaskClass> {
-    return apiClient.put<TaskClass>(`/api/taskclasses/${taskClassId}`, data);
+    return apiClient.put<TaskClass>(`/api/TaskClasses/${taskClassId}`, data);
   }
 
   /**
    * 删除任务分类（软删除）
    */
   async deleteTaskClass(taskClassId: string): Promise<void> {
-    await apiClient.delete(`/api/taskclasses/${taskClassId}`);
+    await apiClient.delete(`/api/TaskClasses/${taskClassId}`);
   }
 }
 

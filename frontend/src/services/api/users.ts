@@ -23,7 +23,11 @@ export interface CreateUserRequest {
   officeLocation: string;
   status: string;
   title?: string;
+  joinDate?: string;
+  education?: string;
+  school?: string;
   password?: string;
+  remark?: string;
 }
 
 export interface UpdateUserRequest {
@@ -32,6 +36,10 @@ export interface UpdateUserRequest {
   officeLocation?: string;
   status?: string;
   title?: string;
+  joinDate?: string;
+  education?: string;
+  school?: string;
+  remark?: string;
 }
 
 export interface UserQueryParams {
@@ -72,22 +80,18 @@ class UserService {
    * 创建用户
    */
   async createUser(data: CreateUserRequest): Promise<User> {
-    const response = await apiClient.post<ApiResponse<User>>('/api/users', data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '创建用户失败');
+    // 后端直接返回User对象，未包装为ApiResponse格式
+    const user = await apiClient.post<User>('/api/users', data);
+    return user;
   }
 
   /**
    * 更新用户
    */
   async updateUser(userId: string, data: UpdateUserRequest): Promise<User> {
-    const response = await apiClient.put<ApiResponse<User>>(`/api/users/${userId}`, data);
-    if (response.success && response.data) {
-      return response.data;
-    }
-    throw new Error(response.error?.message || '更新用户失败');
+    // 后端直接返回User对象，未包装为ApiResponse格式
+    const user = await apiClient.put<User>(`/api/users/${userId}`, data);
+    return user;
   }
 
   /**

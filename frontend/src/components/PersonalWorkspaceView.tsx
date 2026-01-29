@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { ChevronDown, ChevronUp, Download, Printer, AlertTriangle, User, FileText } from 'lucide-react';
-import { Task, User as UserType, PersonalStats, SeparatedTasks, Period, TaskClass, RoleStatus, SystemRole } from '../types';
+import { Task, User as UserType, PersonalStats, SeparatedTasks, Period, TaskClass, RoleStatus } from '../types';
 import { apiDataService } from '../services/apiDataService';
+import { cn } from '@/utils/classnames';
+import { useTaskClasses } from '../context/ConfigContext';
 
 // Colors for charts
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -606,7 +608,7 @@ const TaskPanel: React.FC<{
   taskClasses: TaskClass[];
   viewingUserName: string;
   viewingUserId: string;
-  currentUserRole: SystemRole;
+  currentUserRole: string;
 }> = ({
   title,
   tasks,
@@ -626,7 +628,7 @@ const TaskPanel: React.FC<{
   };
 
   // Check if workload should be visible (only for LEADER or ADMIN)
-  const canViewWorkload = currentUserRole === SystemRole.LEADER || currentUserRole === SystemRole.ADMIN;
+  const canViewWorkload = currentUserRole === '班组长' || currentUserRole === '管理员';
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -680,7 +682,10 @@ const TaskPanel: React.FC<{
                   return (
                     <tr
                       key={taskId}
-                      className={`${isLongRunning ? 'bg-yellow-50' : ''} cursor-pointer hover:bg-gray-50 transition-colors`}
+                      className={cn(
+                        'cursor-pointer hover:bg-gray-50 transition-colors',
+                        isLongRunning && 'bg-yellow-50'
+                      )}
                       onDoubleClick={() => onTaskDoubleClick(task)}
                     >
                       <td className="px-4 py-2">
@@ -691,7 +696,10 @@ const TaskPanel: React.FC<{
                           {isLongRunning && (
                             <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                           )}
-                          <span className={`text-sm ${isForceAssessment && taskClassId !== 'TC009' ? 'font-bold text-gray-900' : 'text-gray-900'}`}>{taskName}</span>
+                          <span className={cn(
+                            'text-sm text-gray-900',
+                            isForceAssessment && taskClassId !== 'TC009' && 'font-bold'
+                          )}>{taskName}</span>
                         </div>
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(taskClassId)}</td>
@@ -761,7 +769,11 @@ const PersonalWorkspaceView: React.FC<{
   currentUser: UserType;
   onRefresh: () => void;
   onChangeView?: (view: string, taskId?: string) => void;
-}> = ({ currentUser, onRefresh, onChangeView }) => {
+  externalRefreshKey?: number; // External refresh trigger from parent
+}> = ({ currentUser, onRefresh, onChangeView, externalRefreshKey }) => {
+  // 从全局配置获取数据
+  const { taskClasses: globalTaskClasses, refreshTaskClasses } = useTaskClasses();
+
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
   const [period, setPeriod] = useState<Period>('quarter'); // 默认近三个月
   const [selectedUserId, setSelectedUserId] = useState<string>('');
@@ -784,26 +796,37 @@ const PersonalWorkspaceView: React.FC<{
   const [meetingTasks, setMeetingTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sync selectedUserId when currentUser changes
+  // 使用 ref 防止重复请求
+  const isLoadingRef = useRef(false);
+  const lastLoadedUserIdRef = useRef<string>('');
+
+  // Sync selectedUserId when currentUser changes - 只初始化一次
   useEffect(() => {
-    if (currentUser?.userId) {
+    if (currentUser?.userId && !selectedUserId) {
       setSelectedUserId(currentUser.userId);
     }
   }, [currentUser?.userId]);
 
-  // Get user being viewed - ensure it's always defined
-  const viewingUserId = currentUser?.userId ?
-    (currentUser.systemRole === SystemRole.MEMBER ? currentUser.userId : (selectedUserId || currentUser.userId)) :
-    '';
+  // Get user being viewed - 使用 useMemo 稳定计算
+  const viewingUserId = useMemo(() => {
+    if (!currentUser?.userId) return '';
+    if (currentUser.systemRole === '组员') return currentUser.userId;
+    return selectedUserId || currentUser.userId;
+  }, [currentUser?.userId, currentUser?.systemRole, selectedUserId]);
 
-  // Load data when viewingUserId changes
+  // Load data when viewingUserId changes or when refreshKey changes
+  // 使用 ref 防止重复请求
   useEffect(() => {
     const loadData = async () => {
-      if (!viewingUserId) {
-        // console.log('Waiting for user data...', { viewingUserId, selectedUserId, currentUserId: currentUser?.userId });
+      if (!viewingUserId) return;
+
+      // 如果正在加载相同的用户，跳过
+      if (isLoadingRef.current && lastLoadedUserIdRef.current === viewingUserId) {
         return;
       }
 
+      isLoadingRef.current = true;
+      lastLoadedUserIdRef.current = viewingUserId;
       setLoading(true);
       try {
         // Load team members - API returns camelCase, types.ts uses camelCase
@@ -811,7 +834,7 @@ const PersonalWorkspaceView: React.FC<{
         setTeamMembers(members.map((u: any) => ({
           userId: u.userId,
           name: u.name,
-          systemRole: u.systemRole as SystemRole,
+          systemRole: u.systemRole as string,
           officeLocation: u.officeLocation as any,
           title: u.title,
           joinDate: u.joinDate,
@@ -821,15 +844,14 @@ const PersonalWorkspaceView: React.FC<{
           remark: u.remark,
         })));
 
-        // Load task classes
-        const classes = await apiDataService.getTaskClasses();
-        setTaskClasses(classes.map((tc: any) => ({
+        // 使用全局配置的 taskClasses
+        setTaskClasses(globalTaskClasses.map((tc: any) => ({
           id: tc.id,
           name: tc.name,
           code: tc.code,
           description: tc.description,
           notice: tc.notice,
-          isDeleted: false,
+          is_deleted: false,
         })));
 
         // Load personal tasks
@@ -851,12 +873,13 @@ const PersonalWorkspaceView: React.FC<{
       } catch (error) {
         console.error('加载数据失败:', error);
       } finally {
+        isLoadingRef.current = false;
         setLoading(false);
       }
     };
 
     loadData();
-  }, [viewingUserId, refreshKey]);
+  }, [viewingUserId, refreshKey, externalRefreshKey]);
 
   // Get viewing user info
   const viewingUser = useMemo(() => {
@@ -865,6 +888,7 @@ const PersonalWorkspaceView: React.FC<{
   }, [viewingUserId, currentUser, teamMembers]);
 
   // Get all tasks (combine from different sources)
+  // 排除差旅任务(TC009)和会议培训任务(TC007)，这些只在专门板块显示
   const allTasks = useMemo(() => {
     const tasks = [
       ...personalTasks.inProgress,
@@ -872,7 +896,7 @@ const PersonalWorkspaceView: React.FC<{
       ...personalTasks.completed,
     ];
     // console.log('allTasks count:', tasks.length, 'first task startDate:', tasks[0]?.startDate);
-    return tasks;
+    return tasks.filter(t => t.taskClassId !== 'TC009' && t.taskClassId !== 'TC007');
   }, [personalTasks]);
 
   // Filter tasks by period based on StartDate (only for completed tasks)
@@ -886,26 +910,25 @@ const PersonalWorkspaceView: React.FC<{
   }, [allTasks, period]);
 
   // Separate tasks by user's role status (not task status)
-  // 进行中和未开始的任务显示所有任务，已完成的任务根据时间段筛选
+  // 进行中和未开始的任务显示所有任务，已完成的任务显示全部（不按时间段过滤）
   const separatedTasks = useMemo(() => {
     const allSeparated = apiDataService.separateTasksByRoleStatus(allTasks, viewingUserId);
-    const completedSeparated = apiDataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
     return {
       inProgress: allSeparated.inProgress,      // 进行中：显示所有
       pending: allSeparated.pending,            // 未开始：显示所有
-      completed: completedSeparated.completed   // 已完成：根据时间段筛选
+      completed: allSeparated.completed         // 已完成：显示所有（不按时间段过滤）
     };
-  }, [allTasks, periodFilteredTasks, viewingUserId]);
+  }, [allTasks, viewingUserId]);
 
-  // Get travel tasks filtered by StartDate (shown separately)
+  // Get travel tasks (shown separately) - 不进行时间段筛选，显示所有差旅任务
   const filteredTravelTasks = useMemo(() => {
-    return apiDataService.filterTasksByStartDate(travelTasks, period);
-  }, [travelTasks, period]);
+    return travelTasks;
+  }, [travelTasks]);
 
-  // Get meeting tasks filtered by StartDate (shown separately)
+  // Get meeting tasks (shown separately) - 不进行时间段筛选，显示所有会议任务
   const filteredMeetingTasks = useMemo(() => {
-    return apiDataService.filterTasksByStartDate(meetingTasks, period);
-  }, [meetingTasks, period]);
+    return meetingTasks;
+  }, [meetingTasks]);
 
   // Calculate stats based on role status
   const stats = useMemo(() => {
@@ -938,13 +961,13 @@ const PersonalWorkspaceView: React.FC<{
   };
 
   // Handle role status change
-  // 修复 Bug 1: 添加错误处理和用户反馈
+  // 修复 Bug: 避免重复刷新导致任务复制
   const handleStatusChange = async (taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus) => {
     try {
       const success = await apiDataService.updateTaskRoleStatus(taskId, role, status);
       if (success) {
-        setRefreshKey(prev => prev + 1); // 强制刷新数据
-        onRefresh();
+        // 只使用 setRefreshKey 触发刷新，避免重复请求
+        setRefreshKey(prev => prev + 1);
       } else {
         console.error('更新任务角色状态失败: 返回false');
       }
@@ -953,10 +976,10 @@ const PersonalWorkspaceView: React.FC<{
     }
   };
 
-  // Handle task double click - navigate to task view
+  // Handle task double click - navigate to task view with category
   const handleTaskDoubleClick = (task: Task) => {
     if (onChangeView) {
-      onChangeView('tasks', task.taskName);
+      onChangeView('tasks', task.taskName, task.taskClassId);
     }
   };
 

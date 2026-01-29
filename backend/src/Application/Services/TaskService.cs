@@ -10,7 +10,26 @@ using TaskManageSystem.Domain.Enums;
 namespace TaskManageSystem.Application.Services;
 
 /// <summary>
-/// 任务服务实现
+/// 任务服务实现 (TaskService)
+///
+/// 概述:
+/// - 实现ITaskService接口定义的业务逻辑
+/// - 负责任务的CRUD、状态管理、角色状态更新等核心功能
+/// - 与TaskRepository协作进行数据持久化
+///
+/// 主要功能:
+/// 1. 任务查询 - 支持多种过滤条件和分页
+/// 2. 任务创建 - 自动生成ID，设置初始状态
+/// 3. 任务更新 - 更新任务属性，处理特殊任务类型
+/// 4. 任务删除 - 软删除机制
+/// 5. 状态管理 - 更新任务状态和角色状态
+/// 6. 特殊任务处理 - 会议培训、差旅任务的特殊逻辑
+///
+/// 设计特点:
+/// 1. 依赖注入 - 通过构造函数注入IRepository和IMapper
+/// 2. 缓存优化 - 缓存RoleStatus枚举的DisplayName映射
+/// 3. 错误处理 - 抛出有意义的异常信息
+/// 4. 业务规则 - 会议培训/差旅任务自动完成等
 /// </summary>
 public class TaskService : ITaskService
 {
@@ -75,11 +94,11 @@ public class TaskService : ITaskService
     /// </summary>
     private void ClearNonAssigneeFieldsForMeetingOrTravelTask(CreateTaskRequest request)
     {
-        if (IsMeetingOrTravelTask(request.TaskClassID))
+        if (IsMeetingOrTravelTask(request.TaskClassId))
         {
-            request.CheckerID = null;
-            request.ChiefDesignerID = null;
-            request.ApproverID = null;
+            request.CheckerId = null;
+            request.ChiefDesignerId = null;
+            request.ApproverId = null;
         }
     }
 
@@ -165,7 +184,7 @@ public class TaskService : ITaskService
         ClearNonAssigneeFieldsForMeetingOrTravelTask(request);
 
         // 判断是否为会议培训或差旅任务
-        bool isMeetingOrTravel = IsMeetingOrTravelTask(request.TaskClassID);
+        bool isMeetingOrTravel = IsMeetingOrTravelTask(request.TaskClassId);
 
         if (_taskRepository == null)
         {
@@ -209,10 +228,10 @@ public class TaskService : ITaskService
 
         // 手动更新每个字段，避免值类型默认值覆盖问题
         task.TaskName = request.TaskName;
-        task.TaskClassID = request.TaskClassID;
+        task.TaskClassID = request.TaskClassId;
         task.Category = request.Category;
-        task.ProjectID = request.ProjectID;
-        task.AssigneeID = request.AssigneeID;
+        task.ProjectID = request.ProjectId;
+        task.AssigneeID = request.AssigneeId;
         task.AssigneeName = request.AssigneeName;
         task.StartDate = request.StartDate;
         task.DueDate = request.DueDate;
@@ -226,9 +245,9 @@ public class TaskService : ITaskService
         }
 
         // 角色分配
-        task.CheckerID = request.CheckerID;
-        task.ChiefDesignerID = request.ChiefDesignerID;
-        task.ApproverID = request.ApproverID;
+        task.CheckerID = request.CheckerId;
+        task.ChiefDesignerID = request.ChiefDesignerId;
+        task.ApproverID = request.ApproverId;
 
         // 差旅任务
         task.TravelLocation = request.TravelLocation;
@@ -513,9 +532,18 @@ public class TaskService : ITaskService
 
         var totalDays = tasks.Sum(t => t.TravelDuration ?? 0);
 
+        // 手动映射以处理 Participants JSON
+        var taskDtos = tasks.Select(t =>
+        {
+            var dto = _mapper.Map<TaskDto>(t);
+            dto.Participants = ParseJsonList(t.Participants);
+            dto.ParticipantNames = ParseJsonList(t.ParticipantNames);
+            return dto;
+        }).ToList();
+
         return new TravelTasksResponse
         {
-            Tasks = _mapper.Map<List<TaskDto>>(tasks),
+            Tasks = taskDtos,
             TotalDays = totalDays
         };
     }
@@ -542,9 +570,18 @@ public class TaskService : ITaskService
 
         var totalHours = tasks.Sum(t => t.MeetingDuration ?? 0);
 
+        // 手动映射以处理 Participants JSON
+        var taskDtos = tasks.Select(t =>
+        {
+            var dto = _mapper.Map<TaskDto>(t);
+            dto.Participants = ParseJsonList(t.Participants);
+            dto.ParticipantNames = ParseJsonList(t.ParticipantNames);
+            return dto;
+        }).ToList();
+
         return new MeetingTasksResponse
         {
-            Tasks = _mapper.Map<List<TaskDto>>(tasks),
+            Tasks = taskDtos,
             TotalHours = totalHours
         };
     }

@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, TaskClass, User, Project, TaskStatus, ProjectCategory } from '../types';
 import { Plus, Download, Edit2, Trash2, Filter, Calendar, User as UserIcon, Clock, MapPin, X, Info, CheckCircle } from 'lucide-react';
 import { apiDataService } from '../services/apiDataService';
+import { cn } from '@/utils/classnames';
+import { useTaskCategories, useEquipmentModels, useCapacityLevels, useTaskClasses } from '../context/ConfigContext';
 import AutocompleteInput from './AutocompleteInput';
 
 interface TaskViewProps {
@@ -42,8 +44,12 @@ const formatDate = (dateStr: string | undefined | null): string => {
 };
 
 export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects, users, onRefresh, targetTaskName, onClearTargetTaskName }) => {
-  const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
-  const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
+  // 从全局配置获取数据
+  const { taskCategories } = useTaskCategories();
+  const { equipmentModels } = useEquipmentModels();
+  const { capacityLevels } = useCapacityLevels();
+  const { taskClasses, refreshTaskClasses } = useTaskClasses();
+
   const [activeTaskClassId, setActiveTaskClassId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -52,42 +58,13 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectFormData, setProjectFormData] = useState<Partial<Project>>({});
-  const [equipmentModels, setEquipmentModels] = useState<string[]>([]);
-  const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
 
-  // Load task classes
+  // 初始化 activeTaskClassId
   useEffect(() => {
-    const loadTaskClasses = async () => {
-      const classes = await apiDataService.getTaskClasses();
-      setTaskClasses(classes);
-      if (classes.length > 0 && !activeTaskClassId) {
-        setActiveTaskClassId(classes[0].id);
-      }
-    };
-    loadTaskClasses();
-  }, []);
-
-  // Load task categories
-  useEffect(() => {
-    const loadCategories = async () => {
-      const categories = await apiDataService.getTaskCategories();
-      setTaskCategories(categories);
-    };
-    loadCategories();
-  }, []);
-
-  // Load equipment models and capacity levels (for project form)
-  useEffect(() => {
-    const loadSettings = async () => {
-      const [models, levels] = await Promise.all([
-        apiDataService.getEquipmentModels(),
-        apiDataService.getCapacityLevels(),
-      ]);
-      setEquipmentModels(models);
-      setCapacityLevels(levels);
-    };
-    loadSettings();
-  }, []);
+    if (taskClasses.length > 0 && !activeTaskClassId) {
+      setActiveTaskClassId(taskClasses[0].id);
+    }
+  }, [taskClasses, activeTaskClassId]);
 
   // Handle targetTaskName - filter tasks by name and switch to the task's category
   // 修复Bug 6: 移除 tasks.length > 0 条件，确保任务未加载时也能处理
@@ -1520,8 +1497,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   setFilterThisWeek(e.target.checked);
                   if (e.target.checked) setFilterThisMonth(false);
                 }} />
-                <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterThisWeek ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterThisWeek ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                <span className={cn(
+                  'relative inline-block w-10 h-5 rounded-full transition-colors',
+                  filterThisWeek ? 'bg-blue-600' : 'bg-slate-300'
+                )}>
+                  <span className={cn(
+                    'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform',
+                    filterThisWeek ? 'translate-x-5' : 'translate-x-0'
+                  )}></span>
                 </span>
                 <span className="text-sm text-slate-700 whitespace-nowrap">本周</span>
               </label>
@@ -1532,8 +1515,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   setFilterThisMonth(e.target.checked);
                   if (e.target.checked) setFilterThisWeek(false);
                 }} />
-                <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterThisMonth ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterThisMonth ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                <span className={cn(
+                  'relative inline-block w-10 h-5 rounded-full transition-colors',
+                  filterThisMonth ? 'bg-blue-600' : 'bg-slate-300'
+                )}>
+                  <span className={cn(
+                    'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform',
+                    filterThisMonth ? 'translate-x-5' : 'translate-x-0'
+                  )}></span>
                 </span>
                 <span className="text-sm text-slate-700 whitespace-nowrap">本月</span>
               </label>
@@ -1545,8 +1534,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   <input type="checkbox" className="hidden" checked={filterForceAssessment === true} onChange={e => {
                     setFilterForceAssessment(e.target.checked ? true : '');
                   }} />
-                  <span className={`relative inline-block w-10 h-5 rounded-full transition-colors ${filterForceAssessment === true ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${filterForceAssessment === true ? 'translate-x-5' : 'translate-x-0'}`}></span>
+                  <span className={cn(
+                    'relative inline-block w-10 h-5 rounded-full transition-colors',
+                    filterForceAssessment === true ? 'bg-blue-600' : 'bg-slate-300'
+                  )}>
+                    <span className={cn(
+                      'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform',
+                      filterForceAssessment === true ? 'translate-x-5' : 'translate-x-0'
+                    )}></span>
                   </span>
                   <span className="text-sm text-slate-700 whitespace-nowrap">强制考核</span>
                 </label>
@@ -1673,7 +1668,10 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   >
                     <td className="px-6 py-4 relative">
                       {t.isForceAssessment && <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>}
-                      <div className={`font-medium ${t.isForceAssessment ? 'font-bold text-slate-900' : 'text-slate-900'}`}>{t.taskName}</div>
+                      <div className={cn(
+                        'font-medium text-slate-900',
+                        t.isForceAssessment && 'font-bold'
+                      )}>{t.taskName}</div>
                       <div className="text-xs text-slate-400">{t.taskId}</div>
                     </td>
                     <td className="px-6 py-4"><span className="px-2 py-1 bg-slate-100 rounded text-xs">{t.category}</span></td>
@@ -1722,8 +1720,14 @@ export const TaskView: React.FC<TaskViewProps> = ({ currentUser, tasks, projects
                   {!isMeeting && !isTravel && (
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" className="hidden" checked={formData.isForceAssessment || false} onChange={e => setFormData({...formData, isForceAssessment: e.target.checked})} />
-                      <span className={`relative inline-block w-12 h-6 rounded-full transition-colors ${formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                      <span className={cn(
+                        'relative inline-block w-12 h-6 rounded-full transition-colors',
+                        formData.isForceAssessment ? 'bg-blue-600' : 'bg-slate-300'
+                      )}>
+                        <span className={cn(
+                          'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                          formData.isForceAssessment ? 'translate-x-6' : 'translate-x-0'
+                        )}></span>
                       </span>
                       <span className="text-sm font-medium text-slate-700 whitespace-nowrap">强制考核</span>
                     </label>

@@ -1,7 +1,39 @@
 /**
- * API数据服务 - 替代localStorage数据服务
- * 使用后端API获取数据
+ * API数据服务核心模块 (apiDataService.ts)
+ *
+ * 概述:
+ * - 封装与后端API的所有交互逻辑
+ * - 替代原有的localStorage数据服务，提供API驱动的数据管理
+ * - 实现数据缓存、错误处理、状态管理等功能
+ *
+ * 主要功能:
+ * 1. 用户管理 - 获取、创建、更新、删除用户
+ * 2. 项目管理 - 获取、创建、更新、删除项目
+ * 3. 任务管理 - 获取、创建、更新、删除任务，支持个人任务查询
+ * 4. 任务库管理 - 任务池的CRUD和分配功能
+ * 5. 统计功能 - 仪表盘统计、个人统计、团队统计
+ * 6. 系统设置 - 设备型号、容量等级、差旅标签等配置管理
+ * 7. 认证服务 - 登录、登出、密码管理
+ *
+ * 设计特点:
+ * 1. 单例模式 - 全局共享一个ApiDataService实例
+ * 2. 数据缓存 - 30秒缓存减少API请求
+ * 3. API可用性跟踪 - 自动检测后端服务状态
+ * 4. 错误处理 - 统一的错误捕获和日志输出
+ *
+ * 数据格式:
+ * - 后端API统一使用camelCase命名
+ * - 前端直接使用camelCase，无需转换
+ *
+ * 与后端API的对应关系:
+ * - /api/users -> 用户管理
+ * - /api/projects -> 项目管理
+ * - /api/tasks -> 任务管理
+ * - /api/task-pool -> 任务库管理
+ * - /api/statistics -> 统计数据
+ * - /api/settings -> 系统设置
  */
+
 import { apiClient } from './api/client';
 import {
   userService,
@@ -19,33 +51,55 @@ import type {
   TaskPoolItem as TaskPoolItemDto,
 } from './api';
 
-// API可用性状态
+// ============================================
+// 模块1: API可用性状态管理
+// ============================================
+
+// API服务是否可用
 let apiAvailable = true;
+// 上次API错误信息
 let lastApiError: string | null = null;
 
 // 缓存配置
 interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
+  data: T;              // 缓存数据
+  timestamp: number;    // 缓存时间戳
 }
 
+// 内存缓存存储器
 const cache: Map<string, CacheEntry<any>> = new Map();
-const CACHE_DURATION = 30 * 1000; // 30秒缓存
+// 缓存有效期（30秒）
+const CACHE_DURATION = 30 * 1000;
 
-// 设置API可用性
+/**
+ * 设置API可用性状态
+ * @param available 是否可用
+ * @param error 可选的错误信息
+ */
 export const setApiAvailable = (available: boolean, error?: string) => {
   apiAvailable = available;
   lastApiError = error || null;
 };
 
-// 获取API可用性
+/**
+ * 获取API当前可用状态
+ */
 export const isApiAvailable = () => apiAvailable;
 export const getLastApiError = () => lastApiError;
 
-// 缓存辅助函数
+// ============================================
+// 模块2: 缓存管理
+// ============================================
+
+/**
+ * 从缓存获取数据
+ * @param key 缓存键名
+ * @returns 缓存的数据或null（如果过期或不存在）
+ */
 const getCachedData = <T>(key: string): T | null => {
   const entry = cache.get(key);
   if (!entry) return null;
+  // 检查缓存是否过期
   if (Date.now() - entry.timestamp > CACHE_DURATION) {
     cache.delete(key);
     return null;
@@ -53,10 +107,19 @@ const getCachedData = <T>(key: string): T | null => {
   return entry.data;
 };
 
+/**
+ * 将数据存入缓存
+ * @param key 缓存键名
+ * @param data 要缓存的数据
+ */
 const setCachedData = <T>(key: string, data: T): void => {
   cache.set(key, { data, timestamp: Date.now() });
 };
 
+/**
+ * 清除缓存
+ * @param key 可选，指定要清除的缓存键；不指定则清除所有
+ */
 const clearCache = (key?: string): void => {
   if (key) {
     cache.delete(key);
@@ -65,11 +128,25 @@ const clearCache = (key?: string): void => {
   }
 };
 
-// 注意：后端API已统一返回camelCase，无需额外转换
+// ============================================
+// 模块3: API数据服务类
+// ============================================
 
-// API数据服务
+/**
+ * API数据服务类
+ * 提供所有与后端API交互的方法
+ */
 class ApiDataService {
-  // 用户相关
+
+  // ============================================
+  // 3.1 用户相关操作
+  // ============================================
+
+  /**
+   * 获取用户列表
+   * @param forceRefresh 是否强制刷新（跳过缓存）
+   * @returns 用户数组
+   */
   async getUsers(forceRefresh = false): Promise<UserDto[]> {
     const cacheKey = 'users';
     if (!forceRefresh) {
@@ -89,6 +166,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取单个用户信息
+   */
   async getUser(userId: string): Promise<UserDto | null> {
     try {
       return await userService.getUser(userId);
@@ -98,6 +178,10 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 保存用户（创建或更新）
+   * 如果传入userId则更新，否则创建新用户
+   */
   async saveUser(user: Partial<UserDto>): Promise<UserDto> {
     let result: UserDto;
     if (user.userId) {
@@ -109,11 +193,17 @@ class ApiDataService {
     return result;
   }
 
+  /**
+   * 删除用户（软删除）
+   */
   async deleteUser(userId: string): Promise<void> {
     await userService.deleteUser(userId);
-    clearCache('users'); // 清除用户缓存
+    clearCache('users');
   }
 
+  /**
+   * 恢复被软删除的用户
+   */
   async restoreUser(userId: string): Promise<boolean> {
     try {
       await userService.restoreUser(userId);
@@ -124,6 +214,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 重置用户密码
+   */
   async resetPassword(userId: string, newPassword: string): Promise<boolean> {
     try {
       await authService.resetPassword(userId, newPassword);
@@ -134,11 +227,20 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 生成临时密码（客户端生成）
+   */
   async generateTemporaryPassword(): Promise<string> {
     return Math.random().toString(36).slice(-8);
   }
 
-  // 项目相关
+  // ============================================
+  // 3.2 项目相关操作
+  // ============================================
+
+  /**
+   * 获取项目列表
+   */
   async getProjects(forceRefresh = false): Promise<ProjectDto[]> {
     const cacheKey = 'projects';
     if (!forceRefresh) {
@@ -158,6 +260,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取单个项目信息
+   */
   async getProject(projectId: string): Promise<ProjectDto | null> {
     try {
       return await projectService.getProject(projectId);
@@ -167,6 +272,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 保存项目（创建或更新）
+   */
   async saveProject(project: Partial<ProjectDto>): Promise<ProjectDto> {
     let result: ProjectDto;
     if (project.id) {
@@ -174,15 +282,21 @@ class ApiDataService {
     } else {
       result = await projectService.createProject(project as any);
     }
-    clearCache('projects'); // 清除项目缓存
+    clearCache('projects');
     return result;
   }
 
+  /**
+   * 删除项目（软删除）
+   */
   async deleteProject(projectId: string): Promise<void> {
     await projectService.deleteProject(projectId);
-    clearCache('projects'); // 清除项目缓存
+    clearCache('projects');
   }
 
+  /**
+   * 获取项目统计数据
+   */
   async getProjectStatistics(): Promise<any> {
     try {
       return await projectService.getStatistics();
@@ -192,6 +306,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 检查项目是否正在被使用
+   */
   async isProjectInUse(projectId: string): Promise<boolean> {
     try {
       const response = await projectService.checkInUse(projectId);
@@ -202,9 +319,19 @@ class ApiDataService {
     }
   }
 
-  // 任务相关
+  // ============================================
+  // 3.3 任务相关操作
+  // ============================================
+
+  /**
+   * 获取任务列表
+   * @param params 查询参数（任务分类ID、负责人ID、项目ID）
+   * @param forceRefresh 是否强制刷新
+   */
   async getTasks(params?: { taskClassId?: string; assigneeId?: string; projectId?: string }, forceRefresh = false): Promise<TaskDto[]> {
+    // 根据参数生成缓存键
     const cacheKey = `tasks_${params?.taskClassId || ''}_${params?.assigneeId || ''}_${params?.projectId || ''}`;
+    // 只有查询全部任务时才使用缓存
     if (!forceRefresh && !params?.taskClassId && !params?.assigneeId && !params?.projectId) {
       const cached = getCachedData<TaskDto[]>(cacheKey);
       if (cached) return cached;
@@ -229,6 +356,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取单个任务信息
+   */
   async getTask(taskId: string): Promise<TaskDto | null> {
     try {
       return await taskService.getTask(taskId);
@@ -238,6 +368,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取个人的所有任务（按状态分组）
+   */
   async getPersonalTasks(userId: string): Promise<{ inProgress: TaskDto[]; pending: TaskDto[]; completed: TaskDto[] }> {
     try {
       return await taskService.getPersonalTasks(userId);
@@ -247,6 +380,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取个人的差旅任务
+   */
   async getTravelTasks(userId: string): Promise<TaskDto[]> {
     try {
       const response = await taskService.getTravelTasks(userId);
@@ -257,6 +393,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取个人的会议任务
+   */
   async getMeetingTasks(userId: string): Promise<TaskDto[]> {
     try {
       const response = await taskService.getMeetingTasks(userId);
@@ -267,6 +406,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 保存任务（创建或更新）
+   */
   async saveTask(task: Partial<TaskDto>): Promise<TaskDto> {
     let result: TaskDto;
     if (task.taskId) {
@@ -274,20 +416,29 @@ class ApiDataService {
     } else {
       result = await taskService.createTask(task as any);
     }
-    clearCache('tasks___'); // 清除任务主缓存（三个下划线，与getTasks的cacheKey一致）
+    clearCache('tasks___');
     return result;
   }
 
+  /**
+   * 删除任务（软删除）
+   */
   async deleteTask(taskId: string): Promise<void> {
     await taskService.deleteTask(taskId);
-    clearCache('tasks___'); // 清除任务主缓存
+    clearCache('tasks___');
   }
 
+  /**
+   * 更新任务状态
+   */
   async updateTaskStatus(taskId: string, status: string): Promise<void> {
     await taskService.updateTaskStatus(taskId, status);
-    clearCache('tasks___'); // 清除任务主缓存
+    clearCache('tasks___');
   }
 
+  /**
+   * 完成任务所有角色
+   */
   async completeAllRoles(taskId: string): Promise<boolean> {
     try {
       await taskService.completeAllRoles(taskId);
@@ -298,6 +449,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 将任务回收到任务库
+   */
   async retrieveTaskToPool(taskId: string): Promise<boolean> {
     try {
       await taskService.retrieveToPool(taskId);
@@ -308,10 +462,13 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 批量操作任务
+   */
   async batchOperation(operation: string, taskIds: string[]): Promise<boolean> {
     try {
       await taskService.batchOperation(operation, taskIds);
-      clearCache('tasks___'); // 清除任务主缓存
+      clearCache('tasks___');
       return true;
     } catch (error) {
       console.error('批量操作任务失败:', error);
@@ -319,7 +476,13 @@ class ApiDataService {
     }
   }
 
-  // 任务分类
+  // ============================================
+  // 3.4 任务分类相关操作
+  // ============================================
+
+  /**
+   * 获取任务分类列表
+   */
   async getTaskClasses(): Promise<any[]> {
     try {
       return await taskClassService.getTaskClasses();
@@ -329,6 +492,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 保存任务分类
+   */
   async saveTaskClass(taskClass: any): Promise<any> {
     try {
       if (taskClass.id) {
@@ -342,6 +508,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 删除任务分类
+   */
   async deleteTaskClass(id: string): Promise<boolean> {
     try {
       await taskClassService.deleteTaskClass(id);
@@ -352,7 +521,13 @@ class ApiDataService {
     }
   }
 
-  // 任务库相关
+  // ============================================
+  // 3.5 任务库相关操作
+  // ============================================
+
+  /**
+   * 获取任务库列表
+   */
   async getTaskPoolItems(): Promise<TaskPoolItemDto[]> {
     try {
       const result = await taskPoolService.getPoolItems({ pageSize: 200 });
@@ -366,6 +541,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取单个任务库项
+   */
   async getTaskPoolItem(id: string): Promise<TaskPoolItemDto | null> {
     try {
       return await taskPoolService.getPoolItem(id);
@@ -375,22 +553,37 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 创建任务库项
+   */
   async createTaskPoolItem(data: any): Promise<TaskPoolItemDto> {
     return await taskPoolService.createPoolItem(data);
   }
 
+  /**
+   * 更新任务库项
+   */
   async updateTaskPoolItem(id: string, data: any): Promise<TaskPoolItemDto> {
     return await taskPoolService.updatePoolItem(id, data);
   }
 
+  /**
+   * 删除任务库项（软删除）
+   */
   async deleteTaskPoolItem(id: string): Promise<void> {
     await taskPoolService.deletePoolItem(id);
   }
 
+  /**
+   * 将任务库项分配为实际任务
+   */
   async assignPoolItemToTask(poolItemId: string, taskData: any): Promise<any> {
     return await taskPoolService.assignTask(poolItemId, taskData);
   }
 
+  /**
+   * 获取任务库统计
+   */
   async getTaskPoolStatistics(): Promise<any> {
     try {
       return await taskPoolService.getStatistics();
@@ -400,6 +593,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 批量分配任务库项
+   */
   async batchAssignPoolItem(poolItemIds: string[], taskData: any): Promise<any> {
     try {
       return await taskPoolService.batchAssign(poolItemIds, taskData);
@@ -409,6 +605,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 复制任务库项
+   */
   async duplicatePoolItem(poolItemId: string): Promise<any> {
     try {
       return await taskPoolService.duplicate(poolItemId);
@@ -418,6 +617,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 从任务回收
+   */
   async retrieveFromTask(taskId: string): Promise<boolean> {
     try {
       await taskPoolService.retrieveFromTask(taskId);
@@ -428,7 +630,13 @@ class ApiDataService {
     }
   }
 
-  // 统计
+  // ============================================
+  // 3.6 统计相关操作
+  // ============================================
+
+  /**
+   * 获取仪表盘统计数据
+   */
   async getDashboardStatistics(): Promise<any> {
     try {
       return await statisticsService.getDashboardStats();
@@ -438,6 +646,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取个人统计数据
+   */
   async getPersonalStats(userId: string, period?: string): Promise<any> {
     try {
       return await statisticsService.getPersonalStats(userId, period);
@@ -447,6 +658,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取团队统计数据
+   */
   async getTeamStats(currentUserId: string): Promise<any> {
     try {
       return await statisticsService.getTeamStats(currentUserId);
@@ -456,6 +670,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取工作量分布
+   */
   async getWorkloadDistribution(userId: string): Promise<any> {
     try {
       return await statisticsService.getWorkloadDistribution(userId);
@@ -465,6 +682,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取拖延任务列表
+   */
   async getDelayedTasks(userId: string): Promise<any[]> {
     try {
       return await statisticsService.getDelayedTasks(userId);
@@ -474,6 +694,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取逾期任务列表
+   */
   async getOverdueTasks(userId: string): Promise<any[]> {
     try {
       return await statisticsService.getOverdueTasks(userId);
@@ -483,6 +706,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取差旅统计
+   */
   async getTravelStatistics(userId: string): Promise<any> {
     try {
       return await statisticsService.getTravelStatistics(userId);
@@ -492,6 +718,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取会议统计
+   */
   async getMeetingStatistics(userId: string): Promise<any> {
     try {
       return await statisticsService.getMeetingStatistics(userId);
@@ -501,6 +730,9 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 获取指定月份的工作日信息
+   */
   async getWorkDays(year: number, month: number): Promise<any> {
     try {
       return await statisticsService.getWorkDays(year, month);
@@ -510,12 +742,15 @@ class ApiDataService {
     }
   }
 
-  // 设置相关
+  // ============================================
+  // 3.7 系统设置相关操作
+  // ============================================
+
   // ========== 设备型号管理 ==========
+
   async getEquipmentModels(): Promise<string[]> {
     try {
       const response = await apiClient.get<any>('/api/settings/equipment-models');
-      // apiClient.get已提取Data并转为camelCase，返回 { models: [...] }
       return response.models || response.Models || [];
     } catch (error) {
       console.error('获取设备型号失败:', error);
@@ -526,7 +761,6 @@ class ApiDataService {
   async saveEquipmentModel(model: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>('/api/settings/equipment-models', { model });
-      // apiClient.post已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('保存设备型号失败:', error);
@@ -537,7 +771,6 @@ class ApiDataService {
   async deleteEquipmentModel(model: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/equipment-models/${encodeURIComponent(model)}`);
-      // apiClient.delete已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('删除设备型号失败:', error);
@@ -546,10 +779,10 @@ class ApiDataService {
   }
 
   // ========== 容量等级管理 ==========
+
   async getCapacityLevels(): Promise<string[]> {
     try {
       const response = await apiClient.get<any>('/api/settings/capacity-levels');
-      // apiClient.get已提取Data并转为camelCase，返回 { levels: [...] }
       return response.levels || response.Levels || [];
     } catch (error) {
       console.error('获取容量等级失败:', error);
@@ -560,7 +793,6 @@ class ApiDataService {
   async saveCapacityLevel(level: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>('/api/settings/capacity-levels', { level });
-      // apiClient.post已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('保存容量等级失败:', error);
@@ -571,7 +803,6 @@ class ApiDataService {
   async deleteCapacityLevel(level: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/capacity-levels/${encodeURIComponent(level)}`);
-      // apiClient.delete已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('删除容量等级失败:', error);
@@ -580,10 +811,10 @@ class ApiDataService {
   }
 
   // ========== 差旅标签管理 ==========
+
   async getTravelLabels(): Promise<string[]> {
     try {
       const response = await apiClient.get<any>('/api/settings/travel-labels');
-      // apiClient.get已提取Data并转为camelCase，返回 { labels: [...] }
       return response.labels || response.Labels || [];
     } catch (error) {
       console.error('获取差旅标签失败:', error);
@@ -594,7 +825,6 @@ class ApiDataService {
   async saveTravelLabel(label: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>('/api/settings/travel-labels', { label });
-      // apiClient.post已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('保存差旅标签失败:', error);
@@ -605,7 +835,6 @@ class ApiDataService {
   async deleteTravelLabel(label: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/travel-labels/${encodeURIComponent(label)}`);
-      // apiClient.delete已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('删除差旅标签失败:', error);
@@ -614,10 +843,10 @@ class ApiDataService {
   }
 
   // ========== 用户头像管理 ==========
+
   async getUserAvatar(userId: string): Promise<string | null> {
     try {
       const response = await apiClient.get<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`);
-      // apiClient.get已提取Data并转为camelCase，返回 { avatar: "..." }
       return response.avatar || response.Avatar || null;
     } catch (error) {
       console.error('获取用户头像失败:', error);
@@ -628,7 +857,6 @@ class ApiDataService {
   async saveUserAvatar(userId: string, avatar: string): Promise<boolean> {
     try {
       const response = await apiClient.post<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`, { avatar });
-      // apiClient.post已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('保存用户头像失败:', error);
@@ -639,7 +867,6 @@ class ApiDataService {
   async deleteUserAvatar(userId: string): Promise<boolean> {
     try {
       const response = await apiClient.delete<any>(`/api/settings/avatars/${encodeURIComponent(userId)}`);
-      // apiClient.delete已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('删除用户头像失败:', error);
@@ -648,10 +875,10 @@ class ApiDataService {
   }
 
   // ========== 任务分类管理 ==========
+
   async getTaskCategories(): Promise<Record<string, string[]>> {
     try {
       const response = await apiClient.get<any>('/api/settings/task-categories');
-      // apiClient.get已提取Data并转为camelCase，返回 { categories: {...} }
       return response.categories || response.Categories || {};
     } catch (error) {
       console.error('获取任务分类失败:', error);
@@ -662,7 +889,6 @@ class ApiDataService {
   async saveTaskCategories(code: string, categories: string[]): Promise<boolean> {
     try {
       const response = await apiClient.put<any>(`/api/settings/task-categories/${code}`, { categories });
-      // apiClient.put已提取Data，返回 { success: true/false }
       return response.success || response.Success || false;
     } catch (error) {
       console.error('保存任务分类失败:', error);
@@ -670,8 +896,13 @@ class ApiDataService {
     }
   }
 
-  // ========== 个人工作台辅助方法 ==========
-  // 获取团队成员（同办公地点的非管理员用户）
+  // ============================================
+  // 3.8 个人工作台辅助方法
+  // ============================================
+
+  /**
+   * 获取团队成员（同办公地点的非管理员用户）
+   */
   async getTeamMembers(currentUserId: string): Promise<UserDto[]> {
     try {
       const users = await this.getUsers();
@@ -690,7 +921,9 @@ class ApiDataService {
     }
   }
 
-  // 根据开始日期筛选任务
+  /**
+   * 根据开始日期筛选任务
+   */
   filterTasksByStartDate(tasks: TaskDto[], period: string): TaskDto[] {
     const now = new Date();
     let startDate: Date;
@@ -732,7 +965,9 @@ class ApiDataService {
     });
   }
 
-  // 按角色状态分离任务
+  /**
+   * 按角色状态分离任务
+   */
   separateTasksByRoleStatus(tasks: TaskDto[], userId: string): { inProgress: TaskDto[]; pending: TaskDto[]; completed: TaskDto[] } {
     const result = {
       inProgress: [] as TaskDto[],
@@ -740,8 +975,18 @@ class ApiDataService {
       completed: [] as TaskDto[],
     };
 
-    const inProgressStatuses = ['进行中', '修改中', '已驳回'];
-    const completedStatuses = ['已完成'];
+    // 兼容数字和中文状态值
+    const isCompletedStatus = (status: string | undefined | null): boolean => {
+      if (!status) return false;
+      const s = String(status).trim();
+      return s === '已完成' || s === '4';
+    };
+
+    const isInProgressStatus = (status: string | undefined | null): boolean => {
+      if (!status) return false;
+      const s = String(status).trim();
+      return ['进行中', '修改中', '已驳回', '审查中', '1', '2', '3', '5'].includes(s);
+    };
 
     for (const task of tasks) {
       // 确定用户在任务中的角色状态
@@ -757,15 +1002,13 @@ class ApiDataService {
       else if (chiefDesignerId === userId) roleStatus = task.chiefDesignerStatus || '';
       else if (approverId === userId) roleStatus = task.approverStatus || '';
 
-      // 综合判断任务状态
       const finalStatus = roleStatus || taskStatus;
 
-      if (completedStatuses.includes(finalStatus)) {
+      if (isCompletedStatus(finalStatus)) {
         result.completed.push(task);
-      } else if (inProgressStatuses.includes(finalStatus)) {
+      } else if (isInProgressStatus(finalStatus)) {
         result.inProgress.push(task);
       } else {
-        // NOT_STARTED 或其他状态都放入 pending
         result.pending.push(task);
       }
     }
@@ -773,7 +1016,9 @@ class ApiDataService {
     return result;
   }
 
-  // 计算个人统计数据
+  /**
+   * 计算个人统计数据
+   */
   calculatePersonalStats(tasks: TaskDto[], period: string, userId: string): any {
     const allTasks = this.getPersonalTasksSync(tasks);
     const periodTasks = this.filterTasksByStartDate(allTasks, period);
@@ -784,7 +1029,6 @@ class ApiDataService {
     const completedCount = separated.completed.length;
     const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-    // 类别分布
     const categoryMap = new Map<string, number>();
     for (const task of allTasks) {
       const category = task.category || '未分类';
@@ -799,12 +1043,12 @@ class ApiDataService {
     // 差旅统计
     const travelTasks = allTasks.filter(t => t.taskClassId === 'TC009');
     const totalTravelDays = travelTasks.reduce((sum, t) => sum + (t.travelDuration || 0), 0);
-    const travelPercentage = Math.round((totalTravelDays / 22) * 100); // 假设每月22个工作日
+    const travelPercentage = Math.round((totalTravelDays / 22) * 100);
 
     // 会议统计
     const meetingTasks = allTasks.filter(t => t.taskClassId === 'TC007');
     const totalMeetingHours = meetingTasks.reduce((sum, t) => sum + (t.meetingDuration || 0), 0);
-    const meetingPercentage = Math.round((totalMeetingHours / 160) * 100); // 假设每月160工作小时
+    const meetingPercentage = Math.round((totalMeetingHours / 160) * 100);
 
     return {
       totalCount,
@@ -825,12 +1069,13 @@ class ApiDataService {
     };
   }
 
-  // 同步获取个人任务（内部使用）
   private getPersonalTasksSync(tasks: TaskDto[]): TaskDto[] {
     return tasks;
   }
 
-  // 计算每日趋势
+  /**
+   * 计算每日趋势
+   */
   calculateDailyTrend(tasks: TaskDto[], days: number, userId: string): any[] {
     const now = new Date();
     const trend = [];
@@ -853,7 +1098,9 @@ class ApiDataService {
     return trend;
   }
 
-  // 计算每月趋势
+  /**
+   * 计算每月趋势
+   */
   calculateMonthlyTrend(tasks: TaskDto[], months: number, userId: string): any[] {
     const now = new Date();
     const trend = [];
@@ -880,10 +1127,11 @@ class ApiDataService {
     return trend;
   }
 
-  // 更新任务角色状态
+  /**
+   * 更新任务角色状态
+   */
   async updateTaskRoleStatus(taskId: string, role: string, status: string): Promise<boolean> {
     try {
-      // 将角色名称转换为后端期望的格式
       const roleMap: Record<string, 'assignee' | 'checker' | 'chiefdesigner' | 'approver'> = {
         'assignee': 'assignee',
         'checker': 'checker',
@@ -899,14 +1147,20 @@ class ApiDataService {
     }
   }
 
-  // 检查任务类别使用情况
+  /**
+   * 检查任务类别使用情况
+   */
   checkTaskClassUsage(taskClassId: string): { hasTasks: boolean; taskCount: number } {
-    // 由于后端没有直接的检查API，返回默认结果
-    // 实际使用时应该调用后端API
     return { hasTasks: false, taskCount: 0 };
   }
 
-  // 生成统计CSV
+  // ============================================
+  // 3.9 数据导出相关方法
+  // ============================================
+
+  /**
+   * 生成统计CSV内容
+   */
   generateStatsCSV(stats: any, separatedTasks: any, userName: string): string {
     const headers = ['任务名称', '任务类别', '项目', '开始日期', '截止日期', '我的角色', '状态', '工作量'];
     const rows: string[][] = [];
@@ -967,7 +1221,9 @@ class ApiDataService {
     return csvContent;
   }
 
-  // 下载CSV
+  /**
+   * 下载CSV文件
+   */
   downloadStatsCSV(csvContent: string, fileName: string): void {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -980,7 +1236,9 @@ class ApiDataService {
     document.body.removeChild(link);
   }
 
-  // 判断任务是否为长期任务（超过30天）
+  /**
+   * 判断任务是否为长期任务（超过30天）
+   */
   isTaskLongRunning(task: any): boolean {
     if (!task.startDate || !task.dueDate) return false;
     const startDate = new Date(task.startDate);
@@ -989,14 +1247,19 @@ class ApiDataService {
     return diffDays > 30;
   }
 
-  // 生成ID
+  /**
+   * 生成唯一ID
+   */
   generateId(prefix: string): string {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     return `${prefix}-${timestamp}${random}`;
   }
 
-  // 添加任务分类
+  // ============================================
+  // 3.10 任务分类CRUD操作
+  // ============================================
+
   async addTaskCategory(taskClassCode: string, categoryName: string): Promise<boolean> {
     try {
       const categories = await this.getTaskCategories();
@@ -1012,7 +1275,6 @@ class ApiDataService {
     }
   }
 
-  // 删除任务分类
   async deleteTaskCategory(taskClassCode: string, categoryName: string): Promise<boolean> {
     try {
       const categories = await this.getTaskCategories();
@@ -1025,7 +1287,6 @@ class ApiDataService {
     }
   }
 
-  // 更新任务分类
   async updateTaskCategory(taskClassCode: string, oldCategoryName: string, newCategoryName: string): Promise<boolean> {
     try {
       const categories = await this.getTaskCategories();
@@ -1038,7 +1299,6 @@ class ApiDataService {
     }
   }
 
-  // 重新排序任务分类
   async reorderTaskCategories(taskClassCode: string, newOrder: string[]): Promise<boolean> {
     try {
       return await this.saveTaskCategories(taskClassCode, newOrder);
@@ -1048,7 +1308,13 @@ class ApiDataService {
     }
   }
 
-  // 修改密码
+  // ============================================
+  // 3.11 认证相关操作
+  // ============================================
+
+  /**
+   * 修改密码
+   */
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
     try {
       await authService.changePassword(userId, currentPassword, newPassword);
@@ -1059,7 +1325,9 @@ class ApiDataService {
     }
   }
 
-  // 健康检查 - 专门用于检测后端是否可用
+  /**
+   * 健康检查 - 检测后端是否可用
+   */
   async healthCheck(): Promise<boolean> {
     try {
       const response = await apiClient.get<{ status: string }>('/api/health');
@@ -1074,11 +1342,12 @@ class ApiDataService {
     }
   }
 
-  // 认证相关
+  /**
+   * 登录
+   */
   async login(userId: string, password: string): Promise<{ user: any; token: string } | null> {
     try {
       const response = await authService.login(userId, password);
-      // console.log('apiDataService.login response:', response);
       return response;
     } catch (error) {
       console.error('登录失败:', error);
@@ -1086,24 +1355,37 @@ class ApiDataService {
     }
   }
 
+  /**
+   * 登出
+   */
   logout(): void {
     authService.logout();
   }
 
+  /**
+   * 获取当前登录用户
+   */
   getCurrentUser(): UserDto | null {
     return authService.getStoredUser?.() || null;
   }
 
+  /**
+   * 检查是否已登录
+   */
   isLoggedIn(): boolean {
     return authService.isLoggedIn();
   }
 
-  // 清除缓存
+  /**
+   * 清除缓存
+   */
   clearCache(key?: string): void {
     clearCache(key);
   }
 
-  // 数据变更时刷新缓存
+  /**
+   * 刷新所有数据
+   */
   async refreshData(): Promise<void> {
     clearCache();
     await this.getUsers(true);
@@ -1112,4 +1394,5 @@ class ApiDataService {
   }
 }
 
+// 导出单例实例
 export const apiDataService = new ApiDataService();

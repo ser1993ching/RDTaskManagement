@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { User, TaskClass, SystemRole } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { User, TaskClass } from '../types';
 import {
   Settings as SettingsIcon,
   Plus,
@@ -14,24 +14,41 @@ import {
   Camera,
   GripVertical,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  RefreshCw
 } from 'lucide-react';
 import { apiDataService } from '../services/apiDataService';
+import { cn } from '@/utils/classnames';
+import {
+  useTaskCategories,
+  useEquipmentModels,
+  useCapacityLevels,
+  useTravelLabels,
+  useTaskClasses,
+  useConfig
+} from '../context/ConfigContext';
 
 interface SettingsProps {
   currentUser: User;
+  onRefresh: () => void;
 }
 
 type TabType = 'task-classes' | 'task-categories' | 'models' | 'capacity-levels' | 'travel-labels' | 'profile' | 'password';
 
-export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
+export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) => {
+  const { refreshConfig } = useConfig();
+  const { taskCategories, refreshTaskCategories } = useTaskCategories();
+  const { equipmentModels, refreshEquipmentModels } = useEquipmentModels();
+  const { capacityLevels, refreshCapacityLevels } = useCapacityLevels();
+  const { travelLabels, refreshTravelLabels } = useTravelLabels();
+  const { taskClasses, refreshTaskClasses } = useTaskClasses();
+
   const [activeTab, setActiveTab] = useState<TabType>('task-classes');
-  const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
-  const [taskCategories, setTaskCategories] = useState<Record<string, string[]>>({});
+  const [localTaskCategories, setLocalTaskCategories] = useState<Record<string, string[]>>({});
   const [selectedTaskClassCode, setSelectedTaskClassCode] = useState<string>('');
-  const [models, setModels] = useState<string[]>([]);
-  const [capacityLevels, setCapacityLevels] = useState<string[]>([]);
-  const [travelLabels, setTravelLabels] = useState<string[]>([]);
+  const [localModels, setLocalModels] = useState<string[]>([]);
+  const [localCapacityLevels, setLocalCapacityLevels] = useState<string[]>([]);
+  const [localTravelLabels, setLocalTravelLabels] = useState<string[]>([]);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -42,6 +59,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const [showDeletePasswordPrompt, setShowDeletePasswordPrompt] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [taskClassToDelete, setTaskClassToDelete] = useState<TaskClass | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Profile state
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -52,50 +70,42 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Check if user is Admin or Leader
-  const canManageSettings = currentUser?.SystemRole === SystemRole.ADMIN || currentUser?.SystemRole === SystemRole.LEADER;
+  // Check if user is Admin or Leader (使用后端返回的中文值)
+  const canManageSettings = currentUser?.systemRole === '管理员' || currentUser?.systemRole === '班组长';
 
   useEffect(() => {
-    loadData();
-  }, []);
+    // Initialize local state from global config
+    setLocalTaskCategories(taskCategories || {});
+    setLocalModels(equipmentModels || []);
+    setLocalCapacityLevels(capacityLevels || []);
+    setLocalTravelLabels(travelLabels || []);
 
-  const loadData = async () => {
-    const [classes, categories, models, levels, labels] = await Promise.all([
-      apiDataService.getTaskClasses(),
-      apiDataService.getTaskCategories(),
-      apiDataService.getEquipmentModels(),
-      apiDataService.getCapacityLevels(),
-      apiDataService.getTravelLabels(),
-    ]);
-
-    setTaskClasses(classes.map((tc: any) => ({
-      id: tc.id,
-      name: tc.name,
-      code: tc.code,
-      description: tc.description,
-      notice: tc.notice,
-      is_deleted: false,
-    })));
-    setTaskCategories(categories);
-    setModels(models);
-    setCapacityLevels(levels);
-    setTravelLabels(labels);
-
-    if (currentUser) {
-      const userAvatar = await apiDataService.getUserAvatar(currentUser.userId);
-      setAvatar(userAvatar);
-    }
-  };
+    // Load user avatar
+    const loadAvatar = async () => {
+      if (currentUser) {
+        const userAvatar = await apiDataService.getUserAvatar(currentUser.userId);
+        setAvatar(userAvatar);
+      }
+    };
+    loadAvatar();
+  }, [currentUser, taskCategories, equipmentModels, capacityLevels, travelLabels]);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
   };
 
+  // 刷新配置数据
+  const handleConfigChange = async () => {
+    await refreshConfig();
+    onRefresh?.();
+  };
+
   // Task Class Management
   const handleSaveTaskClass = async (taskClass: TaskClass) => {
     await apiDataService.saveTaskClass(taskClass);
-    await loadData();
+    await refreshTaskClasses();
+    handleConfigChange();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '任务类别保存成功');
@@ -115,7 +125,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
       description: '',
     };
     await apiDataService.saveTaskClass(newTaskClass);
-    await loadData();
+    await refreshTaskClasses();
+    handleConfigChange();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '任务类别添加成功');
@@ -158,7 +169,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
     if (confirm(confirmMessage)) {
       await apiDataService.deleteTaskClass(id);
-      await loadData();
+      await refreshTaskClasses();
+      handleConfigChange();
       showMessage('success', '任务类别删除成功');
     }
   };
@@ -169,7 +181,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (deletePassword === 'admin') {
       if (taskClassToDelete) {
         await apiDataService.deleteTaskClass(taskClassToDelete.id);
-        await loadData();
+        await refreshTaskClasses();
+        handleConfigChange();
         showMessage('success', '任务类别删除成功');
       }
       setShowDeletePasswordPrompt(false);
@@ -196,7 +209,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
     taskClass.name = editingValue.trim();
     await apiDataService.saveTaskClass(taskClass);
-    await loadData();
+    await refreshTaskClasses();
+    handleConfigChange();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '任务类别更新成功');
@@ -222,7 +236,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
     taskClass.notice = editingNoticeValue.trim();
     await apiDataService.saveTaskClass(taskClass);
-    await loadData();
+    await refreshTaskClasses();
+    handleConfigChange();
     setEditingNotice(null);
     setEditingNoticeValue('');
     showMessage('success', '任务类别提示文字保存成功');
@@ -236,7 +251,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     }
     await apiDataService.addTaskCategory(taskClassCode, editingValue.trim());
     const categories = await apiDataService.getTaskCategories();
-    setTaskCategories(categories);
+    setLocalTaskCategories(categories);
+    handleConfigChange();
     setEditingValue('');
     showMessage('success', '任务分类添加成功');
   };
@@ -246,7 +262,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (confirm(`确定要删除分类"${categoryName}"吗？`)) {
       await apiDataService.deleteTaskCategory(taskClassCode, categoryName);
       const categories = await apiDataService.getTaskCategories();
-      setTaskCategories(categories);
+      setLocalTaskCategories(categories);
+      handleConfigChange();
       showMessage('success', '任务分类删除成功');
     }
   };
@@ -258,7 +275,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     }
     await apiDataService.updateTaskCategory(taskClassCode, oldCategoryName, newCategoryName.trim());
     const categories = await apiDataService.getTaskCategories();
-    setTaskCategories(categories);
+    setLocalTaskCategories(categories);
+    handleConfigChange();
     setEditingCategory(null);
     setEditingCategoryValue('');
     showMessage('success', '任务分类更新成功');
@@ -314,7 +332,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
       await apiDataService.reorderTaskCategories(taskClassCode, newOrder);
       const updatedCategories = await apiDataService.getTaskCategories();
-      setTaskCategories(updatedCategories);
+      setLocalTaskCategories(updatedCategories);
+      handleConfigChange();
     }
 
     setDraggedCategory(null);
@@ -341,12 +360,13 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
     await apiDataService.reorderTaskCategories(taskClassCode, newOrder);
     const updatedCategories = await apiDataService.getTaskCategories();
-    setTaskCategories(updatedCategories);
+    setLocalTaskCategories(updatedCategories);
+    handleConfigChange();
   };
 
   // Move category down
   const moveCategoryDown = async (taskClassCode: string, categoryName: string) => {
-    const categories = taskCategories[taskClassCode];
+    const categories = localTaskCategories[taskClassCode];
     if (!categories) return;
 
     const currentIndex = categories.indexOf(categoryName);
@@ -359,7 +379,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
 
     await apiDataService.reorderTaskCategories(taskClassCode, newOrder);
     const updatedCategories = await apiDataService.getTaskCategories();
-    setTaskCategories(updatedCategories);
+    setLocalTaskCategories(updatedCategories);
+    handleConfigChange();
   };
 
   // Model Management
@@ -367,7 +388,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (!editingValue.trim()) return;
     await apiDataService.saveEquipmentModel(editingValue.trim());
     const models = await apiDataService.getEquipmentModels();
-    setModels(models);
+    setLocalModels(models);
+    handleConfigChange();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '机型添加成功');
@@ -377,7 +399,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (confirm('确定要删除此机型吗？')) {
       await apiDataService.deleteEquipmentModel(model);
       const models = await apiDataService.getEquipmentModels();
-      setModels(models);
+      setLocalModels(models);
+      handleConfigChange();
       showMessage('success', '机型删除成功');
     }
   };
@@ -387,7 +410,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (!editingValue.trim()) return;
     await apiDataService.saveCapacityLevel(editingValue.trim());
     const levels = await apiDataService.getCapacityLevels();
-    setCapacityLevels(levels);
+    setLocalCapacityLevels(levels);
+    handleConfigChange();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '容量等级添加成功');
@@ -397,7 +421,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (confirm('确定要删除此容量等级吗？')) {
       await apiDataService.deleteCapacityLevel(level);
       const levels = await apiDataService.getCapacityLevels();
-      setCapacityLevels(levels);
+      setLocalCapacityLevels(levels);
+      handleConfigChange();
       showMessage('success', '容量等级删除成功');
     }
   };
@@ -407,7 +432,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (!editingValue.trim()) return;
     await apiDataService.saveTravelLabel(editingValue.trim());
     const labels = await apiDataService.getTravelLabels();
-    setTravelLabels(labels);
+    setLocalTravelLabels(labels);
+    handleConfigChange();
     setEditingItem(null);
     setEditingValue('');
     showMessage('success', '差旅标签添加成功');
@@ -417,7 +443,8 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     if (confirm('确定要删除此差旅标签吗？')) {
       await apiDataService.deleteTravelLabel(label);
       const labels = await apiDataService.getTravelLabels();
-      setTravelLabels(labels);
+      setLocalTravelLabels(labels);
+      handleConfigChange();
       showMessage('success', '差旅标签删除成功');
     }
   };
@@ -499,14 +526,28 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
     <div className="bg-white rounded-xl shadow-lg h-full flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-slate-200">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-blue-100 p-3 rounded-lg">
-            <SettingsIcon className="text-blue-600" size={24} />
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-3 rounded-lg">
+              <SettingsIcon className="text-blue-600" size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">系统设置</h2>
+              <p className="text-slate-500">管理系统配置和用户设置</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">系统设置</h2>
-            <p className="text-slate-500">管理系统配置和用户设置</p>
-          </div>
+          {/* Refresh Button */}
+          <button
+            onClick={async () => {
+              await refreshConfig();
+              showMessage('success', '配置已刷新');
+            }}
+            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors flex items-center gap-2"
+            disabled={isLoading}
+          >
+            <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} />
+            {isLoading ? '刷新中...' : '刷新配置'}
+          </button>
         </div>
 
         {/* Tabs */}
@@ -705,7 +746,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                         <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
                           <span className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                            分类: {taskCategories[taskClass.code]?.length || 0} 个
+                            分类: {localTaskCategories[taskClass.code]?.length || 0} 个
                           </span>
                           {usage.hasTasks ? (
                             <span className="flex items-center gap-1">
@@ -742,7 +783,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
             </div>
             <div className="space-y-6">
               {taskClasses.map(taskClass => {
-                const categories = taskCategories[taskClass.code] || [];
+                const categories = localTaskCategories[taskClass.code] || [];
                 return (
                   <div key={taskClass.id} className="bg-white rounded-lg border border-slate-200 shadow-sm">
                     {/* Task Class Header */}
@@ -964,7 +1005,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                 </button>
               )}
 
-              {models.map(model => (
+              {localModels.map(model => (
                 <div key={model} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <span className="font-medium">{model}</span>
                   {canManageSettings && (
@@ -1016,7 +1057,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                 </button>
               )}
 
-              {capacityLevels.map(level => (
+              {localCapacityLevels.map(level => (
                 <div key={level} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <span className="font-medium">{level}</span>
                   {canManageSettings && (
@@ -1068,7 +1109,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                 </button>
               )}
 
-              {travelLabels.map(label => (
+              {localTravelLabels.map(label => (
                 <div key={label} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <span className="font-medium">{label}</span>
                   {canManageSettings && (
@@ -1146,11 +1187,11 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">办公地点</label>
-                    <p className="mt-1 text-slate-900">{currentUser.OfficeLocation}</p>
+                    <p className="mt-1 text-slate-900">{currentUser.officeLocation}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">状态</label>
-                    <p className="mt-1 text-slate-900">{currentUser.Status}</p>
+                    <p className="mt-1 text-slate-900">{currentUser.status}</p>
                   </div>
                 </div>
               )}

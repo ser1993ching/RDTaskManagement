@@ -3,6 +3,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using TaskManageSystem.Application.Interfaces;
 using TaskManageSystem.Domain.Entities;
@@ -212,7 +214,7 @@ public class ExceptionHandlingMiddleware
         }
     }
 
-    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
 
@@ -245,6 +247,69 @@ public class ExceptionHandlingMiddleware
 }
 
 /// <summary>
+/// 模型验证错误处理中间件
+/// </summary>
+public class ModelValidationMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<ModelValidationMiddleware> _logger;
+
+    public ModelValidationMiddleware(RequestDelegate next, ILogger<ModelValidationMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        await _next(context);
+
+        // 检查是否是验证错误 (400 Bad Request)
+        if (context.Response.StatusCode == 400 && !context.Response.HasStarted)
+        {
+            // 通过 ModelState 访问验证错误
+            var routeData = context.GetRouteData();
+            var actionDescriptor = new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor();
+            var actionContext = new ActionContext(context, routeData, actionDescriptor);
+            var modelState = actionContext.ModelState;
+
+            if (!modelState.IsValid)
+            {
+                var errors = modelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                    );
+
+                var errorMessages = errors.SelectMany(kvp => kvp.Value).ToList();
+                var errorDetail = string.Join("; ", errorMessages);
+
+                _logger.LogWarning("模型验证失败: {Errors}", errorDetail);
+
+                context.Response.ContentType = "application/json";
+
+                var response = new
+                {
+                    Success = false,
+                    Data = (string?)null,
+                    Message = (string?)null,
+                    Error = new
+                    {
+                        Code = "ValidationError",
+                        Message = "请求数据验证失败",
+                        Details = errorDetail,
+                        Errors = errors
+                    }
+                };
+
+                await context.Response.WriteAsJsonAsync(response);
+            }
+        }
+    }
+}
+
+/// <summary>
 /// 扩展方法，方便注册中间件
 /// </summary>
 public static class ApiLoggingMiddlewareExtensions
@@ -257,5 +322,10 @@ public static class ApiLoggingMiddlewareExtensions
     public static IApplicationBuilder UseExceptionHandling(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<ExceptionHandlingMiddleware>();
+    }
+
+    public static IApplicationBuilder UseModelValidation(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<ModelValidationMiddleware>();
     }
 }

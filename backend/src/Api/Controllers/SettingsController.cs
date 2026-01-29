@@ -30,7 +30,7 @@ public class SettingsController : ControllerBase
         return Ok(new ApiResponse<EquipmentModelsResponse> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpPost("equipment-models")]
     public async Task<ActionResult<ApiResponse<object>>> AddEquipmentModel([FromBody] AddEquipmentModelRequest request)
     {
@@ -38,7 +38,7 @@ public class SettingsController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpDelete("equipment-models/{model}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteEquipmentModel(string model)
     {
@@ -46,7 +46,7 @@ public class SettingsController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpPost("equipment-models/batch")]
     public async Task<ActionResult<ApiResponse<object>>> BatchAddEquipmentModels([FromBody] BatchAddEquipmentModelsRequest request)
     {
@@ -65,7 +65,7 @@ public class SettingsController : ControllerBase
         return Ok(new ApiResponse<CapacityLevelsResponse> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpPost("capacity-levels")]
     public async Task<ActionResult<ApiResponse<object>>> AddCapacityLevel([FromBody] AddCapacityLevelRequest request)
     {
@@ -73,7 +73,7 @@ public class SettingsController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpDelete("capacity-levels/{level}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteCapacityLevel(string level)
     {
@@ -92,7 +92,7 @@ public class SettingsController : ControllerBase
         return Ok(new ApiResponse<TravelLabelsResponse> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpPost("travel-labels")]
     public async Task<ActionResult<ApiResponse<object>>> AddTravelLabel([FromBody] AddTravelLabelRequest request)
     {
@@ -100,7 +100,7 @@ public class SettingsController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpDelete("travel-labels/{label}")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteTravelLabel(string label)
     {
@@ -144,7 +144,7 @@ public class SettingsController : ControllerBase
         return Ok(new ApiResponse<TaskCategoriesResponse> { Success = true, Data = result });
     }
 
-    [Authorize(Roles = "ADMIN")]
+    [Authorize(Roles = "ADMIN,LEADER")]
     [HttpPut("task-categories/{code}")]
     public async Task<ActionResult<ApiResponse<object>>> UpdateTaskCategories(string code, [FromBody] UpdateTaskCategoriesRequest request)
     {

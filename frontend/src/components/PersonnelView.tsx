@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, SystemRole, OfficeLocation, PersonnelStatus } from '../types';
+import { User, OfficeLocation, PersonnelStatus } from '../types';
 import { Plus, Download, Search, Edit2, Trash2, Lock, Key } from 'lucide-react';
 import { apiDataService } from '../services/apiDataService';
 
@@ -15,7 +15,8 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  const canEdit = currentUser.systemRole === SystemRole.ADMIN || currentUser.systemRole === SystemRole.LEADER;
+  // 直接使用后端返回的中文值进行权限判断
+  const canEdit = currentUser.systemRole === '管理员' || currentUser.systemRole === '班组长';
 
   // Form State
   const [formData, setFormData] = useState<Partial<User>>({});
@@ -79,33 +80,67 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const isNew = !editingUser;
+    try {
+      const isNew = !editingUser;
 
-    const userToSave: any = {
-      ...(editingUser || {}),
-      ...formData,
-      userId: isNew ? undefined : (editingUser?.userId || ''),
-      password: isNew ? '123456' : undefined, // Default password for new users
-      status: formData.status || PersonnelStatus.ACTIVE,
-      officeLocation: formData.officeLocation === 'Chengdu' ? 'Chengdu' : formData.officeLocation === 'Deyang' ? 'Deyang' : 'Chengdu',
-      systemRole: formData.systemRole || SystemRole.MEMBER,
-    };
+      // 枚举值转换：前端使用英文枚举值，后端需要中文值
+      const systemRoleMap: Record<string, string> = {
+        '组员': '组员',
+        'Member': '组员',
+        '班组长': '班组长',
+        'Leader': '班组长',
+        '管理员': '管理员',
+        'Admin': '管理员'
+      };
+      const officeLocationMap: Record<string, string> = {
+        '成都': '成都',
+        'Chengdu': '成都',
+        'Deyang': '德阳',
+        '德阳': '德阳'
+      };
+      const statusMap: Record<string, string> = {
+        '在岗': '在岗',
+        'ACTIVE': '在岗',
+        'BORROWED_IN': '借调',
+        '借调': '借调',
+        'BORROWED_OUT': '外借',
+        '外借': '外借',
+        'INTERN': '实习',
+        '实习': '实习',
+        'LEAVE': '离岗',
+        '离岗': '离岗'
+      };
 
-    // Remove undefined values
-    Object.keys(userToSave).forEach(key => {
-      if (userToSave[key] === undefined) delete userToSave[key];
-    });
+      const userToSave: any = {
+        ...(editingUser || {}),
+        ...formData,
+        userId: isNew ? undefined : (editingUser?.userId || ''),
+        password: isNew ? '123456' : undefined, // Default password for new users
+        // 转换枚举值为后端期望的中文值，使用 ?? 防止 null 值覆盖
+        systemRole: systemRoleMap[formData.systemRole ?? '组员'] ?? '组员',
+        officeLocation: officeLocationMap[formData.officeLocation ?? '成都'] ?? '成都',
+        status: statusMap[formData.status ?? '在岗'] ?? '在岗',
+      };
 
-    await apiDataService.saveUser(userToSave);
-    setIsModalOpen(false);
-    onRefresh();
+      // Remove undefined values
+      Object.keys(userToSave).forEach(key => {
+        if (userToSave[key] === undefined) delete userToSave[key];
+      });
+
+      await apiDataService.saveUser(userToSave);
+      setIsModalOpen(false);
+      onRefresh();
+    } catch (error) {
+      console.error('保存用户失败:', error);
+      alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
   };
 
   const openModal = (user?: User) => {
     setEditingUser(user || null);
     setFormData(user || {
       name: '',
-      systemRole: SystemRole.MEMBER,
+      systemRole: '组员',
       officeLocation: OfficeLocation.CHENGDU,
       status: PersonnelStatus.ACTIVE,
       joinDate: new Date().toISOString().split('T')[0]
@@ -175,47 +210,47 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-left table-fixed">
           <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
             <tr>
-              <th className="px-6 py-4">工号</th>
-              <th className="px-6 py-4">姓名</th>
-              <th className="px-6 py-4">角色</th>
-              <th className="px-6 py-4">职称</th>
-              <th className="px-6 py-4">地点</th>
-              <th className="px-6 py-4">工龄(年)</th>
-              <th className="px-6 py-4">学历</th>
-              <th className="px-6 py-4">毕业学校</th>
-              <th className="px-6 py-4">备注</th>
-              {canEdit && <th className="px-6 py-4 text-right">操作</th>}
+              <th className="px-4 py-4 w-[80px]">工号</th>
+              <th className="px-4 py-4 w-[80px]">姓名</th>
+              <th className="px-4 py-4 w-[70px]">角色</th>
+              <th className="px-4 py-4 w-[90px]">职称</th>
+              <th className="px-4 py-4 w-[60px]">地点</th>
+              <th className="px-4 py-4 w-[70px]">工龄(年)</th>
+              <th className="px-4 py-4 w-[70px]">学历</th>
+              <th className="px-4 py-4 w-[100px]">毕业学校</th>
+              <th className="px-4 py-4 w-[120px]">备注</th>
+              {canEdit && <th className="px-4 py-4 w-[80px] text-right">操作</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredUsers.map(user => (
               <tr key={user.userId} className="hover:bg-blue-50 transition-colors">
-                <td className="px-6 py-4 font-mono text-slate-500">{user.userId}</td>
-                <td className="px-6 py-4 font-medium text-slate-900">{user.name}</td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4 font-mono text-slate-500">{user.userId}</td>
+                <td className="px-4 py-4 font-medium text-slate-900">{user.name}</td>
+                <td className="px-4 py-4">
                   <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                    user.systemRole === SystemRole.ADMIN ? 'bg-purple-100 text-purple-700' :
-                    user.systemRole === SystemRole.LEADER ? 'bg-blue-100 text-blue-700' :
+                    user.systemRole === '管理员' ? 'bg-purple-100 text-purple-700' :
+                    user.systemRole === '班组长' ? 'bg-blue-100 text-blue-700' :
                     'bg-slate-100 text-slate-700'
                   }`}>
                     {user.systemRole}
                   </span>
                 </td>
-                <td className="px-6 py-4">{user.title || '-'}</td>
-                <td className="px-6 py-4">{user.officeLocation}</td>
-                <td className="px-6 py-4">{getWorkYears(user.joinDate)}</td>
-                <td className="px-6 py-4">{user.education || '-'}</td>
-                <td className="px-6 py-4">{user.school || '-'}</td>
-                <td className="px-6 py-4">
-                  <div className="max-w-xs truncate" title={user.remark || ''}>
+                <td className="px-4 py-4">{user.title || '-'}</td>
+                <td className="px-4 py-4">{user.officeLocation}</td>
+                <td className="px-4 py-4">{getWorkYears(user.joinDate)}</td>
+                <td className="px-4 py-4">{user.education || '-'}</td>
+                <td className="px-4 py-4">{user.school || '-'}</td>
+                <td className="px-4 py-4">
+                  <div className="truncate" title={user.remark || ''}>
                     {user.remark || '-'}
                   </div>
                 </td>
                 {canEdit && (
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-4 text-right">
                     <button onClick={() => openModal(user)} className="text-blue-600 hover:text-blue-800 mr-3">
                       <Edit2 size={16} />
                     </button>
@@ -279,8 +314,10 @@ export const PersonnelView: React.FC<PersonnelViewProps> = ({ currentUser, users
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">系统角色 <span className="text-red-500">*</span></label>
                 <select className="w-full border rounded p-2"
-                  value={formData.systemRole} onChange={e => setFormData({...formData, systemRole: e.target.value as SystemRole})}>
-                  {Object.values(SystemRole).map(v => <option key={v} value={v}>{v}</option>)}
+                  value={formData.systemRole || ''} onChange={e => setFormData({...formData, systemRole: e.target.value})}>
+                  <option value="组员">组员</option>
+                  <option value="班组长">班组长</option>
+                  <option value="管理员">管理员</option>
                 </select>
               </div>
               <div className="col-span-1">

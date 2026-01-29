@@ -2373,7 +2373,7 @@ class DataService {
         t.Status === TaskStatus.DRAFTING ||
         t.Status === TaskStatus.REVISING ||
         t.Status === TaskStatus.REVIEWING ||
-        t.Status === TaskStatus.REVIEWING2
+        t.Status === TaskStatus.APPROVING
       ),
       pending: tasks.filter(t => t.Status === TaskStatus.NOT_STARTED),
       completed: tasks.filter(t => t.Status === TaskStatus.COMPLETED)
@@ -2856,16 +2856,16 @@ class DataService {
     }
 
     // Rejected status has priority (highest to lowest: approver -> chiefDesigner -> checker)
-    if (task.approverStatus === RoleStatus.REJECTED) return TaskStatus.REVIEWING2;
-    if (task.chiefDesignerStatus === RoleStatus.REJECTED) return TaskStatus.REVIEWING2;
+    if (task.approverStatus === RoleStatus.REJECTED) return TaskStatus.APPROVING;
+    if (task.chiefDesignerStatus === RoleStatus.REJECTED) return TaskStatus.APPROVING;
     if (task.checkerStatus === RoleStatus.REJECTED) return TaskStatus.REVIEWING;
     if (task.assigneeStatus === RoleStatus.REJECTED || task.assigneeStatus === RoleStatus.REVISING) {
       return TaskStatus.REVISING;
     }
 
     // In progress status (highest to lowest: approver -> chiefDesigner -> checker -> assignee)
-    if (task.approverStatus === RoleStatus.IN_PROGRESS) return TaskStatus.REVIEWING2;
-    if (task.chiefDesignerStatus === RoleStatus.IN_PROGRESS) return TaskStatus.REVIEWING2;
+    if (task.approverStatus === RoleStatus.IN_PROGRESS) return TaskStatus.APPROVING;
+    if (task.chiefDesignerStatus === RoleStatus.IN_PROGRESS) return TaskStatus.APPROVING;
     if (task.checkerStatus === RoleStatus.IN_PROGRESS) return TaskStatus.REVIEWING;
     if (task.assigneeStatus === RoleStatus.IN_PROGRESS) return TaskStatus.DRAFTING;
 
@@ -2874,8 +2874,8 @@ class DataService {
   }
 
   // Returns true for LEADER or ADMIN roles
-  canViewWorkload(user: SystemRole): boolean {
-    return user === SystemRole.LEADER || user === SystemRole.ADMIN;
+  canViewWorkload(user: string): boolean {
+    return user === '班组长' || user === '管理员';
   }
 
   // Migrates old field names to new ones for existing data

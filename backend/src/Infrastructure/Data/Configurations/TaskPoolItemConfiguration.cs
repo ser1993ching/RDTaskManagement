@@ -5,7 +5,7 @@ using TaskManageSystem.Domain.Entities;
 namespace TaskManageSystem.Infrastructure.Data.Configurations;
 
 /// <summary>
-/// 任务库实体配�?- MySQL适配
+/// 任务库实体配�?- MySQL适配
 /// </summary>
 public class TaskPoolItemConfiguration : IEntityTypeConfiguration<TaskPoolItem>
 {
@@ -18,7 +18,8 @@ public class TaskPoolItemConfiguration : IEntityTypeConfiguration<TaskPoolItem>
         builder.Property(tp => tp.Id).HasMaxLength(50).IsRequired();
         builder.Property(tp => tp.TaskName).HasMaxLength(200).IsRequired();
         builder.Property(tp => tp.TaskClassID).HasMaxLength(20).IsRequired();
-        builder.Property(tp => tp.Category).HasMaxLength(50).IsRequired();
+        // Category 允许空字符串（前端可能不传二级分类）
+        builder.Property(tp => tp.Category).HasMaxLength(50).IsRequired(false).HasDefaultValue("");
         builder.Property(tp => tp.ProjectID).HasMaxLength(50);
         builder.Property(tp => tp.ProjectName).HasMaxLength(200);
         builder.Property(tp => tp.Remark).HasColumnType("LONGTEXT");

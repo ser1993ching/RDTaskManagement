@@ -43,16 +43,16 @@ public class ProjectsController : ControllerBase
     /// <summary>
     /// 获取单个项目
     /// </summary>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetProject(string id)
+    [HttpGet("{projectId}")]
+    public async Task<IActionResult> GetProject(string projectId)
     {
-        var project = await _projectService.GetProjectByIdAsync(id);
+        var project = await _projectService.GetProjectByIdAsync(projectId);
         if (project == null)
         {
             return NotFound(new
             {
                 success = false,
-                error = new { code = "NOT_FOUND", message = $"项目 {id} 不存在" }
+                error = new { code = "NOT_FOUND", message = $"项目 {projectId} 不存在" }
             });
         }
         return Ok(new
@@ -77,20 +77,20 @@ public class ProjectsController : ControllerBase
     /// <summary>
     /// 更新项目
     /// </summary>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateProject(string id, [FromBody] UpdateProjectRequest request)
+    [HttpPut("{projectId}")]
+    public async Task<IActionResult> UpdateProject(string projectId, [FromBody] UpdateProjectRequest request)
     {
-        var project = await _projectService.UpdateProjectAsync(id, request);
+        var project = await _projectService.UpdateProjectAsync(projectId, request);
         return Ok(project);
     }
 
     /// <summary>
     /// 删除项目
     /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProject(string id)
+    [HttpDelete("{projectId}")]
+    public async Task<IActionResult> DeleteProject(string projectId)
     {
-        var result = await _projectService.SoftDeleteProjectAsync(id);
+        var result = await _projectService.SoftDeleteProjectAsync(projectId);
         if (!result)
             return NotFound();
         return NoContent();
@@ -99,10 +99,10 @@ public class ProjectsController : ControllerBase
     /// <summary>
     /// 检查项目是否在使用中
     /// </summary>
-    [HttpGet("{id}/in-use")]
-    public async Task<IActionResult> IsProjectInUse(string id)
+    [HttpGet("{projectId}/in-use")]
+    public async Task<IActionResult> IsProjectInUse(string projectId)
     {
-        var result = await _projectService.IsProjectInUseAsync(id);
+        var result = await _projectService.IsProjectInUseAsync(projectId);
         return Ok(new { InUse = result });
     }
 }

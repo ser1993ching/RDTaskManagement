@@ -73,5 +73,20 @@ public class AutoMapperProfile : Profile
             .ForMember(dest => dest.CheckerId, opt => opt.MapFrom(src => src.CheckerID))
             .ForMember(dest => dest.ChiefDesignerId, opt => opt.MapFrom(src => src.ChiefDesignerID))
             .ForMember(dest => dest.ApproverId, opt => opt.MapFrom(src => src.ApproverID));
+        CreateMap<CreateTaskPoolItemRequest, TaskPoolItem>()
+            .ForMember(dest => dest.TaskClassID, opt => opt.MapFrom(src => src.TaskClassId))
+            .ForMember(dest => dest.ProjectID, opt => opt.MapFrom(src => src.ProjectId))
+            .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.ProjectName))
+            .ForMember(dest => dest.PersonInChargeID, opt => opt.MapFrom(src => src.PersonInChargeId))
+            .ForMember(dest => dest.PersonInChargeName, opt => opt.MapFrom(src => src.PersonInChargeName))
+            .ForMember(dest => dest.CheckerID, opt => opt.MapFrom(src => src.CheckerId))
+            .ForMember(dest => dest.CheckerName, opt => opt.MapFrom(src => src.CheckerName))
+            .ForMember(dest => dest.ChiefDesignerID, opt => opt.MapFrom(src => src.ChiefDesignerId))
+            .ForMember(dest => dest.ChiefDesignerName, opt => opt.MapFrom(src => src.ChiefDesignerName))
+            .ForMember(dest => dest.ApproverID, opt => opt.MapFrom(src => src.ApproverId))
+            .ForMember(dest => dest.ApproverName, opt => opt.MapFrom(src => src.ApproverName))
+            .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreatedBy))
+            .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedByName))
+            .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(src => src.CreatedDate));
     }
 }

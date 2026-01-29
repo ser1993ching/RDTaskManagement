@@ -46,8 +46,11 @@ export const API_ENDPOINTS = {
     inUse: (id: string) => `/api/projects/${id}/in-use`,
   },
   taskClasses: {
-    list: '/api/taskclasses',
-    get: (id: string) => `/api/taskclasses/${id}`,
+    list: '/api/TaskClasses',
+    get: (id: string) => `/api/TaskClasses/${id}`,
+    create: '/api/TaskClasses',
+    update: (id: string) => `/api/TaskClasses/${id}`,
+    delete: (id: string) => `/api/TaskClasses/${id}`,
   },
   taskPool: {
     list: '/api/taskpool',

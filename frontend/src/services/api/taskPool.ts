@@ -4,7 +4,7 @@ export interface TaskPoolItemDto {
   id: string;
   taskName: string;
   taskClassId: string;
-  category: string;
+  category?: string;
   projectId?: string;
   projectName?: string;
   personInChargeId?: string;
@@ -30,6 +30,7 @@ export interface CreateTaskPoolItemRequest {
   taskClassId: string;
   category?: string;
   projectId?: string;
+  projectName?: string;
   personInChargeId?: string;
   personInChargeName?: string;
   checkerId?: string;
@@ -95,8 +96,8 @@ const taskPoolService = {
     const query = queryParams.toString();
     const url = `/api/taskpool${query ? `?${query}` : ''}`;
 
-    const response = await apiClient.get<TaskPoolListResponse>(url);
-    return response.data;
+    // apiClient.get 会提取 data 字段，这里直接返回整个分页响应
+    return await apiClient.get<TaskPoolListResponse>(url);
   },
 
   // 获取单个任务库项

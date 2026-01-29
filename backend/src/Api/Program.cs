@@ -121,16 +121,12 @@ builder.Services.AddAuthentication(options =>
     // 配置Token验证参数
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,           // 验证Token签发者
-        ValidateAudience = true,         // 验证Token接收者
-        ValidateLifetime = true,         // 验证Token是否过期
-        ValidateIssuerSigningKey = true, // 验证签名密钥
-
-        // 签发者和接收者必须与生成Token时一致
-        ValidIssuer = jwtIssuer;
-        ValidAudience = jwtAudience;
-
-        // 使用对称密钥进行签名验证（密钥必须至少32字节）
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = "R&DTaskSystem",
+        ValidAudience = "R&DTaskSystemClient",
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
     };
 });

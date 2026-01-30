@@ -1022,15 +1022,15 @@ class ApiDataService {
   calculatePersonalStats(tasks: TaskDto[], period: string, userId: string): any {
     const allTasks = this.getPersonalTasksSync(tasks);
     const periodTasks = this.filterTasksByStartDate(allTasks, period);
-    const separated = this.separateTasksByRoleStatus(allTasks, userId);
     const periodSeparated = this.separateTasksByRoleStatus(periodTasks, userId);
 
-    const totalCount = allTasks.length;
-    const completedCount = separated.completed.length;
+    // 使用时间段内过滤后的任务来计算统计数据
+    const totalCount = periodTasks.length;
+    const completedCount = periodSeparated.completed.length;
     const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
     const categoryMap = new Map<string, number>();
-    for (const task of allTasks) {
+    for (const task of periodTasks) {
       const category = task.category || '未分类';
       categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
     }
@@ -1040,21 +1040,21 @@ class ApiDataService {
       percentage: totalCount > 0 ? Math.round((count / totalCount) * 100) : 0,
     }));
 
-    // 差旅统计
-    const travelTasks = allTasks.filter(t => t.taskClassId === 'TC009');
+    // 差旅统计（使用时间段内的任务）
+    const travelTasks = periodTasks.filter(t => t.taskClassId === 'TC009');
     const totalTravelDays = travelTasks.reduce((sum, t) => sum + (t.travelDuration || 0), 0);
     const travelPercentage = Math.round((totalTravelDays / 22) * 100);
 
-    // 会议统计
-    const meetingTasks = allTasks.filter(t => t.taskClassId === 'TC007');
+    // 会议统计（使用时间段内的任务）
+    const meetingTasks = periodTasks.filter(t => t.taskClassId === 'TC007');
     const totalMeetingHours = meetingTasks.reduce((sum, t) => sum + (t.meetingDuration || 0), 0);
     const meetingPercentage = Math.round((totalMeetingHours / 160) * 100);
 
     return {
       totalCount,
       completedCount,
-      inProgressCount: separated.inProgress.length,
-      pendingCount: separated.pending.length,
+      inProgressCount: periodSeparated.inProgress.length,
+      pendingCount: periodSeparated.pending.length,
       completionRate,
       categoryDistribution,
       travelStats: {

@@ -71,7 +71,13 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> CreateProject([FromBody] CreateProjectRequest request)
     {
         var project = await _projectService.CreateProjectAsync(request);
-        return Ok(project);
+        return Ok(new
+        {
+            success = true,
+            data = project,
+            message = "项目创建成功",
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -81,7 +87,13 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> UpdateProject(string projectId, [FromBody] UpdateProjectRequest request)
     {
         var project = await _projectService.UpdateProjectAsync(projectId, request);
-        return Ok(project);
+        return Ok(new
+        {
+            success = true,
+            data = project,
+            message = "项目更新成功",
+            error = (object?)null
+        });
     }
 
     /// <summary>

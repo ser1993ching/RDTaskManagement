@@ -1,3 +1,4 @@
+using System.Linq;
 using AutoMapper;
 using TaskManageSystem.Application.DTOs.Common;
 using TaskManageSystem.Application.DTOs.Projects;
@@ -88,6 +89,18 @@ public class ProjectService : IProjectService
         }
 
         var total = projects.Count;
+
+        // 自定义排序规则：
+        // 1. 重点项目排在前面
+        // 2. 市场配合项目：按创建时间降序
+        // 3. 其他项目：工作号非空的在前（按工作号排序），工作号为空的按创建时间降序
+        projects = projects.OrderByDescending(p => p.IsKeyProject)
+            .ThenBy(p => p.Category == ProjectCategory.Market ? 0 : 1) // 市场配合项目优先
+            .ThenBy(p => string.IsNullOrEmpty(p.WorkNo) ? 1 : 0) // 工作号为空排在后面（非市场项目）
+            .ThenBy(p => p.Category == ProjectCategory.Market ? p.CreatedAt.Ticks : 0L)
+            .ThenBy(p => p.Category != ProjectCategory.Market ? p.WorkNo ?? "" : "")
+            .ToList();
+
         var pages = (int)Math.Ceiling(total / (double)query.PageSize);
 
         projects = projects.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
@@ -152,19 +165,35 @@ public class ProjectService : IProjectService
         }
 
         // 手动分配ID，确保与数据库中的种子数据不冲突
-        var maxId = await _projectRepository.GetMaxProjectIdAsync();
-        var counter = 1;
-        if (!string.IsNullOrEmpty(maxId) && maxId.StartsWith("PRJ"))
+        // 使用循环处理并发情况，确保生成的ID不重复
+        string newId;
+        int maxAttempts = 10;
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var numPart = maxId.Substring(3);
-            if (int.TryParse(numPart, out var num))
+            var currentMaxId = await _projectRepository.GetMaxProjectIdAsync();
+            var counter = 1;
+            if (!string.IsNullOrEmpty(currentMaxId) && currentMaxId.StartsWith("PRJ"))
             {
-                counter = num + 1;
+                var numPart = currentMaxId.Substring(3);
+                if (int.TryParse(numPart, out var num))
+                {
+                    counter = num + 1 + attempt; // 加上尝试次数以处理并发
+                }
+            }
+            newId = $"PRJ{counter:D3}";
+
+            // 检查ID是否已存在
+            var exists = await _projectRepository.ExistsAsync(newId);
+            if (!exists)
+            {
+                project.Id = newId;
+                project = await _projectRepository.CreateAsync(project);
+                return _mapper.Map<ProjectDto>(project);
             }
         }
-        project.Id = $"PRJ{counter:D3}";
-        project = await _projectRepository.CreateAsync(project);
-        return _mapper.Map<ProjectDto>(project);
+
+        // 如果所有尝试都失败，抛出异常
+        throw new InvalidOperationException("无法生成唯一的项目ID，请稍后重试");
     }
 
     public async Task<ProjectDto> UpdateProjectAsync(string id, UpdateProjectRequest request)

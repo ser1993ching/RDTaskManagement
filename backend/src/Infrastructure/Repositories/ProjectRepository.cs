@@ -96,8 +96,9 @@ public class ProjectRepository : IProjectRepository
 
     public async Task<string?> GetMaxProjectIdAsync()
     {
+        // 包含软删除的项目，确保新ID不会重复
         return await _context.Projects
-            .Where(p => !p.IsDeleted && p.Id.StartsWith("PRJ"))
+            .Where(p => p.Id.StartsWith("PRJ"))
             .OrderByDescending(p => p.Id)
             .Select(p => p.Id)
             .FirstOrDefaultAsync();

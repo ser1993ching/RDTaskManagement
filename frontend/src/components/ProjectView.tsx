@@ -166,8 +166,20 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
   const openModal = (project?: Project) => {
     setEditingProject(project || null);
     setFormData(project || {
+      id: '',
+      name: '',
       category: activeTab,
-      startDate: new Date().toISOString().split('T')[0]
+      workNo: '',
+      capacity: '',
+      model: '',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: '',
+      remark: '',
+      isKeyProject: false,
+      isWon: false,
+      isForeign: false,
+      isCommissioned: false,
+      isCompleted: false
     });
     setIsModalOpen(true);
   };
@@ -193,12 +205,17 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
         isCompleted: formData.isCompleted ?? false,
       };
 
-      // 移除 null/undefined/空字符串值
+      // 移除 null/undefined/空字符串值（但保留 id 字段用于判断新建/编辑）
+      const idValue = projectData.id;
       Object.keys(projectData).forEach(key => {
         if (projectData[key] === null || projectData[key] === undefined || projectData[key] === '') {
           delete projectData[key];
         }
       });
+      // 如果id是空字符串，设为undefined以便saveProject判断
+      if (idValue === '') {
+        projectData.id = undefined;
+      }
 
       await apiDataService.saveProject(projectData);
       setIsModalOpen(false);
@@ -438,7 +455,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
             <thead className="bg-slate-100 text-slate-600 font-medium border-b sticky top-0 z-20 shadow-sm">
               <tr>
                 <th className="px-6 py-4 w-[22%]">项目名称</th>
-                <th className="px-6 py-4 w-[12%]">工作号/ID</th>
+                <th className="px-6 py-4 w-[12%]">工作号</th>
                 <th className="px-6 py-4 w-[10%]">容量等级</th>
                 <th className="px-6 py-4 w-[13%]">机型</th>
                 <th className="px-6 py-4 w-[10%]">启动时间</th>
@@ -460,7 +477,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                     </div>
                   </td>
                   <td className="px-6 py-4 text-slate-500">
-                    <div className="truncate" title={p.workNo || p.id}>{p.workNo || p.id}</div>
+                    <div className="truncate" title={p.workNo || ''}>{p.workNo || '-'}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="truncate" title={p.capacity || '-'}>{p.capacity || '-'}</div>
@@ -523,15 +540,16 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                       <button
                         onClick={async () => {
                           try {
-                            if (confirm(`确定要删除项目 "${p.name}" 吗？\n\n注意：项目下的任务不会被删除，但将不再关联此项目。`)) {
-                              await apiDataService.deleteProject(p.id);
-                              alert('项目删除成功！');
-                              onRefresh();
+                            if (!confirm(`确定要删除项目 "${p.name}" 吗？\n\n注意：项目下的任务不会被删除，但将不再关联此项目。`)) {
+                              return;
                             }
+                            await apiDataService.deleteProject(p.id);
+                            apiDataService.clearCache('projects');
+                            onRefresh();
                           } catch (error: any) {
                             console.error('删除项目失败:', error);
                             const errorMessage = error?.response?.data?.error?.message || error?.message || '未知错误';
-                            alert(`删除失败：${errorMessage}\n\n项目可能被任务引用，但仍可删除。`);
+                            alert(`删除失败：${errorMessage}`);
                           }
                         }}
                         className="text-red-500 hover:text-red-700"

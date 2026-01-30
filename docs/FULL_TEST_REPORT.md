@@ -127,13 +127,27 @@
 |------|------|----------|------|
 | 1 | 中文乱码显示 | 低 | 任务库中部分中文任务名称显示为乱码(如"æµ‹è¯•ä»»åŠ¡") |
 
-### 3.2 建议修复
+### 3.2 数据库字符编码修复
 
-```tsx
-// 任务库中文乱码问题
-// 可能原因: 后端返回的JSON编码问题
-// 建议: 检查后端API返回的Content-Type头
-// 确保使用 UTF-8 编码
+**问题原因**: 部分任务库数据在数据库连接未正确配置utf8mb4时插入，导致中文字符存储为乱码
+
+**修复方案** (执行SQL):
+
+```sql
+-- 1. 检查乱码数据
+SELECT Id, TaskName, CreatedBy FROM task_pool_items
+WHERE TaskName LIKE '%æµ‹è¯•%';
+
+-- 2. 更新乱码数据 (示例)
+UPDATE task_pool_items SET TaskName = '测试任务'
+WHERE TaskName = 'æµ‹è¯•ä»»åŠ¡';
+
+-- 3. 确保数据库和表使用utf8mb4字符集
+ALTER DATABASE TaskManageSystem CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+ALTER TABLE task_pool_items CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+**状态**: 待执行数据库修复
 ```
 
 ---

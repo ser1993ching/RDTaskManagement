@@ -520,7 +520,25 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ currentUser, projects,
                   {canEdit && (
                     <td className="px-6 py-4 text-right">
                       <button onClick={() => openModal(p)} className="text-blue-600 hover:text-blue-800 mr-3"><Edit2 size={16} /></button>
-                      <button onClick={async () => { if(confirm('删除项目?')) { await apiDataService.deleteProject(p.id); onRefresh(); }}} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            if (confirm(`确定要删除项目 "${p.name}" 吗？\n\n注意：项目下的任务不会被删除，但将不再关联此项目。`)) {
+                              await apiDataService.deleteProject(p.id);
+                              alert('项目删除成功！');
+                              onRefresh();
+                            }
+                          } catch (error: any) {
+                            console.error('删除项目失败:', error);
+                            const errorMessage = error?.response?.data?.error?.message || error?.message || '未知错误';
+                            alert(`删除失败：${errorMessage}\n\n项目可能被任务引用，但仍可删除。`);
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                        title="删除项目"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </td>
                   )}
                 </tr>

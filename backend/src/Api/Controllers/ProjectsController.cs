@@ -90,10 +90,27 @@ public class ProjectsController : ControllerBase
     [HttpDelete("{projectId}")]
     public async Task<IActionResult> DeleteProject(string projectId)
     {
-        var result = await _projectService.SoftDeleteProjectAsync(projectId);
-        if (!result)
-            return NotFound();
-        return NoContent();
+        try
+        {
+            var result = await _projectService.SoftDeleteProjectAsync(projectId);
+            if (!result)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    error = new { code = "NOT_FOUND", message = $"项目 {projectId} 不存在或已被删除" }
+                });
+            }
+            return Ok(new { success = true, message = "项目删除成功" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                error = new { code = "DELETE_FAILED", message = $"删除失败: {ex.Message}" }
+            });
+        }
     }
 
     /// <summary>

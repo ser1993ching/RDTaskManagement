@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User, Task, Project, TaskStatus, TaskClass, ProjectCategory } from '../types';
 import { apiDataService } from '../services/apiDataService';
 import { cn } from '@/utils/classnames';
+import { useTaskClasses } from '../context/ConfigContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
@@ -13,7 +14,7 @@ interface DashboardProps {
   users: User[];
   projects: Project[];
   tasks: Task[];
-  taskClasses: TaskClass[];
+  onTaskClick?: (taskName: string, taskClassId: string) => void;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -71,7 +72,8 @@ const ForceAssessmentPanel: React.FC<{
   tasks: Task[];
   taskClasses: TaskClass[];
   users: User[];
-}> = ({ tasks, taskClasses, users }) => {
+  onTaskClick?: (taskName: string, taskClassId: string) => void;
+}> = ({ tasks, taskClasses, users, onTaskClick }) => {
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>('thisMonth');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isExpanded, setIsExpanded] = useState(true);
@@ -266,9 +268,10 @@ const ForceAssessmentPanel: React.FC<{
                       <tr
                         key={task.taskId}
                         className={cn(
-                          'transition-colors',
+                          'transition-colors cursor-pointer',
                           isOverdue ? 'bg-red-50' : 'hover:bg-slate-50'
                         )}
+                        onDoubleClick={() => onTaskClick?.(task.taskName, task.taskClassId)}
                       >
                         <td className="px-3 py-2 w-64">
                           <div className="flex items-center gap-2">
@@ -313,7 +316,8 @@ const DelayedTaskPanel: React.FC<{
   tasks: Task[];
   taskClasses: TaskClass[];
   users: User[];
-}> = ({ tasks, taskClasses, users }) => {
+  onTaskClick?: (taskName: string, taskClassId: string) => void;
+}> = ({ tasks, taskClasses, users, onTaskClick }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const getCategoryName = (taskClassId: string) => {
@@ -416,7 +420,11 @@ const DelayedTaskPanel: React.FC<{
                       : task.taskName;
 
                     return (
-                      <tr key={task.taskId} className="hover:bg-amber-50 transition-colors">
+                      <tr
+                        key={task.taskId}
+                        className="hover:bg-amber-50 transition-colors cursor-pointer"
+                        onDoubleClick={() => onTaskClick?.(task.taskName, task.taskClassId)}
+                      >
                         <td className="px-3 py-2 w-64">
                           <span className="text-sm text-slate-900 font-medium" title={task.taskName}>
                             {displayName}
@@ -445,7 +453,8 @@ const DelayedTaskPanel: React.FC<{
   );
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projects, tasks, taskClasses }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projects, tasks, onTaskClick }) => {
+  const { taskClasses } = useTaskClasses();
   const [period, setPeriod] = useState<Period>('year');
   const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'nuclear' | 'conventional' | 'research' | 'renovation' | 'other'>('all');
 
@@ -872,6 +881,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           tasks={forceAssessmentTasks}
           taskClasses={taskClasses}
           users={users}
+          onTaskClick={onTaskClick}
         />
       )}
 
@@ -880,6 +890,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
         tasks={tasks}
         taskClasses={taskClasses}
         users={users}
+        onTaskClick={onTaskClick}
       />
 
       {/* Charts Row 1: Task Trend & Workload Comparison */}

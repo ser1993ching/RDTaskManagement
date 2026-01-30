@@ -349,7 +349,17 @@ const App: React.FC = () => {
             />
           ) : (
             // 管理员/班组长可以看到统计仪表盘
-            <Dashboard currentUser={currentUser} users={users} projects={projects} tasks={tasks} taskClasses={taskClasses} />
+            <Dashboard
+              currentUser={currentUser}
+              users={users}
+              projects={projects}
+              tasks={tasks}
+              onTaskClick={(taskName, taskClassId) => {
+                setTargetTaskName(taskName);
+                setTargetTaskClassId(taskClassId);
+                setCurrentView('tasks');
+              }}
+            />
           )
         )}
         {currentView === 'workspace' && (

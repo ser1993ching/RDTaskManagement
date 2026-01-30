@@ -9,9 +9,9 @@ export interface TaskClass {
   code: string;
   description?: string;
   notice?: string;
-  is_deleted?: boolean;
-  created_at?: string;
-  updated_at?: string;
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TaskClassWithCategories extends TaskClass {
@@ -29,42 +29,54 @@ class TaskClassService {
    */
   async getTaskClasses(includeDeleted?: boolean): Promise<TaskClass[]> {
     const params = includeDeleted ? '?includeDeleted=true' : '';
-    return apiClient.get<TaskClass[]>(`/api/taskclasses${params}`);
+    // 后端返回 { TaskClasses: [...], Categories: {...} }
+    // apiClient.get已提取Data并转换为camelCase: { taskClasses: [...], categories: {...} }
+    const response = await apiClient.get<any>(`/api/TaskClasses${params}`);
+    // 提取 taskClasses 数组
+    return response.taskClasses || [];
   }
 
   /**
    * 获取任务分类（包含子类别）
    */
   async getTaskClassesWithCategories(): Promise<TaskClassesResponse> {
-    return apiClient.get<TaskClassesResponse>('/api/taskclasses/with-categories');
+    // 后端返回 { TaskClasses: [...], Categories: {...} }
+    // apiClient.get已提取Data并转换为camelCase: { taskClasses: [...], categories: {...} }
+    // 注意：categories的key是PascalCase (Market, Execution) 转为 camelCase (market, execution)
+    const response = await apiClient.get<any>('/api/TaskClasses');
+    return {
+      taskClasses: response.taskClasses || [],
+      categories: response.categories || {}
+    };
   }
 
   /**
    * 获取单个任务分类
+   * 统一使用 /api/TaskClasses（PascalCase，与后端路由一致）
    */
   async getTaskClass(taskClassId: string): Promise<TaskClass> {
-    return apiClient.get<TaskClass>(`/api/taskclasses/${taskClassId}`);
+    return apiClient.get<TaskClass>(`/api/TaskClasses/${taskClassId}`);
   }
 
   /**
    * 创建任务分类
    */
   async createTaskClass(data: Partial<TaskClass>): Promise<TaskClass> {
-    return apiClient.post<TaskClass>('/api/taskclasses', data);
+    return apiClient.post<TaskClass>('/api/TaskClasses', data);
   }
 
   /**
    * 更新任务分类
    */
   async updateTaskClass(taskClassId: string, data: Partial<TaskClass>): Promise<TaskClass> {
-    return apiClient.put<TaskClass>(`/api/taskclasses/${taskClassId}`, data);
+    return apiClient.put<TaskClass>(`/api/TaskClasses/${taskClassId}`, data);
   }
 
   /**
    * 删除任务分类（软删除）
    */
   async deleteTaskClass(taskClassId: string): Promise<void> {
-    await apiClient.delete(`/api/taskclasses/${taskClassId}`);
+    await apiClient.delete(`/api/TaskClasses/${taskClassId}`);
   }
 }
 

@@ -20,7 +20,7 @@ public enum TaskStatus
     Reviewing = 3,
 
     [Display(Name = "审查中")]
-    Reviewing2 = 4,
+    Approving = 4,
 
     [Display(Name = "已完成")]
     Completed = 5

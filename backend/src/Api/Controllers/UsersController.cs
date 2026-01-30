@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManageSystem.Application.DTOs.Users;
 using TaskManageSystem.Application.Interfaces;
@@ -9,6 +10,7 @@ namespace TaskManageSystem.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "LEADER,ADMIN")]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -36,8 +38,20 @@ public class UsersController : ControllerBase
     {
         var user = await _userService.GetUserByIdAsync(userId);
         if (user == null)
-            return NotFound();
-        return Ok(user);
+        {
+            return NotFound(new
+            {
+                success = false,
+                error = new { code = "NOT_FOUND", message = $"用户 {userId} 不存在" }
+            });
+        }
+        return Ok(new
+        {
+            success = true,
+            data = user,
+            message = (string?)null,
+            error = (object?)null
+        });
     }
 
     /// <summary>
@@ -47,7 +61,7 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
         var user = await _userService.CreateUserAsync(request);
-        return CreatedAtAction(nameof(GetUser), new { userId = user.UserID }, user);
+        return Ok(user);
     }
 
     /// <summary>

@@ -18,12 +18,4 @@ public class User : BaseEntity<string>
     public string? School { get; set; }
     public string? PasswordHash { get; set; }            // 密码哈希
     public string? Remark { get; set; }
-
-    // 导航属性
-    public virtual ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
-    public virtual ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
-    public virtual ICollection<TaskItem> CheckerTasks { get; set; } = new List<TaskItem>();
-    public virtual ICollection<TaskItem> ChiefDesignerTasks { get; set; } = new List<TaskItem>();
-    public virtual ICollection<TaskItem> ApproverTasks { get; set; } = new List<TaskItem>();
-    public virtual ICollection<TaskPoolItem> CreatedPoolItems { get; set; } = new List<TaskPoolItem>();
 }

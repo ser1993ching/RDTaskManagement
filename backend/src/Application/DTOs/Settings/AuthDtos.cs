@@ -16,14 +16,12 @@ public class LoginRequest
 }
 
 /// <summary>
-/// 认证响应
+/// 认证响应（ApiResponse包装后返回）
 /// </summary>
 public class LoginResponse
 {
-    public bool Success { get; set; }
     public UserDto? User { get; set; }
     public string? Token { get; set; }
-    public string? Message { get; set; }
 }
 
 /// <summary>
@@ -42,7 +40,7 @@ public class ChangePasswordRequest
 }
 
 /// <summary>
-/// 重置密码请求（管理员�?
+/// 重置密码请求（管理员）
 /// </summary>
 public class ResetPasswordRequest
 {
@@ -50,4 +48,35 @@ public class ResetPasswordRequest
     public string UserId { get; set; } = string.Empty;
 
     public string? NewPassword { get; set; }
+}
+
+/// <summary>
+/// Token刷新响应
+/// </summary>
+public class TokenResponse
+{
+    public string? Token { get; set; }
+}
+
+/// <summary>
+/// 刷新Token请求
+/// </summary>
+public class RefreshTokenRequest
+{
+    public string? RefreshToken { get; set; }
+}
+
+/// <summary>
+/// 系统初始化请求
+/// </summary>
+public class SetupRequest
+{
+    [Required]
+    public string AdminUserId { get; set; } = string.Empty;
+
+    [Required]
+    public string AdminName { get; set; } = string.Empty;
+
+    [Required]
+    public string AdminPassword { get; set; } = string.Empty;
 }

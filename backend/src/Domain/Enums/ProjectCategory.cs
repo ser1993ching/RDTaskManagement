@@ -10,7 +10,7 @@ public enum ProjectCategory
     [Display(Name = "市场配合项目")]
     Market = 0,
 
-    [Display(Name = "常规执行项目")]
+    [Display(Name = "常规项目")]
     Execution = 1,
 
     [Display(Name = "核电项目")]
@@ -22,6 +22,6 @@ public enum ProjectCategory
     [Display(Name = "改造项目")]
     Renovation = 4,
 
-    [Display(Name = "其他")]
+    [Display(Name = "其他项目")]
     Other = 5
 }

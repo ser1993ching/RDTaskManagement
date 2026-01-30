@@ -12,20 +12,32 @@ namespace TaskManageSystem.Application.Services;
 /// </summary>
 public class TaskPoolService : ITaskPoolService
 {
-    private readonly ITaskPoolRepository _taskPoolRepository;
-    private readonly ITaskRepository _taskRepository;
+    private readonly ITaskPoolRepository? _taskPoolRepository;
+    private readonly ITaskRepository? _taskRepository;
     private readonly IMapper _mapper;
 
-    public TaskPoolService(ITaskPoolRepository taskPoolRepository, ITaskRepository taskRepository, IMapper mapper)
+    public TaskPoolService(ITaskPoolRepository? taskPoolRepository = null, ITaskRepository? taskRepository = null, IMapper? mapper = null)
     {
         _taskPoolRepository = taskPoolRepository;
         _taskRepository = taskRepository;
-        _mapper = mapper;
+        _mapper = mapper ?? new MapperConfiguration(cfg => { }).CreateMapper();
     }
 
     public async Task<PaginatedResponse<TaskPoolItemDto>> GetPoolItemsAsync(TaskPoolQueryParams query)
     {
-        var items = await _taskPoolRepository.GetAllAsync();
+        if (_taskPoolRepository == null)
+        {
+            return new PaginatedResponse<TaskPoolItemDto>
+            {
+                Data = new List<TaskPoolItemDto>(),
+                Total = 0,
+                Page = query.Page,
+                PageSize = query.PageSize,
+                Pages = 0
+            };
+        }
+
+        var items = (await _taskPoolRepository.GetAllAsync()).ToList();
 
         // 过滤
         if (!string.IsNullOrEmpty(query.TaskClassID))
@@ -54,24 +66,32 @@ public class TaskPoolService : ITaskPoolService
 
     public async Task<TaskPoolItemDto?> GetPoolItemByIdAsync(string id)
     {
+        if (_taskPoolRepository == null) return null;
         var item = await _taskPoolRepository.GetByIdAsync(id);
         return item == null ? null : _mapper.Map<TaskPoolItemDto>(item);
     }
 
     public async Task<TaskPoolItemDto> CreatePoolItemAsync(CreateTaskPoolItemRequest request)
     {
-        var item = _mapper.Map<TaskPoolItem>(request);
+        if (_taskPoolRepository == null)
+        {
+            throw new InvalidOperationException("TaskPoolRepository is not available");
+        }
 
-        // 生成ID
+        var item = _mapper.Map<TaskPoolItem>(request);
         item.Id = $"TP-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
         item.CreatedDate = DateTime.UtcNow;
-
         item = await _taskPoolRepository.CreateAsync(item);
         return _mapper.Map<TaskPoolItemDto>(item);
     }
 
     public async Task<TaskPoolItemDto> UpdatePoolItemAsync(string id, CreateTaskPoolItemRequest request)
     {
+        if (_taskPoolRepository == null)
+        {
+            throw new InvalidOperationException("TaskPoolRepository is not available");
+        }
+
         var item = await _taskPoolRepository.GetByIdAsync(id);
         if (item == null) throw new KeyNotFoundException($"TaskPoolItem {id} not found");
 
@@ -82,18 +102,23 @@ public class TaskPoolService : ITaskPoolService
 
     public async Task<bool> SoftDeletePoolItemAsync(string id)
     {
+        if (_taskPoolRepository == null) return false;
         return await _taskPoolRepository.SoftDeleteAsync(id);
     }
 
     public async Task<AssignTaskResponse> AssignTaskAsync(string poolItemId, AssignTaskRequest request)
     {
+        if (_taskPoolRepository == null || _taskRepository == null)
+        {
+            return new AssignTaskResponse { Success = false, Message = "数据库不可用" };
+        }
+
         var poolItem = await _taskPoolRepository.GetByIdAsync(poolItemId);
         if (poolItem == null)
         {
             return new AssignTaskResponse { Success = false, Message = "计划任务不存在" };
         }
 
-        // 创建新任务
         var task = new TaskItem
         {
             TaskID = $"T-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}",
@@ -115,8 +140,6 @@ public class TaskPoolService : ITaskPoolService
         };
 
         await _taskRepository.CreateAsync(task);
-
-        // 软删除计划任务
         await _taskPoolRepository.SoftDeleteAsync(poolItemId);
 
         return new AssignTaskResponse
@@ -136,15 +159,7 @@ public class TaskPoolService : ITaskPoolService
 
         foreach (var poolItemId in request.PoolItemIds)
         {
-            var assignRequest = new AssignTaskRequest
-            {
-                AssignToPoolItemId = poolItemId,
-                AssigneeId = request.AssigneeId,
-                StartDate = request.StartDate,
-                DueDate = request.DueDate
-            };
-
-            var result = await AssignTaskAsync(poolItemId, assignRequest);
+            var result = await AssignTaskAsync(poolItemId, request.TaskData);
             if (result.Success)
             {
                 assignedCount++;
@@ -168,8 +183,19 @@ public class TaskPoolService : ITaskPoolService
 
     public async Task<TaskPoolStatisticsResponse> GetStatisticsAsync()
     {
-        var (total, byCategory, byProject, pending, assigned) = await _taskPoolRepository.GetStatisticsAsync();
+        if (_taskPoolRepository == null)
+        {
+            return new TaskPoolStatisticsResponse
+            {
+                Total = 0,
+                ByCategory = new Dictionary<string, int>(),
+                ByProject = new Dictionary<string, int>(),
+                Pending = 0,
+                Assigned = 0
+            };
+        }
 
+        var (total, byCategory, byProject, pending, assigned) = await _taskPoolRepository.GetStatisticsAsync();
         return new TaskPoolStatisticsResponse
         {
             Total = total,
@@ -182,6 +208,11 @@ public class TaskPoolService : ITaskPoolService
 
     public async Task<TaskPoolItemDto> DuplicateAsync(string id, string? newTaskName, DateTime? newDueDate)
     {
+        if (_taskPoolRepository == null)
+        {
+            throw new InvalidOperationException("TaskPoolRepository is not available");
+        }
+
         var original = await _taskPoolRepository.GetByIdAsync(id);
         if (original == null) throw new KeyNotFoundException($"TaskPoolItem {id} not found");
 
@@ -213,13 +244,17 @@ public class TaskPoolService : ITaskPoolService
 
     public async Task<RetrieveToPoolResponse> RetrieveFromTaskAsync(string taskId)
     {
+        if (_taskPoolRepository == null || _taskRepository == null)
+        {
+            return new RetrieveToPoolResponse { Success = false, Message = "数据库不可用" };
+        }
+
         var task = await _taskRepository.GetByIdAsync(taskId);
         if (task == null)
         {
             return new RetrieveToPoolResponse { Success = false, Message = "任务不存在" };
         }
 
-        // 创建计划任务
         var poolItem = new TaskPoolItem
         {
             TaskName = task.TaskName,
@@ -241,8 +276,6 @@ public class TaskPoolService : ITaskPoolService
 
         poolItem.Id = $"TP-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";
         await _taskPoolRepository.CreateAsync(poolItem);
-
-        // 删除原任务
         await _taskRepository.SoftDeleteAsync(taskId);
 
         return new RetrieveToPoolResponse

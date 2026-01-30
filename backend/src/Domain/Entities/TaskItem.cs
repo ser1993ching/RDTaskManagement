@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace TaskManageSystem.Domain.Entities;
 
 /// <summary>
@@ -33,7 +35,8 @@ public class TaskItem : BaseEntity<string>
     public string? ParticipantNames { get; set; }       // JSON: 参会人员姓名列表
 
     // 市场任务字段
-    public string? CapacityLevel { get; set; }          // 容量等级
+    public string? RelatedProject { get; set; }           // 关联项目名称
+    public bool IsIndependentBusinessUnit { get; set; }   // 是否支持独立经营体
 
     // 校核人（Checker）
     public string? CheckerID { get; set; }
@@ -60,12 +63,25 @@ public class TaskItem : BaseEntity<string>
     public bool IsForceAssessment { get; set; }        // 是否强制考核
     public bool IsInPool { get; set; }                 // 是否在任务库中
 
-    // 导航属性
+    // 导航属性（不使用EF Core关系，仅用于API返回）
+    [NotMapped]
     public virtual User? Assignee { get; set; }
+
+    [NotMapped]
     public virtual User? Checker { get; set; }
+
+    [NotMapped]
     public virtual User? ChiefDesigner { get; set; }
+
+    [NotMapped]
     public virtual User? Approver { get; set; }
+
+    [NotMapped]
     public virtual User? Creator { get; set; }
+
+    [NotMapped]
     public virtual Project? Project { get; set; }
+
+    [NotMapped]
     public virtual TaskClass? TaskClass { get; set; }
 }

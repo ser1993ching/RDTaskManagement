@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManageSystem.Application.DTOs.TaskPool;
 using TaskManageSystem.Application.Interfaces;
@@ -9,6 +10,7 @@ namespace TaskManageSystem.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TaskPoolController : ControllerBase
 {
     private readonly ITaskPoolService _taskPoolService;
@@ -41,10 +43,10 @@ public class TaskPoolController : ControllerBase
     /// <summary>
     /// 获取单个任务库项
     /// </summary>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetPoolItem(string id)
+    [HttpGet("{poolItemId}")]
+    public async Task<IActionResult> GetPoolItem(string poolItemId)
     {
-        var item = await _taskPoolService.GetPoolItemByIdAsync(id);
+        var item = await _taskPoolService.GetPoolItemByIdAsync(poolItemId);
         if (item == null)
             return NotFound();
         return Ok(item);
@@ -57,26 +59,26 @@ public class TaskPoolController : ControllerBase
     public async Task<IActionResult> CreatePoolItem([FromBody] CreateTaskPoolItemRequest request)
     {
         var item = await _taskPoolService.CreatePoolItemAsync(request);
-        return CreatedAtAction(nameof(GetPoolItem), new { id = item.Id }, item);
+        return CreatedAtAction(nameof(GetPoolItem), new { poolItemId = item.Id }, item);
     }
 
     /// <summary>
     /// 更新任务库项
     /// </summary>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdatePoolItem(string id, [FromBody] CreateTaskPoolItemRequest request)
+    [HttpPut("{poolItemId}")]
+    public async Task<IActionResult> UpdatePoolItem(string poolItemId, [FromBody] CreateTaskPoolItemRequest request)
     {
-        var item = await _taskPoolService.UpdatePoolItemAsync(id, request);
+        var item = await _taskPoolService.UpdatePoolItemAsync(poolItemId, request);
         return Ok(item);
     }
 
     /// <summary>
     /// 删除任务库项
     /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeletePoolItem(string id)
+    [HttpDelete("{poolItemId}")]
+    public async Task<IActionResult> DeletePoolItem(string poolItemId)
     {
-        var result = await _taskPoolService.SoftDeletePoolItemAsync(id);
+        var result = await _taskPoolService.SoftDeletePoolItemAsync(poolItemId);
         if (!result)
             return NotFound();
         return NoContent();
@@ -85,33 +87,23 @@ public class TaskPoolController : ControllerBase
     /// <summary>
     /// 分配任务
     /// </summary>
-    [HttpPost("{id}/assign")]
-    public async Task<IActionResult> AssignTask(string id, [FromBody] AssignTaskRequest request)
+    [HttpPost("{poolItemId}/assign")]
+    public async Task<IActionResult> AssignTask(string poolItemId, [FromBody] AssignTaskRequest request)
     {
-        var result = await _taskPoolService.AssignTaskAsync(id, request);
+        var result = await _taskPoolService.AssignTaskAsync(poolItemId, request);
         if (!result.Success)
             return BadRequest(result);
         return Ok(result);
     }
 
     /// <summary>
-    /// 批量分配任务
-    /// </summary>
-    [HttpPost("batch-assign")]
-    public async Task<IActionResult> BatchAssign([FromBody] BatchAssignRequest request)
-    {
-        var result = await _taskPoolService.BatchAssignAsync(request);
-        return Ok(result);
-    }
-
-    /// <summary>
     /// 复制任务库项
     /// </summary>
-    [HttpPost("{id}/duplicate")]
-    public async Task<IActionResult> Duplicate(string id, [FromQuery] string? newTaskName, [FromQuery] DateTime? newDueDate)
+    [HttpPost("{poolItemId}/duplicate")]
+    public async Task<IActionResult> Duplicate(string poolItemId, [FromQuery] string? newTaskName, [FromQuery] DateTime? newDueDate)
     {
-        var item = await _taskPoolService.DuplicateAsync(id, newTaskName, newDueDate);
-        return CreatedAtAction(nameof(GetPoolItem), new { id = item.Id }, item);
+        var item = await _taskPoolService.DuplicateAsync(poolItemId, newTaskName, newDueDate);
+        return CreatedAtAction(nameof(GetPoolItem), new { poolItemId = item.Id }, item);
     }
 
     /// <summary>
@@ -123,6 +115,22 @@ public class TaskPoolController : ControllerBase
         var result = await _taskPoolService.RetrieveFromTaskAsync(taskId);
         if (!result.Success)
             return BadRequest(result);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// 批量分配任务
+    /// 将多个任务库项分配为实际任务
+    /// </summary>
+    [HttpPost("batch-assign")]
+    public async Task<IActionResult> BatchAssign([FromBody] BatchAssignRequest request)
+    {
+        if (request == null || request.PoolItemIds == null || request.PoolItemIds.Count == 0)
+        {
+            return BadRequest(new { success = false, error = "请求参数无效" });
+        }
+
+        var result = await _taskPoolService.BatchAssignAsync(request);
         return Ok(result);
     }
 }

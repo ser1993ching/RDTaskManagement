@@ -14,6 +14,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("users")
             .HasCharSet("utf8mb4");
 
+        // 忽略基类的Id属性（因为使用UserID作为主键）
+        builder.Ignore(u => u.Id);
+
         builder.HasKey(u => u.UserID);
         builder.Property(u => u.UserID).HasMaxLength(50).IsRequired();
         builder.Property(u => u.Name).HasMaxLength(100).IsRequired();

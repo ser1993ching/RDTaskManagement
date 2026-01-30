@@ -13,9 +13,9 @@ public class UpdateProjectRequest
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? Remark { get; set; }
-    public bool IsKeyProject { get; set; }
-    public bool IsWon { get; set; }
-    public bool IsForeign { get; set; }
-    public bool IsCommissioned { get; set; }
-    public bool IsCompleted { get; set; }
+    public bool? IsKeyProject { get; set; }
+    public bool? IsWon { get; set; }
+    public bool? IsForeign { get; set; }
+    public bool? IsCommissioned { get; set; }
+    public bool? IsCompleted { get; set; }
 }

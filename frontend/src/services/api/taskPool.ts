@@ -3,17 +3,17 @@ import { apiClient } from './client';
 export interface TaskPoolItemDto {
   id: string;
   taskName: string;
-  taskClassID: string;
-  category: string;
-  projectID?: string;
+  taskClassId: string;
+  category?: string;
+  projectId?: string;
   projectName?: string;
-  personInChargeID?: string;
+  personInChargeId?: string;
   personInChargeName?: string;
-  checkerID?: string;
+  checkerId?: string;
   checkerName?: string;
-  chiefDesignerID?: string;
+  chiefDesignerId?: string;
   chiefDesignerName?: string;
-  approverID?: string;
+  approverId?: string;
   approverName?: string;
   startDate?: string;
   dueDate?: string;
@@ -22,21 +22,22 @@ export interface TaskPoolItemDto {
   createdDate: string;
   isForceAssessment?: boolean;
   remark?: string;
-  is_deleted?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface CreateTaskPoolItemRequest {
   taskName: string;
-  taskClassID: string;
+  taskClassId: string;
   category?: string;
-  projectID?: string;
-  personInChargeID?: string;
+  projectId?: string;
+  projectName?: string;
+  personInChargeId?: string;
   personInChargeName?: string;
-  checkerID?: string;
+  checkerId?: string;
   checkerName?: string;
-  chiefDesignerID?: string;
+  chiefDesignerId?: string;
   chiefDesignerName?: string;
-  approverID?: string;
+  approverId?: string;
   approverName?: string;
   startDate?: string;
   dueDate?: string;
@@ -46,17 +47,17 @@ export interface CreateTaskPoolItemRequest {
 
 export interface AssignTaskRequest {
   taskName: string;
-  taskClassID: string;
+  taskClassId: string;
   category: string;
-  projectID?: string;
-  assigneeID?: string;
+  projectId?: string;
+  assigneeId?: string;
   assigneeName?: string;
-  reviewerID?: string;
+  reviewerId?: string;
   reviewerName?: string;
-  reviewerID2?: string;
-  reviewer2Name?: string;
+  approverId?: string;
+  approverName?: string;
   reviewerWorkload?: number;
-  reviewer2Workload?: number;
+  approverWorkload?: number;
   startDate?: string;
   dueDate?: string;
   workload?: number;
@@ -66,9 +67,9 @@ export interface AssignTaskRequest {
 
 export interface TaskPoolQueryParams {
   taskName?: string;
-  projectID?: string;
-  taskClassID?: string;
-  assigneeID?: string;
+  projectId?: string;
+  taskClassId?: string;
+  assigneeId?: string;
   page?: number;
   pageSize?: number;
 }
@@ -86,17 +87,17 @@ const taskPoolService = {
   async getPoolItems(params?: TaskPoolQueryParams): Promise<TaskPoolListResponse> {
     const queryParams = new URLSearchParams();
     if (params?.taskName) queryParams.append('taskName', params.taskName);
-    if (params?.projectID) queryParams.append('projectID', params.projectID);
-    if (params?.taskClassID) queryParams.append('taskClassID', params.taskClassID);
-    if (params?.assigneeID) queryParams.append('assigneeID', params.assigneeID);
+    if (params?.projectId) queryParams.append('projectId', params.projectId);
+    if (params?.taskClassId) queryParams.append('taskClassId', params.taskClassId);
+    if (params?.assigneeId) queryParams.append('assigneeId', params.assigneeId);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
 
     const query = queryParams.toString();
     const url = `/api/taskpool${query ? `?${query}` : ''}`;
 
-    const response = await apiClient.get<TaskPoolListResponse>(url);
-    return response.data;
+    // apiClient.get 会提取 data 字段，这里直接返回整个分页响应
+    return await apiClient.get<TaskPoolListResponse>(url);
   },
 
   // 获取单个任务库项
@@ -142,6 +143,35 @@ const taskPoolService = {
     const url = `/api/taskpool/${poolItemId}/duplicate${query ? `?${query}` : ''}`;
 
     const response = await apiClient.post<TaskPoolItemDto>(url, {});
+    return response.data;
+  },
+
+  // 获取任务库统计
+  async getStatistics(): Promise<{
+    totalItems: number;
+    byTaskClass: Record<string, number>;
+    recentlyUsed: number;
+  }> {
+    const response = await apiClient.get<{
+      totalItems: number;
+      byTaskClass: Record<string, number>;
+      recentlyUsed: number;
+    }>('/api/taskpool/statistics');
+    return response;
+  },
+
+  // 批量分配任务
+  async batchAssign(poolItemIds: string[], data: AssignTaskRequest): Promise<any> {
+    const response = await apiClient.post<any>('/api/taskpool/batch-assign', {
+      poolItemIds,
+      taskData: data,
+    });
+    return response;
+  },
+
+  // 从任务回收
+  async retrieveFromTask(taskId: string): Promise<TaskPoolItemDto> {
+    const response = await apiClient.post<TaskPoolItemDto>(`/api/taskpool/retrieve/${taskId}`, {});
     return response.data;
   },
 };

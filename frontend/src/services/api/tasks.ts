@@ -4,12 +4,12 @@
 import { apiClient, ApiResponse, PaginatedResponse } from './client';
 
 export interface Task {
-  taskID: string;
+  taskId: string;
   taskName: string;
-  taskClassID: string;
+  taskClassId: string;
   category: string;
-  projectID?: string;
-  assigneeID?: string;
+  projectId?: string;
+  assigneeId?: string;
   assigneeName?: string;
   startDate?: string;
   dueDate?: string;
@@ -31,15 +31,15 @@ export interface Task {
   // 市场任务字段
   capacityLevel?: string;
   // 角色字段
-  checkerID?: string;
+  checkerId?: string;
   checkerName?: string;
   checkerWorkload?: number;
   checkerStatus?: string;
-  chiefDesignerID?: string;
+  chiefDesignerId?: string;
   chiefDesignerName?: string;
   chiefDesignerWorkload?: number;
   chiefDesignerStatus?: string;
-  approverID?: string;
+  approverId?: string;
   approverName?: string;
   approverWorkload?: number;
   approverStatus?: string;
@@ -50,10 +50,10 @@ export interface Task {
 
 export interface CreateTaskRequest {
   taskName: string;
-  taskClassID: string;
+  taskClassId: string;
   category: string;
-  projectID?: string;
-  assigneeID?: string;
+  projectId?: string;
+  assigneeId?: string;
   assigneeName?: string;
   startDate?: string;
   dueDate?: string;
@@ -62,9 +62,9 @@ export interface CreateTaskRequest {
   remark?: string;
   isForceAssessment?: boolean;
   // 角色分配
-  checkerID?: string;
-  chiefDesignerID?: string;
-  approverID?: string;
+  checkerId?: string;
+  chiefDesignerId?: string;
+  approverId?: string;
   // 差旅任务
   travelLocation?: string;
   travelDuration?: number;
@@ -74,6 +74,8 @@ export interface CreateTaskRequest {
   participants?: string[];
   // 市场任务
   capacityLevel?: string;
+  relatedProject?: string;
+  isIndependentBusinessUnit?: boolean;
 }
 
 export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
@@ -82,11 +84,11 @@ export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
 
 export interface TaskQueryParams {
   status?: string;
-  taskClassID?: string;
-  projectID?: string;
-  assigneeID?: string;
-  checkerID?: string;
-  approverID?: string;
+  taskClassId?: string;
+  projectId?: string;
+  assigneeId?: string;
+  checkerId?: string;
+  approverId?: string;
   page?: number;
   pageSize?: number;
 }
@@ -114,11 +116,11 @@ class TaskService {
   async getTasks(params?: TaskQueryParams): Promise<Task[]> {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.set('status', params.status);
-    if (params?.taskClassID) searchParams.set('taskClassID', params.taskClassID);
-    if (params?.projectID) searchParams.set('projectID', params.projectID);
-    if (params?.assigneeID) searchParams.set('assigneeID', params.assigneeID);
-    if (params?.checkerID) searchParams.set('checkerID', params.checkerID);
-    if (params?.approverID) searchParams.set('approverID', params.approverID);
+    if (params?.taskClassId) searchParams.set('taskClassId', params.taskClassId);
+    if (params?.projectId) searchParams.set('projectId', params.projectId);
+    if (params?.assigneeId) searchParams.set('assigneeId', params.assigneeId);
+    if (params?.checkerId) searchParams.set('checkerId', params.checkerId);
+    if (params?.approverId) searchParams.set('approverId', params.approverId);
     if (params?.page) searchParams.set('page', params.page.toString());
     if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
 
@@ -140,22 +142,32 @@ class TaskService {
    * 创建任务
    */
   async createTask(data: CreateTaskRequest): Promise<Task> {
-    const response = await apiClient.post<ApiResponse<Task>>('/api/tasks', data);
-    if (response.success && response.data) {
+    const response = await apiClient.post<any>('/api/tasks', data);
+    // 后端直接返回TaskDto或包装格式ApiResponse<Task>
+    if (response.success !== undefined && response.data) {
+      // 包装格式
       return response.data;
+    } else if (response.taskId) {
+      // 直接返回TaskDto格式
+      return response;
     }
-    throw new Error(response.error?.message || '创建任务失败');
+    throw new Error(response.error?.message || response.message || '创建任务失败');
   }
 
   /**
    * 更新任务
    */
   async updateTask(taskId: string, data: UpdateTaskRequest): Promise<Task> {
-    const response = await apiClient.put<ApiResponse<Task>>(`/api/tasks/${taskId}`, data);
-    if (response.success && response.data) {
+    const response = await apiClient.put<any>(`/api/tasks/${taskId}`, data);
+    // 后端直接返回TaskDto或包装格式ApiResponse<Task>
+    if (response.success !== undefined && response.data) {
+      // 包装格式
       return response.data;
+    } else if (response.taskId) {
+      // 直接返回TaskDto格式
+      return response;
     }
-    throw new Error(response.error?.message || '更新任务失败');
+    throw new Error(response.error?.message || response.message || '更新任务失败');
   }
 
   /**
@@ -169,11 +181,13 @@ class TaskService {
    * 更新任务状态
    */
   async updateTaskStatus(taskId: string, status: string): Promise<Task> {
-    const response = await apiClient.put<ApiResponse<Task>>(`/api/tasks/${taskId}/status`, { status });
-    if (response.success && response.data) {
+    const response = await apiClient.put<any>(`/api/tasks/${taskId}/status`, { status });
+    if (response.success !== undefined && response.data) {
       return response.data;
+    } else if (response.taskId) {
+      return response;
     }
-    throw new Error(response.error?.message || '更新任务状态失败');
+    throw new Error(response.error?.message || response.message || '更新任务状态失败');
   }
 
   /**
@@ -184,36 +198,49 @@ class TaskService {
     role: 'assignee' | 'checker' | 'chiefdesigner' | 'approver',
     status: string
   ): Promise<Task> {
-    const response = await apiClient.put<ApiResponse<Task>>(
+    const response = await apiClient.put<any>(
       `/api/tasks/${taskId}/role-status`,
       { role, status }
     );
-    if (response.success && response.data) {
+    if (response.success !== undefined && response.data) {
       return response.data;
+    } else if (response.taskId) {
+      return response;
     }
-    throw new Error(response.error?.message || '更新角色状态失败');
+    throw new Error(response.error?.message || response.message || '更新角色状态失败');
   }
 
   /**
    * 完成所有角色
    */
   async completeAllRoles(taskId: string): Promise<Task> {
-    const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/complete-all`, {});
-    if (response.success && response.data) {
+    const response = await apiClient.post<any>(`/api/tasks/${taskId}/complete-all`, {});
+    if (response.success !== undefined && response.data) {
       return response.data;
+    } else if (response.taskId) {
+      return response;
     }
-    throw new Error(response.error?.message || '完成所有角色失败');
+    throw new Error(response.error?.message || response.message || '完成所有角色失败');
   }
 
   /**
    * 回收任务到任务库
    */
   async retrieveToPool(taskId: string): Promise<Task> {
-    const response = await apiClient.post<ApiResponse<Task>>(`/api/tasks/${taskId}/retrieve-to-pool`, {});
-    if (response.success && response.data) {
+    const response = await apiClient.post<any>(`/api/tasks/${taskId}/retrieve`, {});
+    if (response.success !== undefined && response.data) {
       return response.data;
+    } else if (response.taskId) {
+      return response;
     }
-    throw new Error(response.error?.message || '回收任务到任务库失败');
+    throw new Error(response.error?.message || response.message || '回收任务到任务库失败');
+  }
+
+  /**
+   * 批量操作任务
+   */
+  async batchOperation(operation: string, taskIds: string[]): Promise<ApiResponse<void>> {
+    return apiClient.post<ApiResponse<void>>('/api/tasks/batch', { operation, taskIds });
   }
 
   /**
@@ -237,6 +264,14 @@ class TaskService {
   async getMeetingTasks(userId: string, period?: string): Promise<MeetingTasksResponse> {
     const params = period ? `?period=${period}` : '';
     return apiClient.get<MeetingTasksResponse>(`/api/tasks/meeting/${userId}${params}`);
+  }
+
+  /**
+   * 检查任务是否为长期任务
+   */
+  async checkIsLongRunning(taskId: string): Promise<boolean> {
+    const response = await apiClient.get<{ isLongRunning: boolean }>(`/api/tasks/${taskId}/is-long-running`);
+    return response.isLongRunning || false;
   }
 }
 

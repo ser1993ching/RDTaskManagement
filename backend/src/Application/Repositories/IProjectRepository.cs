@@ -17,4 +17,5 @@ public interface IProjectRepository
     Task<int> CountTasksByProjectIdAsync(string projectId);
     Task<bool> ExistsAsync(string id);
     Task<(int Total, Dictionary<string, int> ByCategory, int KeyProjects, int Completed)> GetStatisticsAsync(Domain.Enums.ProjectCategory? category);
+    Task<string?> GetMaxProjectIdAsync();
 }

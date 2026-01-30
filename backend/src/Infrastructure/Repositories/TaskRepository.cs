@@ -78,20 +78,21 @@ public class TaskRepository : ITaskRepository
 
     public async Task<IReadOnlyList<TaskItem>> GetTravelTasksAsync(string userId, string? period)
     {
+        // 差旅任务：仅显示负责人（assignee）的任务
         var query = _context.Tasks
-            .Where(t => t.TaskClassID == "TC009" && !t.IsDeleted && (
-                t.AssigneeID == userId ||
-                t.CheckerID == userId ||
-                t.ChiefDesignerID == userId ||
-                t.ApproverID == userId));
+            .Where(t => t.TaskClassID == "TC009" && !t.IsDeleted && t.AssigneeID == userId);
 
         return await query.ToListAsync();
     }
 
     public async Task<IReadOnlyList<TaskItem>> GetMeetingTasksAsync(string userId, string? period)
     {
+        // 会议培训：显示负责人和参会人员列表中的人员
+        // Participants 是 JSON 数组格式存储，需要检查是否包含当前用户
         var query = _context.Tasks
-            .Where(t => t.TaskClassID == "TC007" && !t.IsDeleted);
+            .Where(t => t.TaskClassID == "TC007" && !t.IsDeleted && (
+                t.AssigneeID == userId ||
+                EF.Functions.JsonContains(t.Participants, $"\"{userId}\"")));
 
         return await query.ToListAsync();
     }
@@ -108,8 +109,11 @@ public class TaskRepository : ITaskRepository
     public async Task<TaskItem> UpdateAsync(TaskItem task)
     {
         task.UpdatedAt = DateTime.UtcNow;
+
+        // 确保实体被正确标记为修改状态
         _context.Tasks.Update(task);
         await _context.SaveChangesAsync();
+
         return task;
     }
 

@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using TaskManageSystem.Domain.Enums;
+
 namespace TaskManageSystem.Application.DTOs.Users;
 
 /// <summary>
@@ -5,14 +8,33 @@ namespace TaskManageSystem.Application.DTOs.Users;
 /// </summary>
 public class UserDto
 {
-    public string UserID { get; set; } = string.Empty;
+    [JsonPropertyName("userId")]
+    public string UserId { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
-    public string SystemRole { get; set; } = string.Empty;
-    public string OfficeLocation { get; set; } = string.Empty;
+
+    [JsonPropertyName("systemRole")]
+    public SystemRole SystemRole { get; set; }
+
+    [JsonPropertyName("officeLocation")]
+    public OfficeLocation OfficeLocation { get; set; }
+
+    [JsonPropertyName("title")]
     public string? Title { get; set; }
+
+    [JsonPropertyName("joinDate")]
     public string? JoinDate { get; set; }
-    public string Status { get; set; } = string.Empty;
+
+    [JsonPropertyName("status")]
+    public PersonnelStatus Status { get; set; }
+
+    [JsonPropertyName("education")]
     public string? Education { get; set; }
+
+    [JsonPropertyName("school")]
     public string? School { get; set; }
+
+    [JsonPropertyName("remark")]
     public string? Remark { get; set; }
 }

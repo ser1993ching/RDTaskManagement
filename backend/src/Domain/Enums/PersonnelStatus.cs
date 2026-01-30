@@ -7,12 +7,18 @@ namespace TaskManageSystem.Domain.Enums;
 /// </summary>
 public enum PersonnelStatus
 {
-    [Display(Name = "在职")]
+    [Display(Name = "在岗")]
     Active = 0,
 
-    [Display(Name = "离职")]
-    Inactive = 1,
+    [Display(Name = "借调")]
+    BorrowedIn = 1,
 
-    [Display(Name = "退休")]
-    Retired = 2
+    [Display(Name = "外借")]
+    BorrowedOut = 2,
+
+    [Display(Name = "实习")]
+    Intern = 3,
+
+    [Display(Name = "离岗")]
+    Leave = 4
 }

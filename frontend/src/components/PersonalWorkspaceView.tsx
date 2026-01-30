@@ -1,16 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { ChevronDown, ChevronUp, Download, Printer, AlertTriangle, User, FileText } from 'lucide-react';
-import { Task, User as UserType, PersonalStats, SeparatedTasks, Period, TaskClass, RoleStatus, SystemRole } from '../types';
-import { dataService } from '../services/dataService';
-
-// 日期格式化函数 - 只显示日期部分
-const formatDate = (dateStr: string | undefined): string => {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr;
-  return date.toISOString().split('T')[0];
-};
+import { Task, User as UserType, PersonalStats, SeparatedTasks, Period, TaskClass, RoleStatus } from '../types';
+import { apiDataService } from '../services/apiDataService';
+import { cn } from '@/utils/classnames';
+import { useTaskClasses } from '../context/ConfigContext';
 
 // Colors for charts
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -341,16 +335,16 @@ const TravelTaskPanel: React.FC<{
             <tbody className="divide-y divide-gray-100">
               {tasks.slice(0, 5).map((task) => (
                 <tr
-                  key={task.TaskID}
+                  key={task.taskId}
                   className="cursor-pointer hover:bg-gray-50 transition-colors"
                   onDoubleClick={() => onTaskDoubleClick(task)}
                 >
-                  <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLabel || '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelDuration ? `${task.TravelDuration}天` : '-'}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.TravelLocation || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-900">{task.taskName}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.taskClassId)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.travelLabel || '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.startDate)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.travelDuration ? `${task.travelDuration}天` : '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.travelLocation || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -399,14 +393,14 @@ const MeetingTaskPanel: React.FC<{
             <tbody className="divide-y divide-gray-100">
               {tasks.slice(0, 5).map((task) => (
                 <tr
-                  key={task.TaskID}
+                  key={task.taskId}
                   className="cursor-pointer hover:bg-gray-50 transition-colors"
                   onDoubleClick={() => onTaskDoubleClick(task)}
                 >
-                  <td className="px-4 py-2 text-sm text-gray-900">{task.TaskName}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.Category || getCategoryName(task.TaskClassID)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
-                  <td className="px-4 py-2 text-sm text-gray-600">{task.MeetingDuration ? `${task.MeetingDuration}小时` : '-'}</td>
+                  <td className="px-4 py-2 text-sm text-gray-900">{task.taskName}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.category || getCategoryName(task.taskClassId)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.startDate)}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{task.meetingDuration ? `${task.meetingDuration}小时` : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -417,39 +411,77 @@ const MeetingTaskPanel: React.FC<{
   );
 };
 
+// Helper function to get property value from task (camelCase)
+const getTaskProp = (task: Task, key: string): any => {
+  return (task as any)[key];
+};
+
+// Helper function to format date (ISO format to friendly format)
+const formatDate = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '-';
+  // Handle ISO format: "2024-10-08T00:00:00" or "2024-10-08"
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+};
+
 // Helper function to determine user's role in a task
 const getUserRoleInTask = (task: Task, userId: string): string => {
-  if (task.AssigneeID === userId) return '负责人';
-  if (task.CheckerID === userId) return '校核人';
-  if (task.ChiefDesignerID === userId) return '主任设计';
-  if (task.ApproverID === userId) return '审查人';
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
+
+  if (assigneeId === userId) return '负责人';
+  if (checkerId === userId) return '校核人';
+  if (chiefDesignerId === userId) return '主任设计';
+  if (approverId === userId) return '审查人';
   return '-';
 };
 
 // Helper function to get user's role type in a task
 const getUserRoleTypeInTask = (task: Task, userId: string): 'assignee' | 'checker' | 'chiefDesigner' | 'approver' | null => {
-  if (task.AssigneeID === userId) return 'assignee';
-  if (task.CheckerID === userId) return 'checker';
-  if (task.ChiefDesignerID === userId) return 'chiefDesigner';
-  if (task.ApproverID === userId) return 'approver';
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
+
+  if (assigneeId === userId) return 'assignee';
+  if (checkerId === userId) return 'checker';
+  if (chiefDesignerId === userId) return 'chiefDesigner';
+  if (approverId === userId) return 'approver';
   return null;
 };
 
 // Helper function to get role status for a user in a task
 const getRoleStatusInTask = (task: Task, userId: string): string => {
-  if (task.AssigneeID === userId) return task.assigneeStatus || RoleStatus.NOT_STARTED;
-  if (task.CheckerID === userId) return task.checkerStatus || RoleStatus.NOT_STARTED;
-  if (task.ChiefDesignerID === userId) return task.chiefDesignerStatus || RoleStatus.NOT_STARTED;
-  if (task.ApproverID === userId) return task.approverStatus || RoleStatus.NOT_STARTED;
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
+
+  if (assigneeId === userId) return getTaskProp(task, 'assigneeStatus') || RoleStatus.NOT_STARTED;
+  if (checkerId === userId) return getTaskProp(task, 'checkerStatus') || RoleStatus.NOT_STARTED;
+  if (chiefDesignerId === userId) return getTaskProp(task, 'chiefDesignerStatus') || RoleStatus.NOT_STARTED;
+  if (approverId === userId) return getTaskProp(task, 'approverStatus') || RoleStatus.NOT_STARTED;
   return '-';
 };
 
 // Helper function to get workload for a user's role in a task
 const getRoleWorkloadInTask = (task: Task, userId: string): number | undefined => {
-  if (task.AssigneeID === userId) return task.Workload;
-  if (task.CheckerID === userId) return task.CheckerWorkload;
-  if (task.ChiefDesignerID === userId) return task.ChiefDesignerWorkload;
-  if (task.ApproverID === userId) return task.ApproverWorkload;
+  const assigneeId = getTaskProp(task, 'assigneeId');
+  const checkerId = getTaskProp(task, 'checkerId');
+  const chiefDesignerId = getTaskProp(task, 'chiefDesignerId');
+  const approverId = getTaskProp(task, 'approverId');
+
+  if (assigneeId === userId) return getTaskProp(task, 'workload');
+  if (checkerId === userId) return getTaskProp(task, 'checkerWorkload');
+  if (chiefDesignerId === userId) return getTaskProp(task, 'chiefDesignerWorkload');
+  if (approverId === userId) return getTaskProp(task, 'approverWorkload');
   return undefined;
 };
 
@@ -576,7 +608,7 @@ const TaskPanel: React.FC<{
   taskClasses: TaskClass[];
   viewingUserName: string;
   viewingUserId: string;
-  currentUserRole: SystemRole;
+  currentUserRole: string;
 }> = ({
   title,
   tasks,
@@ -589,13 +621,14 @@ const TaskPanel: React.FC<{
   viewingUserId,
   currentUserRole
 }) => {
+  // console.log(`TaskPanel[${title}] rendering with ${tasks.length} tasks`);
   const getCategoryName = (taskClassId: string) => {
     const tc = taskClasses.find(t => t.id === taskClassId);
     return tc?.name || taskClassId;
   };
 
   // Check if workload should be visible (only for LEADER or ADMIN)
-  const canViewWorkload = currentUserRole === SystemRole.LEADER || currentUserRole === SystemRole.ADMIN;
+  const canViewWorkload = currentUserRole === '班组长' || currentUserRole === '管理员';
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -635,29 +668,41 @@ const TaskPanel: React.FC<{
               <tbody className="divide-y divide-gray-100">
                 {tasks.map((task) => {
                   // 已完成的任务不显示长任务标记
-                  const isLongRunning = title !== '已完成' && dataService.isTaskLongRunning(task);
+                  const isLongRunning = title !== '已完成' && apiDataService.isTaskLongRunning(task);
                   const userRole = getUserRoleInTask(task, viewingUserId);
                   const userRoleType = getUserRoleTypeInTask(task, viewingUserId);
                   const roleStatus = getRoleStatusInTask(task, viewingUserId);
                   const roleWorkload = getRoleWorkloadInTask(task, viewingUserId);
+
+                  const taskId = task.taskId;
+                  const taskName = task.taskName;
+                  const taskClassId = task.taskClassId;
+                  const isForceAssessment = task.isForceAssessment;
+
                   return (
                     <tr
-                      key={task.TaskID}
-                      className={`${isLongRunning ? 'bg-yellow-50' : ''} cursor-pointer hover:bg-gray-50 transition-colors`}
+                      key={taskId}
+                      className={cn(
+                        'cursor-pointer hover:bg-gray-50 transition-colors',
+                        isLongRunning && 'bg-yellow-50'
+                      )}
                       onDoubleClick={() => onTaskDoubleClick(task)}
                     >
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
-                          {task.isForceAssessment && task.TaskClassID !== 'TC009' && (
+                          {isForceAssessment && taskClassId !== 'TC009' && (
                             <span className="inline-block w-1 h-4 bg-red-500 mr-1 rounded flex-shrink-0" />
                           )}
                           {isLongRunning && (
                             <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                           )}
-                          <span className={`text-sm ${task.isForceAssessment && task.TaskClassID !== 'TC009' ? 'font-bold text-gray-900' : 'text-gray-900'}`}>{task.TaskName}</span>
+                          <span className={cn(
+                            'text-sm text-gray-900',
+                            isForceAssessment && taskClassId !== 'TC009' && 'font-bold'
+                          )}>{taskName}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(task.TaskClassID)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{getCategoryName(taskClassId)}</td>
                       <td className="px-4 py-2">
                         <span className="text-sm font-medium text-gray-700">{userRole}</span>
                       </td>
@@ -665,7 +710,7 @@ const TaskPanel: React.FC<{
                         {userRoleType ? (
                           <RoleStatusDropdown
                             currentStatus={roleStatus}
-                            onChange={(status) => onStatusChange(task.TaskID, userRoleType, status)}
+                            onChange={(status) => onStatusChange(taskId, userRoleType, status)}
                           />
                         ) : (
                           <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadgeClass(roleStatus)}`}>
@@ -673,8 +718,8 @@ const TaskPanel: React.FC<{
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.StartDate)}</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.DueDate)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.startDate)}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{formatDate(task.dueDate)}</td>
                       {canViewWorkload && (
                         <td className="px-4 py-2 text-sm text-gray-600">{roleWorkload ?? '-'}</td>
                       )}
@@ -698,7 +743,7 @@ const UserSwitcher: React.FC<{
   teamMembers: UserType[];
   onSelect: (userId: string) => void;
 }> = ({ currentUser, selectedUserId, teamMembers, onSelect }) => {
-  const selectedUser = teamMembers.find(u => u.UserID === selectedUserId) || currentUser;
+  const selectedUser = teamMembers.find(u => u.userId === selectedUserId) || currentUser;
 
   return (
     <div className="flex items-center gap-2">
@@ -708,10 +753,10 @@ const UserSwitcher: React.FC<{
         onChange={(e) => onSelect(e.target.value)}
         className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
-        <option value={currentUser.UserID}>{currentUser.Name} (本人)</option>
+        <option value={currentUser.userId}>{currentUser.name} (本人)</option>
         {teamMembers.map((user) => (
-          <option key={user.UserID} value={user.UserID}>
-            {user.Name}
+          <option key={user.userId} value={user.userId}>
+            {user.name}
           </option>
         ))}
       </select>
@@ -724,10 +769,14 @@ const PersonalWorkspaceView: React.FC<{
   currentUser: UserType;
   onRefresh: () => void;
   onChangeView?: (view: string, taskId?: string) => void;
-}> = ({ currentUser, onRefresh, onChangeView }) => {
+  externalRefreshKey?: number; // External refresh trigger from parent
+}> = ({ currentUser, onRefresh, onChangeView, externalRefreshKey }) => {
+  // 从全局配置获取数据
+  const { taskClasses: globalTaskClasses, refreshTaskClasses } = useTaskClasses();
+
   const [viewMode, setViewMode] = useState<'chart' | 'list'>('chart');
   const [period, setPeriod] = useState<Period>('quarter'); // 默认近三个月
-  const [selectedUserId, setSelectedUserId] = useState(currentUser.UserID);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [expandedPanels, setExpandedPanels] = useState({
     inProgress: true,
     pending: true,
@@ -735,62 +784,162 @@ const PersonalWorkspaceView: React.FC<{
   });
   const [refreshKey, setRefreshKey] = useState(0); // 用于强制刷新
 
-  // Get user being viewed
-  const viewingUserId = currentUser.SystemRole === '组员' ? currentUser.UserID : selectedUserId;
+  // Data states
+  const [teamMembers, setTeamMembers] = useState<UserType[]>([]);
+  const [taskClasses, setTaskClasses] = useState<TaskClass[]>([]);
+  const [personalTasks, setPersonalTasks] = useState<{ inProgress: Task[]; pending: Task[]; completed: Task[] }>({
+    inProgress: [],
+    pending: [],
+    completed: []
+  });
+  const [travelTasks, setTravelTasks] = useState<Task[]>([]);
+  const [meetingTasks, setMeetingTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 使用 ref 防止重复请求
+  const isLoadingRef = useRef(false);
+  const lastLoadedUserIdRef = useRef<string>('');
+
+  // Sync selectedUserId when currentUser changes - 只初始化一次
+  useEffect(() => {
+    if (currentUser?.userId && !selectedUserId) {
+      setSelectedUserId(currentUser.userId);
+    }
+  }, [currentUser?.userId]);
+
+  // Get user being viewed - 使用 useMemo 稳定计算
+  const viewingUserId = useMemo(() => {
+    if (!currentUser?.userId) return '';
+    if (currentUser.systemRole === '组员') return currentUser.userId;
+    return selectedUserId || currentUser.userId;
+  }, [currentUser?.userId, currentUser?.systemRole, selectedUserId]);
+
+  // Load data when viewingUserId changes or when refreshKey changes
+  // 使用 ref 防止重复请求
+  useEffect(() => {
+    const loadData = async () => {
+      if (!viewingUserId) return;
+
+      // 如果正在加载相同的用户，跳过
+      if (isLoadingRef.current && lastLoadedUserIdRef.current === viewingUserId) {
+        return;
+      }
+
+      isLoadingRef.current = true;
+      lastLoadedUserIdRef.current = viewingUserId;
+      setLoading(true);
+      try {
+        // Load team members - API returns camelCase, types.ts uses camelCase
+        const members = await apiDataService.getTeamMembers(currentUser.userId);
+        setTeamMembers(members.map((u: any) => ({
+          userId: u.userId,
+          name: u.name,
+          systemRole: u.systemRole as string,
+          officeLocation: u.officeLocation as any,
+          title: u.title,
+          joinDate: u.joinDate,
+          status: u.status as any,
+          education: u.education,
+          school: u.school,
+          remark: u.remark,
+        })));
+
+        // 使用全局配置的 taskClasses
+        setTaskClasses(globalTaskClasses.map((tc: any) => ({
+          id: tc.id,
+          name: tc.name,
+          code: tc.code,
+          description: tc.description,
+          notice: tc.notice,
+          is_deleted: false,
+        })));
+
+        // Load personal tasks
+        const tasks = await apiDataService.getPersonalTasks(viewingUserId);
+        // console.log('Personal tasks loaded:', tasks);
+        setPersonalTasks({
+          inProgress: tasks.inProgress || [],
+          pending: tasks.pending || [],
+          completed: tasks.completed || [],
+        });
+
+        // Load travel tasks
+        const travel = await apiDataService.getTravelTasks(viewingUserId);
+        setTravelTasks(travel);
+
+        // Load meeting tasks
+        const meeting = await apiDataService.getMeetingTasks(viewingUserId);
+        setMeetingTasks(meeting);
+      } catch (error) {
+        console.error('加载数据失败:', error);
+      } finally {
+        isLoadingRef.current = false;
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [viewingUserId, refreshKey, externalRefreshKey]);
+
+  // Get viewing user info
   const viewingUser = useMemo(() => {
-    if (viewingUserId === currentUser.UserID) return currentUser;
-    const teamMembers = dataService.getTeamMembers(currentUser.UserID);
-    return teamMembers.find(u => u.UserID === viewingUserId) || currentUser;
-  }, [viewingUserId, currentUser]);
+    if (viewingUserId === currentUser.userId) return currentUser;
+    return teamMembers.find(u => u.userId === viewingUserId) || currentUser;
+  }, [viewingUserId, currentUser, teamMembers]);
 
-  // Get team members for switcher
-  const teamMembers = useMemo(() => {
-    return dataService.getTeamMembers(currentUser.UserID);
-  }, [currentUser.UserID]);
-
-  // Get all tasks for statistics
+  // Get all tasks (combine from different sources)
+  // 排除差旅任务(TC009)和会议培训任务(TC007)，这些只在专门板块显示
   const allTasks = useMemo(() => {
-    return dataService.getPersonalTasks(viewingUserId);
-  }, [viewingUserId, refreshKey]);
+    const tasks = [
+      ...personalTasks.inProgress,
+      ...personalTasks.pending,
+      ...personalTasks.completed,
+    ];
+    // console.log('allTasks count:', tasks.length, 'first task startDate:', tasks[0]?.startDate);
+    return tasks.filter(t => t.taskClassId !== 'TC009' && t.taskClassId !== 'TC007');
+  }, [personalTasks]);
 
   // Filter tasks by period based on StartDate (only for completed tasks)
   const periodFilteredTasks = useMemo(() => {
-    return dataService.filterTasksByStartDate(allTasks, period);
+    const filtered = apiDataService.filterTasksByStartDate(allTasks, period);
+    // console.log('periodFilteredTasks count:', filtered.length, 'period:', period);
+    if (allTasks.length > 0) {
+      // console.log('sample startDates:', allTasks.slice(0, 3).map(t => t.startDate));
+    }
+    return filtered;
   }, [allTasks, period]);
 
   // Separate tasks by user's role status (not task status)
-  // 进行中和未开始的任务显示所有任务，已完成的任务根据时间段筛选
+  // 进行中和未开始的任务显示所有任务，已完成的任务显示全部（不按时间段过滤）
   const separatedTasks = useMemo(() => {
-    const allSeparated = dataService.separateTasksByRoleStatus(allTasks, viewingUserId);
-    const completedSeparated = dataService.separateTasksByRoleStatus(periodFilteredTasks, viewingUserId);
+    const allSeparated = apiDataService.separateTasksByRoleStatus(allTasks, viewingUserId);
     return {
       inProgress: allSeparated.inProgress,      // 进行中：显示所有
       pending: allSeparated.pending,            // 未开始：显示所有
-      completed: completedSeparated.completed   // 已完成：根据时间段筛选
+      completed: allSeparated.completed         // 已完成：显示所有（不按时间段过滤）
     };
-  }, [allTasks, periodFilteredTasks, viewingUserId]);
+  }, [allTasks, viewingUserId]);
 
-  // Get travel tasks filtered by StartDate (shown separately)
-  const travelTasks = useMemo(() => {
-    const allTravelTasks = dataService.getTravelTasks(viewingUserId);
-    return dataService.filterTasksByStartDate(allTravelTasks, period);
-  }, [viewingUserId, period, refreshKey]);
+  // Get travel tasks (shown separately) - 不进行时间段筛选，显示所有差旅任务
+  const filteredTravelTasks = useMemo(() => {
+    return travelTasks;
+  }, [travelTasks]);
 
-  // Get meeting tasks filtered by StartDate (shown separately)
-  const meetingTasks = useMemo(() => {
-    const allMeetingTasks = dataService.getMeetingTasks(viewingUserId);
-    return dataService.filterTasksByStartDate(allMeetingTasks, period);
-  }, [viewingUserId, period, refreshKey]);
+  // Get meeting tasks (shown separately) - 不进行时间段筛选，显示所有会议任务
+  const filteredMeetingTasks = useMemo(() => {
+    return meetingTasks;
+  }, [meetingTasks]);
 
   // Calculate stats based on role status
   const stats = useMemo(() => {
-    const baseStats = dataService.calculatePersonalStats(allTasks, period, viewingUserId);
+    // API返回的数据已经是camelCase格式，直接使用
+    const baseStats = apiDataService.calculatePersonalStats(allTasks as any, period, viewingUserId);
     // Calculate trend - daily for week/month, monthly for others
     let monthlyTrend;
     if (period === 'week' || period === 'month') {
       // 按天统计（本周显示7天，本月显示约30天）
       const days = period === 'week' ? 7 : 30;
-      monthlyTrend = dataService.calculateDailyTrend(allTasks, days, viewingUserId);
+      monthlyTrend = apiDataService.calculateDailyTrend(allTasks as any, days, viewingUserId);
     } else {
       // 按月统计，根据时间段确定月份数
       let months: number;
@@ -801,14 +950,10 @@ const PersonalWorkspaceView: React.FC<{
         case 'yearAndHalf': months = 12; break;  // 近一年
         default: months = 6;
       }
-      monthlyTrend = dataService.calculateMonthlyTrend(allTasks, months, viewingUserId);
+      monthlyTrend = apiDataService.calculateMonthlyTrend(allTasks as any, months, viewingUserId);
     }
     return { ...baseStats, monthlyTrend };
   }, [allTasks, period, viewingUserId]);
-
-  const taskClasses = useMemo(() => {
-    return dataService.getTaskClasses();
-  }, []);
 
   // Toggle panel expansion
   const togglePanel = (panel: 'inProgress' | 'pending' | 'completed') => {
@@ -816,24 +961,33 @@ const PersonalWorkspaceView: React.FC<{
   };
 
   // Handle role status change
-  const handleStatusChange = (taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus) => {
-    dataService.updateTaskRoleStatus(taskId, role, status);
-    setRefreshKey(prev => prev + 1); // 强制刷新数据
-    onRefresh();
+  // 修复 Bug: 避免重复刷新导致任务复制
+  const handleStatusChange = async (taskId: string, role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver', status: RoleStatus) => {
+    try {
+      const success = await apiDataService.updateTaskRoleStatus(taskId, role, status);
+      if (success) {
+        // 只使用 setRefreshKey 触发刷新，避免重复请求
+        setRefreshKey(prev => prev + 1);
+      } else {
+        console.error('更新任务角色状态失败: 返回false');
+      }
+    } catch (error) {
+      console.error('更新任务角色状态失败:', error);
+    }
   };
 
-  // Handle task double click - navigate to task view
+  // Handle task double click - navigate to task view with category
   const handleTaskDoubleClick = (task: Task) => {
     if (onChangeView) {
-      onChangeView('tasks', task.TaskName);
+      onChangeView('tasks', task.taskName, task.taskClassId);
     }
   };
 
   // Handle CSV export
   const handleExportCSV = () => {
-    const csvContent = dataService.generateStatsCSV(stats, separatedTasks, viewingUser.Name);
-    const fileName = `个人工作台_${viewingUser.Name}_${new Date().toISOString().split('T')[0]}.csv`;
-    dataService.downloadStatsCSV(csvContent, fileName);
+    const csvContent = apiDataService.generateStatsCSV(stats, separatedTasks, viewingUser.name);
+    const fileName = `个人工作台_${viewingUser.name}_${new Date().toISOString().split('T')[0]}.csv`;
+    apiDataService.downloadStatsCSV(csvContent, fileName);
   };
 
   // Handle print
@@ -847,7 +1001,7 @@ const PersonalWorkspaceView: React.FC<{
       <div className="flex items-center justify-between gap-4 mb-4 print:hidden">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold text-gray-900">个人工作台</h1>
-          {currentUser.SystemRole !== '组员' && (
+          {currentUser.systemRole !== '组员' && (
             <UserSwitcher
               currentUser={currentUser}
               selectedUserId={selectedUserId}
@@ -889,9 +1043,9 @@ const PersonalWorkspaceView: React.FC<{
             onStatusChange={handleStatusChange}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
-            viewingUserName={viewingUser.Name}
+            viewingUserName={viewingUser.name}
             viewingUserId={viewingUserId}
-            currentUserRole={currentUser.SystemRole}
+            currentUserRole={currentUser.systemRole}
           />
 
           {/* Pending Panel - Middle */}
@@ -903,9 +1057,9 @@ const PersonalWorkspaceView: React.FC<{
             onStatusChange={handleStatusChange}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
-            viewingUserName={viewingUser.Name}
+            viewingUserName={viewingUser.name}
             viewingUserId={viewingUserId}
-            currentUserRole={currentUser.SystemRole}
+            currentUserRole={currentUser.systemRole}
           />
 
           {/* Completed Panel - Bottom */}
@@ -917,21 +1071,21 @@ const PersonalWorkspaceView: React.FC<{
             onStatusChange={handleStatusChange}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
-            viewingUserName={viewingUser.Name}
+            viewingUserName={viewingUser.name}
             viewingUserId={viewingUserId}
-            currentUserRole={currentUser.SystemRole}
+            currentUserRole={currentUser.systemRole}
           />
 
           {/* Travel Task Panel */}
           <TravelTaskPanel
-            tasks={travelTasks}
+            tasks={filteredTravelTasks}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
           />
 
           {/* Meeting Task Panel */}
           <MeetingTaskPanel
-            tasks={meetingTasks}
+            tasks={filteredMeetingTasks}
             onTaskDoubleClick={handleTaskDoubleClick}
             taskClasses={taskClasses}
           />

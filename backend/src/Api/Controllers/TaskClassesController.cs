@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManageSystem.Application.DTOs.TaskClasses;
 using TaskManageSystem.Application.Interfaces;
@@ -9,6 +10,7 @@ namespace TaskManageSystem.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "LEADER,ADMIN")]
 public class TaskClassesController : ControllerBase
 {
     private readonly ITaskClassService _taskClassService;
@@ -31,10 +33,10 @@ public class TaskClassesController : ControllerBase
     /// <summary>
     /// 获取单个任务类别
     /// </summary>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetTaskClass(string id)
+    [HttpGet("{taskClassId}")]
+    public async Task<IActionResult> GetTaskClass(string taskClassId)
     {
-        var taskClass = await _taskClassService.GetTaskClassByIdAsync(id);
+        var taskClass = await _taskClassService.GetTaskClassByIdAsync(taskClassId);
         if (taskClass == null)
             return NotFound();
         return Ok(taskClass);
@@ -47,26 +49,26 @@ public class TaskClassesController : ControllerBase
     public async Task<IActionResult> CreateTaskClass([FromBody] CreateTaskClassRequest request)
     {
         var taskClass = await _taskClassService.CreateTaskClassAsync(request);
-        return CreatedAtAction(nameof(GetTaskClass), new { id = taskClass.Id }, taskClass);
+        return CreatedAtAction(nameof(GetTaskClass), new { taskClassId = taskClass.Id }, taskClass);
     }
 
     /// <summary>
     /// 更新任务类别
     /// </summary>
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateTaskClass(string id, [FromBody] UpdateTaskClassRequest request)
+    [HttpPut("{taskClassId}")]
+    public async Task<IActionResult> UpdateTaskClass(string taskClassId, [FromBody] UpdateTaskClassRequest request)
     {
-        var taskClass = await _taskClassService.UpdateTaskClassAsync(id, request);
+        var taskClass = await _taskClassService.UpdateTaskClassAsync(taskClassId, request);
         return Ok(taskClass);
     }
 
     /// <summary>
     /// 删除任务类别
     /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTaskClass(string id)
+    [HttpDelete("{taskClassId}")]
+    public async Task<IActionResult> DeleteTaskClass(string taskClassId)
     {
-        var result = await _taskClassService.SoftDeleteTaskClassAsync(id);
+        var result = await _taskClassService.SoftDeleteTaskClassAsync(taskClassId);
         if (!result)
             return NotFound();
         return NoContent();
@@ -75,50 +77,50 @@ public class TaskClassesController : ControllerBase
     /// <summary>
     /// 检查任务类别使用情况
     /// </summary>
-    [HttpGet("{id}/usage")]
-    public async Task<IActionResult> CheckUsage(string id)
+    [HttpGet("{taskClassId}/usage")]
+    public async Task<IActionResult> CheckUsage(string taskClassId)
     {
-        var usage = await _taskClassService.CheckUsageAsync(id);
+        var usage = await _taskClassService.CheckUsageAsync(taskClassId);
         return Ok(usage);
     }
 
     /// <summary>
     /// 添加子类别
     /// </summary>
-    [HttpPost("{id}/categories")]
-    public async Task<IActionResult> AddCategory(string id, [FromBody] AddCategoryRequest request)
+    [HttpPost("{taskClassId}/categories")]
+    public async Task<IActionResult> AddCategory(string taskClassId, [FromBody] AddCategoryRequest request)
     {
-        await _taskClassService.AddCategoryAsync(id, request.Category);
+        await _taskClassService.AddCategoryAsync(taskClassId, request.Category);
         return Ok(new { Success = true });
     }
 
     /// <summary>
     /// 移除子类别
     /// </summary>
-    [HttpDelete("{id}/categories/{categoryName}")]
-    public async Task<IActionResult> RemoveCategory(string id, string categoryName)
+    [HttpDelete("{taskClassId}/categories/{categoryName}")]
+    public async Task<IActionResult> RemoveCategory(string taskClassId, string categoryName)
     {
-        await _taskClassService.RemoveCategoryAsync(id, categoryName);
+        await _taskClassService.RemoveCategoryAsync(taskClassId, categoryName);
         return Ok(new { Success = true });
     }
 
     /// <summary>
     /// 更新子类别名称
     /// </summary>
-    [HttpPut("{id}/categories")]
-    public async Task<IActionResult> UpdateCategory(string id, [FromBody] UpdateCategoryNameRequest request)
+    [HttpPut("{taskClassId}/categories")]
+    public async Task<IActionResult> UpdateCategory(string taskClassId, [FromBody] UpdateCategoryNameRequest request)
     {
-        await _taskClassService.UpdateCategoryNameAsync(id, request.OldName, request.NewName);
+        await _taskClassService.UpdateCategoryNameAsync(taskClassId, request.OldName, request.NewName);
         return Ok(new { Success = true });
     }
 
     /// <summary>
     /// 重新排序子类别
     /// </summary>
-    [HttpPut("{id}/categories/order")]
-    public async Task<IActionResult> ReorderCategories(string id, [FromBody] ReorderCategoriesRequest request)
+    [HttpPut("{taskClassId}/categories/order")]
+    public async Task<IActionResult> ReorderCategories(string taskClassId, [FromBody] ReorderCategoriesRequest request)
     {
-        await _taskClassService.ReorderCategoriesAsync(id, request.Order);
+        await _taskClassService.ReorderCategoriesAsync(taskClassId, request.Order);
         return Ok(new { Success = true });
     }
 }

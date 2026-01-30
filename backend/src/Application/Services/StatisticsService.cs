@@ -14,10 +14,10 @@ namespace TaskManageSystem.Application.Services;
 /// </summary>
 public class StatisticsService : IStatisticsService
 {
-    private readonly ITaskRepository _taskRepository;
+    private readonly ITaskRepository? _taskRepository;
     private readonly IMapper _mapper;
 
-    public StatisticsService(ITaskRepository taskRepository, IMapper mapper)
+    public StatisticsService(ITaskRepository? taskRepository, IMapper mapper)
     {
         _taskRepository = taskRepository;
         _mapper = mapper;
@@ -25,7 +25,16 @@ public class StatisticsService : IStatisticsService
 
     public async Task<PersonalStats> GetPersonalStatsAsync(string userId, string period)
     {
-        var tasks = await _taskRepository.GetPersonalTasksAsync(userId, null);
+        IReadOnlyList<TaskItem> tasks;
+        if (_taskRepository != null)
+        {
+            try { tasks = await _taskRepository.GetPersonalTasksAsync(userId, null); }
+            catch { tasks = new List<TaskItem>(); }
+        }
+        else
+        {
+            tasks = new List<TaskItem>();
+        }
 
         var inProgress = tasks.Count(t => t.Status != Domain.Enums.TaskStatus.Completed && t.Status != Domain.Enums.TaskStatus.NotStarted);
         var pending = tasks.Count(t => t.Status == Domain.Enums.TaskStatus.NotStarted);
@@ -48,7 +57,16 @@ public class StatisticsService : IStatisticsService
 
     public async Task<PersonalTasksResponse> GetPersonalTasksByStatusAsync(string userId, string period, string? status)
     {
-        var tasks = await _taskRepository.GetPersonalTasksAsync(userId, status);
+        IReadOnlyList<TaskItem> tasks;
+        if (_taskRepository != null)
+        {
+            try { tasks = await _taskRepository.GetPersonalTasksAsync(userId, status); }
+            catch { tasks = new List<TaskItem>(); }
+        }
+        else
+        {
+            tasks = new List<TaskItem>();
+        }
 
         return new PersonalTasksResponse
         {
@@ -60,7 +78,16 @@ public class StatisticsService : IStatisticsService
 
     public async Task<TravelStatisticsResponse> GetTravelStatisticsAsync(string? userId, string period, string? projectId)
     {
-        var tasks = await _taskRepository.GetTravelTasksAsync(userId ?? "", period);
+        IReadOnlyList<TaskItem> tasks;
+        if (_taskRepository != null)
+        {
+            try { tasks = await _taskRepository.GetTravelTasksAsync(userId ?? "", period); }
+            catch { tasks = new List<TaskItem>(); }
+        }
+        else
+        {
+            tasks = new List<TaskItem>();
+        }
 
         var totalDays = tasks.Sum(t => t.TravelDuration ?? 0);
 

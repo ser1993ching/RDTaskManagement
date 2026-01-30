@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
   timeout: 30000,
 };
 
@@ -33,6 +33,8 @@ export const API_ENDPOINTS = {
     personal: (userId: string) => `/api/tasks/personal/${userId}`,
     travel: (userId: string) => `/api/tasks/travel/${userId}`,
     meeting: (userId: string) => `/api/tasks/meeting/${userId}`,
+    isLongRunning: (id: string) => `/api/tasks/${id}/is-long-running`,
+    batch: '/api/tasks/batch',
   },
   projects: {
     list: '/api/projects',
@@ -44,8 +46,11 @@ export const API_ENDPOINTS = {
     inUse: (id: string) => `/api/projects/${id}/in-use`,
   },
   taskClasses: {
-    list: '/api/taskclasses',
-    get: (id: string) => `/api/taskclasses/${id}`,
+    list: '/api/TaskClasses',
+    get: (id: string) => `/api/TaskClasses/${id}`,
+    create: '/api/TaskClasses',
+    update: (id: string) => `/api/TaskClasses/${id}`,
+    delete: (id: string) => `/api/TaskClasses/${id}`,
   },
   taskPool: {
     list: '/api/taskpool',
@@ -54,11 +59,24 @@ export const API_ENDPOINTS = {
     update: (id: string) => `/api/taskpool/${id}`,
     delete: (id: string) => `/api/taskpool/${id}`,
     assign: (id: string) => `/api/taskpool/${id}/assign`,
+    statistics: '/api/taskpool/statistics',
+    batchAssign: '/api/taskpool/batch-assign',
+    duplicate: (id: string) => `/api/taskpool/${id}/duplicate`,
+    retrieveFromTask: (taskId: string) => `/api/taskpool/retrieve/${taskId}`,
   },
   statistics: {
     dashboard: '/api/statistics/dashboard',
-    personal: (userId: string) => `/api/statistics/personal/${userId}`,
-    team: (userId: string) => `/api/statistics/team/${userId}`,
+    personal: (userId: string) => `/api/statistics/personal?userId=${userId}`,
+    personalTasks: (userId: string) => `/api/statistics/personal/tasks?userId=${userId}`,
+    team: '/api/statistics/team',
+    workload: '/api/statistics/workload',
+    monthlyTrend: '/api/statistics/trend/monthly',
+    dailyTrend: '/api/statistics/trend/daily',
+    delayed: '/api/statistics/delayed',
+    overdue: '/api/statistics/overdue',
+    travel: '/api/statistics/travel',
+    meeting: '/api/statistics/meeting',
+    workdays: '/api/statistics/workdays',
   },
   settings: {
     equipmentModels: '/api/settings/equipment-models',

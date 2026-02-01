@@ -154,6 +154,62 @@ public class SettingsController : ControllerBase
 
     #endregion
 
+    #region 分类标签管理（差旅任务子分类标签）
+
+    /// <summary>
+    /// 获取分类标签
+    /// </summary>
+    [HttpGet("category-labels/{taskClassCode}/{categoryName}")]
+    public async Task<ActionResult<ApiResponse<CategoryLabelsResponse>>> GetCategoryLabels(string taskClassCode, string categoryName)
+    {
+        var result = await _settingsService.GetCategoryLabelsAsync(taskClassCode, categoryName);
+        return Ok(new ApiResponse<CategoryLabelsResponse> { Success = true, Data = result });
+    }
+
+    /// <summary>
+    /// 更新分类标签
+    /// </summary>
+    [Authorize(Roles = "ADMIN,LEADER")]
+    [HttpPut("category-labels/{taskClassCode}/{categoryName}")]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateCategoryLabels(
+        string taskClassCode,
+        string categoryName,
+        [FromBody] UpdateCategoryLabelsRequest request)
+    {
+        var result = await _settingsService.UpdateCategoryLabelsAsync(taskClassCode, categoryName, request);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// 添加分类标签
+    /// </summary>
+    [Authorize(Roles = "ADMIN,LEADER")]
+    [HttpPost("category-labels/{taskClassCode}/{categoryName}")]
+    public async Task<ActionResult<ApiResponse<object>>> AddCategoryLabel(
+        string taskClassCode,
+        string categoryName,
+        [FromBody] AddCategoryLabelRequest request)
+    {
+        var result = await _settingsService.AddCategoryLabelAsync(taskClassCode, categoryName, request);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// 删除分类标签
+    /// </summary>
+    [Authorize(Roles = "ADMIN,LEADER")]
+    [HttpDelete("category-labels/{taskClassCode}/{categoryName}/{label}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteCategoryLabel(
+        string taskClassCode,
+        string categoryName,
+        string label)
+    {
+        var result = await _settingsService.DeleteCategoryLabelAsync(taskClassCode, categoryName, label);
+        return Ok(result);
+    }
+
+    #endregion
+
     #region 数据管理
 
     [Authorize(Roles = "ADMIN")]

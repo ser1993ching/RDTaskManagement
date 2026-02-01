@@ -95,6 +95,17 @@ export enum RoleStatus {
 // Interfaces
 
 /**
+ * 任务分类详情接口
+ * 描述任务分类的详细信息，包含可选的标签列表
+ * 标签(Labels)用于为差旅任务子分类提供细粒度标签
+ * 例如：市场配合出差 -> 客户拜访、项目调研、技术支持
+ */
+export interface TaskCategoryDetail {
+  name: string;           // 分类名称
+  labels?: string[];      // 标签列表（用于差旅任务子分类的细粒度标签）
+}
+
+/**
  * 任务分类接口
  * 描述任务的顶层分类（如市场配合、常规项目等）
  */

@@ -15,7 +15,9 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  Tag,
+  Tags
 } from 'lucide-react';
 import { apiDataService } from '../services/apiDataService';
 import { cn } from '@/utils/classnames';
@@ -27,6 +29,64 @@ import {
   useTaskClasses,
   useConfig
 } from '../context/ConfigContext';
+
+// 子分类标签展示组件
+const CategoryLabelsDisplay: React.FC<{ taskClassCode: string; categoryName: string }> = ({
+  taskClassCode,
+  categoryName
+}) => {
+  const [labels, setLabels] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadLabels = async () => {
+      setIsLoading(true);
+      try {
+        const result = await apiDataService.getCategoryLabels(taskClassCode, categoryName);
+        setLabels(result);
+      } catch (error) {
+        console.error('获取分类标签失败:', error);
+        setLabels([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadLabels();
+  }, [taskClassCode, categoryName]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-slate-400">
+        <RefreshCw size={14} className="animate-spin" />
+        <span className="text-sm">加载中...</span>
+      </div>
+    );
+  }
+
+  if (labels.length === 0) {
+    return (
+      <div className="text-center py-4 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+        <Tag size={20} className="mx-auto mb-1 opacity-50" />
+        <p className="text-sm">暂无标签</p>
+        <p className="text-xs">点击"管理标签"按钮添加</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {labels.map((label, index) => (
+        <span
+          key={index}
+          className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm border border-green-200"
+        >
+          <Tag size={12} />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+};
 
 interface SettingsProps {
   currentUser: User;
@@ -69,6 +129,14 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Category Labels Dialog State
+  const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+  const [labelsTaskClassCode, setLabelsTaskClassCode] = useState<string>('');
+  const [labelsCategoryName, setLabelsCategoryName] = useState<string>('');
+  const [labelsList, setLabelsList] = useState<string[]>([]);
+  const [newLabelValue, setNewLabelValue] = useState('');
+  const [isLoadingLabels, setIsLoadingLabels] = useState(false);
 
   // Check if user is Admin or Leader (使用后端返回的中文值)
   const canManageSettings = currentUser?.systemRole === '管理员' || currentUser?.systemRole === '班组长';
@@ -509,6 +577,58 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
       showMessage('success', '密码修改成功');
     } else {
       showMessage('error', '当前密码不正确');
+    }
+  };
+
+  // Category Labels Handlers
+  const openLabelsDialog = async (taskClassCode: string, categoryName: string) => {
+    setLabelsTaskClassCode(taskClassCode);
+    setLabelsCategoryName(categoryName);
+    setIsLoadingLabels(true);
+    setShowLabelsDialog(true);
+    setNewLabelValue('');
+
+    try {
+      const labels = await apiDataService.getCategoryLabels(taskClassCode, categoryName);
+      setLabelsList(labels);
+    } catch (error) {
+      console.error('获取分类标签失败:', error);
+      setLabelsList([]);
+    } finally {
+      setIsLoadingLabels(false);
+    }
+  };
+
+  const closeLabelsDialog = () => {
+    setShowLabelsDialog(false);
+    setLabelsTaskClassCode('');
+    setLabelsCategoryName('');
+    setLabelsList([]);
+    setNewLabelValue('');
+  };
+
+  const handleAddLabel = async () => {
+    if (!newLabelValue.trim()) return;
+
+    const success = await apiDataService.addCategoryLabel(labelsTaskClassCode, labelsCategoryName, newLabelValue.trim());
+    if (success) {
+      setLabelsList([...labelsList, newLabelValue.trim()]);
+      setNewLabelValue('');
+      showMessage('success', '标签添加成功');
+    } else {
+      showMessage('error', '标签添加失败，可能已存在');
+    }
+  };
+
+  const handleDeleteLabel = async (label: string) => {
+    if (!confirm(`确定要删除标签"${label}"吗？`)) return;
+
+    const success = await apiDataService.deleteCategoryLabel(labelsTaskClassCode, labelsCategoryName, label);
+    if (success) {
+      setLabelsList(labelsList.filter(l => l !== label));
+      showMessage('success', '标签删除成功');
+    } else {
+      showMessage('error', '标签删除失败');
     }
   };
 
@@ -1083,45 +1203,37 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
                 <p className="text-yellow-800 text-sm">⚠️ 只有管理员和班组长可以管理差旅标签</p>
               </div>
             )}
-            <div className="space-y-3">
-              {canManageSettings && editingItem === 'new-label' ? (
-                <div className="flex gap-2 p-4 bg-blue-50 rounded-lg">
-                  <input
-                    type="text"
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    placeholder="输入差旅标签"
-                    className="flex-1 border border-slate-300 rounded px-3 py-2"
-                  />
-                  <button onClick={handleAddTravelLabel} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    <Save size={16} />
-                  </button>
-                  <button onClick={() => { setEditingItem(null); setEditingValue(''); }} className="px-4 py-2 bg-slate-300 rounded">
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : canManageSettings && (
-                <button
-                  onClick={() => setEditingItem('new-label')}
-                  className="w-full p-4 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-blue-500 hover:text-blue-600 flex items-center justify-center gap-2"
-                >
-                  <Plus size={16} /> 添加差旅标签
-                </button>
-              )}
 
-              {localTravelLabels.map(label => (
-                <div key={label} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <span className="font-medium">{label}</span>
-                  {canManageSettings && (
-                    <button
-                      onClick={() => handleDeleteTravelLabel(label)}
-                      className="p-2 text-red-600 hover:bg-red-100 rounded"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              ))}
+            {/* 差旅子分类标签 */}
+            <div>
+              <h4 className="text-md font-medium text-slate-700 mb-3 flex items-center gap-2">
+                <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                差旅任务标签
+              </h4>
+              <p className="text-sm text-slate-500 mb-3">为每个差旅分类添加更精确的标签（如：技术交流、技术协议谈判等）</p>
+
+              <div className="space-y-4">
+                {/* 差旅子分类列表 */}
+                {(taskCategories['Travel'] || []).map((category) => (
+                  <div key={category} className="bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 rounded-t-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-slate-900">{category}</span>
+                        <button
+                          onClick={() => openLabelsDialog('Travel', category)}
+                          className="px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center gap-1"
+                        >
+                          <Tags size={14} />
+                          管理标签
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <CategoryLabelsDisplay taskClassCode="Travel" categoryName={category} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1245,6 +1357,109 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
           </div>
         )}
       </div>
+
+      {/* Category Labels Dialog */}
+      {showLabelsDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Tags className="text-blue-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">标签管理</h3>
+                  <p className="text-sm text-slate-500">{labelsCategoryName}</p>
+                </div>
+              </div>
+              <p className="text-slate-600 text-sm">
+                为该分类添加细粒度标签，用于更精确地描述任务类型
+              </p>
+            </div>
+
+            {/* Add Label */}
+            {canManageSettings && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  添加标签
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newLabelValue}
+                    onChange={(e) => setNewLabelValue(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newLabelValue.trim()) {
+                        handleAddLabel();
+                      }
+                    }}
+                    placeholder="输入标签名称（如：客户拜访）"
+                    className="flex-1 border border-slate-300 rounded px-3 py-2 text-sm"
+                  />
+                  <button
+                    onClick={handleAddLabel}
+                    disabled={!newLabelValue.trim()}
+                    className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    <Plus size={14} />
+                    添加
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Labels List */}
+            {isLoadingLabels ? (
+              <div className="text-center py-8 text-slate-500">
+                <RefreshCw size={24} className="animate-spin mx-auto mb-2" />
+                <p>加载中...</p>
+              </div>
+            ) : labelsList.length > 0 ? (
+              <div className="max-h-64 overflow-auto">
+                <div className="space-y-2">
+                  {labelsList.map((label, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Tag size={14} className="text-blue-600" />
+                        <span className="font-medium text-slate-900">{label}</span>
+                      </div>
+                      {canManageSettings && (
+                        <button
+                          onClick={() => handleDeleteLabel(label)}
+                          className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors"
+                          title="删除标签"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                <Tags size={32} className="mx-auto mb-2 opacity-50" />
+                <p>暂无标签</p>
+                <p className="text-sm">添加标签后可在创建任务时选择</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end mt-4 pt-4 border-t border-slate-200">
+              <button
+                onClick={closeLabelsDialog}
+                className="px-4 py-2 bg-slate-300 text-slate-700 rounded-lg hover:bg-slate-400 transition-colors flex items-center gap-2"
+              >
+                <X size={16} />
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Password Verification Dialog */}
       {showDeletePasswordPrompt && (

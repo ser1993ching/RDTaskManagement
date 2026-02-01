@@ -110,3 +110,25 @@ public class SettingsApiResponse<T>
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 }
+
+/// <summary>
+/// 分类标签管理 - 用于差旅任务子分类的细粒度标签
+/// </summary>
+public class CategoryLabelsResponse
+{
+    [JsonPropertyName("labels")]
+    public List<string> Labels { get; set; } = new();
+}
+
+public class UpdateCategoryLabelsRequest
+{
+    [JsonPropertyName("labels")]
+    public List<string> Labels { get; set; } = new();
+}
+
+public class AddCategoryLabelRequest
+{
+    [Required]
+    [JsonPropertyName("label")]
+    public string Label { get; set; } = string.Empty;
+}

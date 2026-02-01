@@ -14,16 +14,61 @@ export interface TaskClass {
   updatedAt?: string;
 }
 
-export interface TaskClassWithCategories extends TaskClass {
-  categories: string[];
+/**
+ * 分类标签数据结构
+ */
+export interface CategoryLabels {
+  taskClassCode: string;   // 任务类别代码（如 TC009）
+  categoryName: string;    // 分类名称（如 "市场配合出差"）
+  labels: string[];        // 标签列表
 }
 
-export interface TaskClassesResponse {
-  taskClasses: TaskClass[];
-  categories: Record<string, string[]>;
+export interface CategoryLabelsResponse {
+  labels: string[];
+}
+
+export interface UpdateCategoryLabelsRequest {
+  labels: string[];
 }
 
 class TaskClassService {
+  /**
+   * 获取分类标签
+   */
+  async getCategoryLabels(taskClassCode: string, categoryName: string): Promise<string[]> {
+    const encodedCategory = encodeURIComponent(categoryName);
+    const response = await apiClient.get<any>(`/api/settings/category-labels/${taskClassCode}/${encodedCategory}`);
+    return response.labels || [];
+  }
+
+  /**
+   * 更新分类标签
+   */
+  async updateCategoryLabels(taskClassCode: string, categoryName: string, labels: string[]): Promise<boolean> {
+    const encodedCategory = encodeURIComponent(categoryName);
+    const response = await apiClient.put<any>(`/api/settings/category-labels/${taskClassCode}/${encodedCategory}`, { labels });
+    return response.success || false;
+  }
+
+  /**
+   * 添加分类标签
+   */
+  async addCategoryLabel(taskClassCode: string, categoryName: string, label: string): Promise<boolean> {
+    const encodedCategory = encodeURIComponent(categoryName);
+    const response = await apiClient.post<any>(`/api/settings/category-labels/${taskClassCode}/${encodedCategory}`, { label });
+    return response.success || false;
+  }
+
+  /**
+   * 删除分类标签
+   */
+  async deleteCategoryLabel(taskClassCode: string, categoryName: string, label: string): Promise<boolean> {
+    const encodedCategory = encodeURIComponent(categoryName);
+    const encodedLabel = encodeURIComponent(label);
+    const response = await apiClient.delete<any>(`/api/settings/category-labels/${taskClassCode}/${encodedCategory}/${encodedLabel}`);
+    return response.success || false;
+  }
+
   /**
    * 获取任务分类列表
    */

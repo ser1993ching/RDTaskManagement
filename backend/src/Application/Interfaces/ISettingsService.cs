@@ -32,6 +32,12 @@ public interface ISettingsService
     Task<TaskCategoriesResponse> GetTaskCategoriesAsync();
     Task<SettingsApiResponse<object>> UpdateTaskCategoriesAsync(string code, UpdateTaskCategoriesRequest request);
 
+    // 分类标签管理（差旅任务子分类标签）
+    Task<CategoryLabelsResponse> GetCategoryLabelsAsync(string taskClassCode, string categoryName);
+    Task<SettingsApiResponse<object>> UpdateCategoryLabelsAsync(string taskClassCode, string categoryName, UpdateCategoryLabelsRequest request);
+    Task<SettingsApiResponse<object>> AddCategoryLabelAsync(string taskClassCode, string categoryName, AddCategoryLabelRequest request);
+    Task<SettingsApiResponse<object>> DeleteCategoryLabelAsync(string taskClassCode, string categoryName, string label);
+
     // 数据管理
     Task<SettingsApiResponse<object>> ResetAllDataAsync();
     Task<SettingsApiResponse<object>> RefreshTasksAsync();

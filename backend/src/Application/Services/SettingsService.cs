@@ -48,6 +48,10 @@ public class SettingsService : ISettingsService
         ["Other"] = new List<string> { "通用任务" }
     };
 
+    // 分类标签缓存（Dictionary<"taskClassCode|categoryName", List<string>>）
+    private static readonly Dictionary<string, List<string>> _categoryLabelsCache = new();
+    private static readonly object _categoryLabelsLock = new();
+
     public SettingsService(ISystemConfigRepository configRepository, ILogger<SettingsService> logger)
     {
         _configRepository = configRepository;
@@ -461,6 +465,141 @@ public class SettingsService : ISettingsService
 
     #endregion
 
+    #region 分类标签管理（差旅任务子分类标签）
+
+    /// <summary>
+    /// 获取分类标签（带缓存）
+    /// </summary>
+    public async Task<CategoryLabelsResponse> GetCategoryLabelsAsync(string taskClassCode, string categoryName)
+    {
+        var cacheKey = $"{taskClassCode}|{categoryName}";
+
+        // 先从缓存获取
+        lock (_categoryLabelsLock)
+        {
+            if (_categoryLabelsCache.TryGetValue(cacheKey, out var cached) && cached is List<string> cachedList)
+            {
+                return new CategoryLabelsResponse { Labels = cachedList };
+            }
+        }
+
+        // 从数据库获取
+        var allLabels = await GetDictConfigAsync<string>("CategoryLabels");
+        var labels = new List<string>();
+
+        if (allLabels.TryGetValue(cacheKey, out var storedLabels))
+        {
+            labels = storedLabels;
+        }
+
+        // 更新缓存
+        lock (_categoryLabelsLock)
+        {
+            _categoryLabelsCache[cacheKey] = labels;
+        }
+
+        return new CategoryLabelsResponse { Labels = labels };
+    }
+
+    /// <summary>
+    /// 更新分类标签
+    /// </summary>
+    public async Task<SettingsApiResponse<object>> UpdateCategoryLabelsAsync(string taskClassCode, string categoryName, UpdateCategoryLabelsRequest request)
+    {
+        var cacheKey = $"{taskClassCode}|{categoryName}";
+        var allLabels = await GetDictConfigAsync<string>("CategoryLabels");
+
+        allLabels[cacheKey] = request.Labels;
+
+        await SaveConfigAsync("CategoryLabels", "All", allLabels);
+
+        // 更新缓存
+        lock (_categoryLabelsLock)
+        {
+            _categoryLabelsCache[cacheKey] = request.Labels;
+        }
+
+        return new SettingsApiResponse<object>
+        {
+            Success = true,
+            Message = "标签更新成功"
+        };
+    }
+
+    /// <summary>
+    /// 添加分类标签
+    /// </summary>
+    public async Task<SettingsApiResponse<object>> AddCategoryLabelAsync(string taskClassCode, string categoryName, AddCategoryLabelRequest request)
+    {
+        var cacheKey = $"{taskClassCode}|{categoryName}";
+        var allLabels = await GetDictConfigAsync<string>("CategoryLabels");
+
+        if (!allLabels.TryGetValue(cacheKey, out var labels))
+        {
+            labels = new List<string>();
+        }
+
+        if (labels.Contains(request.Label))
+        {
+            return new SettingsApiResponse<object>
+            {
+                Success = false,
+                Error = "标签已存在"
+            };
+        }
+
+        labels.Add(request.Label);
+        allLabels[cacheKey] = labels;
+
+        await SaveConfigAsync("CategoryLabels", "All", allLabels);
+
+        // 更新缓存
+        lock (_categoryLabelsLock)
+        {
+            _categoryLabelsCache[cacheKey] = labels;
+        }
+
+        return new SettingsApiResponse<object>
+        {
+            Success = true,
+            Message = "标签添加成功"
+        };
+    }
+
+    /// <summary>
+    /// 删除分类标签
+    /// </summary>
+    public async Task<SettingsApiResponse<object>> DeleteCategoryLabelAsync(string taskClassCode, string categoryName, string label)
+    {
+        var cacheKey = $"{taskClassCode}|{categoryName}";
+        var allLabels = await GetDictConfigAsync<string>("CategoryLabels");
+
+        if (!allLabels.TryGetValue(cacheKey, out var labels) || !labels.Remove(label))
+        {
+            return new SettingsApiResponse<object>
+            {
+                Success = false,
+                Error = "标签不存在"
+            };
+        }
+
+        await SaveConfigAsync("CategoryLabels", "All", allLabels);
+
+        // 更新缓存
+        lock (_categoryLabelsLock)
+        {
+            _categoryLabelsCache[cacheKey] = labels;
+        }
+
+        return new SettingsApiResponse<object>
+        {
+            Success = true,
+            Message = "标签删除成功"
+        };
+    }
+
+    #endregion
+
     #region 数据管理
 
     public async Task<SettingsApiResponse<object>> ResetAllDataAsync()
@@ -480,10 +619,17 @@ public class SettingsService : ISettingsService
         // 清除用户头像
         await SaveConfigAsync("UserAvatars", "UserAvatars", new Dictionary<string, List<string>>());
 
+        // 清除分类标签
+        await SaveConfigAsync("CategoryLabels", "All", new Dictionary<string, List<string>>());
+
         // 清除缓存
         lock (_cacheLock)
         {
             _memoryCache.Clear();
+        }
+        lock (_categoryLabelsLock)
+        {
+            _categoryLabelsCache.Clear();
         }
 
         return new SettingsApiResponse<object>

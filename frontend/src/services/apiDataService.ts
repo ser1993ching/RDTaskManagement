@@ -44,6 +44,7 @@ import {
   authService,
   taskPoolService,
 } from './api';
+import type { TaskCategoryDetail } from '../types';
 import type {
   User as UserDto,
   Project as ProjectDto,
@@ -1304,6 +1305,58 @@ class ApiDataService {
       return await this.saveTaskCategories(taskClassCode, newOrder);
     } catch (error) {
       console.error('重新排序任务分类失败:', error);
+      return false;
+    }
+  }
+
+  // ============================================
+  // 3.12 分类标签管理（差旅任务子分类标签）
+  // ============================================
+
+  /**
+   * 获取分类标签
+   */
+  async getCategoryLabels(taskClassCode: string, categoryName: string): Promise<string[]> {
+    try {
+      return await taskClassService.getCategoryLabels(taskClassCode, categoryName);
+    } catch (error) {
+      console.error('获取分类标签失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 更新分类标签
+   */
+  async updateCategoryLabels(taskClassCode: string, categoryName: string, labels: string[]): Promise<boolean> {
+    try {
+      return await taskClassService.updateCategoryLabels(taskClassCode, categoryName, labels);
+    } catch (error) {
+      console.error('更新分类标签失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 添加分类标签
+   */
+  async addCategoryLabel(taskClassCode: string, categoryName: string, label: string): Promise<boolean> {
+    try {
+      return await taskClassService.addCategoryLabel(taskClassCode, categoryName, label);
+    } catch (error) {
+      console.error('添加分类标签失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 删除分类标签
+   */
+  async deleteCategoryLabel(taskClassCode: string, categoryName: string, label: string): Promise<boolean> {
+    try {
+      return await taskClassService.deleteCategoryLabel(taskClassCode, categoryName, label);
+    } catch (error) {
+      console.error('删除分类标签失败:', error);
       return false;
     }
   }

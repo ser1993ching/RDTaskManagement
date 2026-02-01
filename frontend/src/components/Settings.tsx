@@ -27,6 +27,7 @@ import {
   useCapacityLevels,
   useTravelLabels,
   useTaskClasses,
+  useTravelCategoryLabels,
   useConfig
 } from '../context/ConfigContext';
 
@@ -102,6 +103,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
   const { capacityLevels, refreshCapacityLevels } = useCapacityLevels();
   const { travelLabels, refreshTravelLabels } = useTravelLabels();
   const { taskClasses, refreshTaskClasses } = useTaskClasses();
+  const { travelCategoryLabels, refreshTravelCategoryLabels } = useTravelCategoryLabels();
 
   const [activeTab, setActiveTab] = useState<TabType>('task-classes');
   const [localTaskCategories, setLocalTaskCategories] = useState<Record<string, string[]>>({});
@@ -137,6 +139,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
   const [labelsList, setLabelsList] = useState<string[]>([]);
   const [newLabelValue, setNewLabelValue] = useState('');
   const [isLoadingLabels, setIsLoadingLabels] = useState(false);
+  const [labelsDialogRefreshTrigger, setLabelsDialogRefreshTrigger] = useState(0);
 
   // Check if user is Admin or Leader (使用后端返回的中文值)
   const canManageSettings = currentUser?.systemRole === '管理员' || currentUser?.systemRole === '班组长';
@@ -166,6 +169,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
   // 刷新配置数据
   const handleConfigChange = async () => {
     await refreshConfig();
+    await refreshTravelCategoryLabels();
     onRefresh?.();
   };
 
@@ -599,12 +603,14 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
     }
   };
 
-  const closeLabelsDialog = () => {
+  const closeLabelsDialog = async () => {
     setShowLabelsDialog(false);
     setLabelsTaskClassCode('');
     setLabelsCategoryName('');
     setLabelsList([]);
     setNewLabelValue('');
+    // 触发CategoryLabelsDisplay组件刷新
+    setLabelsDialogRefreshTrigger(prev => prev + 1);
   };
 
   const handleAddLabel = async () => {
@@ -614,6 +620,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
     if (success) {
       setLabelsList([...labelsList, newLabelValue.trim()]);
       setNewLabelValue('');
+      await refreshTravelCategoryLabels();  // 刷新全局状态
       showMessage('success', '标签添加成功');
     } else {
       showMessage('error', '标签添加失败，可能已存在');
@@ -626,6 +633,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
     const success = await apiDataService.deleteCategoryLabel(labelsTaskClassCode, labelsCategoryName, label);
     if (success) {
       setLabelsList(labelsList.filter(l => l !== label));
+      await refreshTravelCategoryLabels();  // 刷新全局状态
       showMessage('success', '标签删除成功');
     } else {
       showMessage('error', '标签删除失败');
@@ -1229,7 +1237,11 @@ export const Settings: React.FC<SettingsProps> = ({ currentUser, onRefresh }) =>
                       </div>
                     </div>
                     <div className="p-4">
-                      <CategoryLabelsDisplay taskClassCode="Travel" categoryName={category} />
+                      <CategoryLabelsDisplay
+                        key={`${category}-${labelsDialogRefreshTrigger}`}
+                        taskClassCode="Travel"
+                        categoryName={category}
+                      />
                     </div>
                   </div>
                 ))}

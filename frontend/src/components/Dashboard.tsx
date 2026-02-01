@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { User, Task, Project, TaskStatus, TaskClass, ProjectCategory } from '../types';
 import { apiDataService } from '../services/apiDataService';
 import { cn } from '@/utils/classnames';
@@ -16,6 +16,43 @@ interface DashboardProps {
   tasks: Task[];
   onTaskClick?: (taskName: string, taskClassId: string) => void;
 }
+
+// 骨架屏组件 - 用于显示加载状态
+const SkeletonCard: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
+    <div className="p-6 animate-pulse">
+      <div className="flex justify-between items-start">
+        <div className="space-y-3">
+          <div className="h-4 bg-slate-200 rounded w-24"></div>
+          <div className="h-8 bg-slate-200 rounded w-20"></div>
+        </div>
+        <div className="w-10 h-10 bg-slate-200 rounded-lg"></div>
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonChart: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 ${className}`}>
+    <div className="animate-pulse">
+      <div className="h-6 bg-slate-200 rounded w-32 mb-6"></div>
+      <div className="h-72 bg-slate-200 rounded"></div>
+    </div>
+  </div>
+);
+
+const SkeletonTable: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
+    <div className="p-4 animate-pulse">
+      <div className="h-6 bg-slate-200 rounded w-40 mb-4"></div>
+      <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="h-10 bg-slate-100 rounded"></div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -458,6 +495,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
   const [period, setPeriod] = useState<Period>('year');
   const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'nuclear' | 'conventional' | 'research' | 'renovation' | 'other'>('all');
 
+  // 使用 mounted ID 来区分不同的挂载周期
+  const [mountId] = useState(() => Math.random().toString(36).substr(2, 9));
+
+  // 延迟计算状态 - 显示骨架屏
+  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(true);
+
+  // 组件挂载时延迟计算，让导航动画优先完成
+  useEffect(() => {
+    // 使用双重 requestAnimationFrame 确保导航动画完成
+    let frameId1: number;
+    let frameId2: number;
+    let cancelled = false;
+
+    const onAnimationFrames = () => {
+      if (cancelled) return;
+      frameId1 = requestAnimationFrame(() => {
+        if (cancelled) return;
+        frameId2 = requestAnimationFrame(() => {
+          if (cancelled) return;
+          setShouldShowSkeleton(false);
+        });
+      });
+    };
+
+    // 延迟一小段时间，确保导航高亮先渲染
+    const timeoutId = setTimeout(onAnimationFrames, 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      cancelAnimationFrame(frameId1);
+      cancelAnimationFrame(frameId2);
+    };
+  }, [mountId, tasks, period, projectTypeFilter]);
+
   // Get time-bounded tasks
   const getFilteredTasks = useMemo(() => {
     const now = new Date();
@@ -602,15 +674,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     }
   }, [getFilteredTasks, period]);
 
-  // Statistics Logic
-  const stats = useMemo(() => {
-    const filteredVisibleTasks = getFilteredTasks.filter(t =>
+  // 过滤用户可见任务 - 拆分独立计算
+  const filteredVisibleTasks = useMemo(() => {
+    return getFilteredTasks.filter(t =>
       currentUser.systemRole === '管理员' || currentUser.systemRole === '班组长'
         ? true
         : t.assigneeId === currentUser.userId
     );
+  }, [getFilteredTasks, currentUser]);
 
-    // KPI counts
+  // KPI 统计 - 拆分独立计算
+  const kpiStats = useMemo(() => {
     const pending = filteredVisibleTasks.filter(t => t.status === TaskStatus.NOT_STARTED).length;
     const inProgress = filteredVisibleTasks.filter(t =>
       t.status === TaskStatus.DRAFTING ||
@@ -619,16 +693,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       t.status === TaskStatus.APPROVING
     ).length;
     const completed = filteredVisibleTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
-    const total = filteredVisibleTasks.length;
+    return { pending, inProgress, completed, total: filteredVisibleTasks.length };
+  }, [filteredVisibleTasks]);
 
-    // Distribution by TaskClass (excluding TC009 travel and TC007 meeting for main stats)
-    const typeDist = taskClasses.map(tc => ({
+  // 任务类型分布 - 拆分独立计算
+  const typeDist = useMemo(() => {
+    return taskClasses.map(tc => ({
       name: tc.name,
       value: filteredVisibleTasks.filter(t => t.taskClassId === tc.id).length
     })).filter(d => d.value > 0);
+  }, [filteredVisibleTasks, taskClasses]);
 
-    // Workload by Person (Leader/Admin only, exclude admin user, only active personnel)
-    const workloadData = users
+  // 团队工作量统计 - 拆分独立计算
+  const workloadData = useMemo(() => {
+    return users
       .filter(u => u.systemRole !== 'ADMIN' && u.name !== '系统管理员' && u.status === '在岗')
       .map(u => {
         const userTasks = filteredVisibleTasks.filter(t => t.assigneeId === u.userId);
@@ -643,9 +721,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           totalTasks: userTasks.length
         };
       }).sort((a, b) => b.pendingWorkload - a.pendingWorkload).slice(0, 10);
+  }, [filteredVisibleTasks, users]);
 
-    // Category completion rate
-    const categoryCompletion = taskClasses.map(tc => {
+  // 分类完成率 - 拆分独立计算
+  const categoryCompletion = useMemo(() => {
+    return taskClasses.map(tc => {
       const categoryTasks = filteredVisibleTasks.filter(t => t.taskClassId === tc.id);
       const completedCategory = categoryTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
       return {
@@ -655,50 +735,52 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
         completionRate: categoryTasks.length > 0 ? Math.round((completedCategory / categoryTasks.length) * 100) : 0
       };
     }).filter(c => c.total > 0).sort((a, b) => b.completionRate - a.completionRate);
+  }, [filteredVisibleTasks, taskClasses]);
 
-    // Project attribute stats
-    const projectStats = {
-      wonMarket: projects.filter(p => p.isWon === true && p.category === ProjectCategory.MARKET && !p.isDeleted).length,
-      commissioned: projects.filter(p => p.isCommissioned === true && p.category === ProjectCategory.EXECUTION && !p.isDeleted).length,
-      keyProjects: projects.filter(p => p.isKeyProject === true && !p.isDeleted).length,
-      total: projects.filter(p => !p.isDeleted).length
-    };
+  // 项目属性统计 - 拆分独立计算
+  const projectStats = useMemo(() => ({
+    wonMarket: projects.filter(p => p.isWon === true && p.category === ProjectCategory.MARKET && !p.isDeleted).length,
+    commissioned: projects.filter(p => p.isCommissioned === true && p.category === ProjectCategory.EXECUTION && !p.isDeleted).length,
+    keyProjects: projects.filter(p => p.isKeyProject === true && !p.isDeleted).length,
+    total: projects.filter(p => !p.isDeleted).length
+  }), [projects]);
 
-    // Special task stats (travel and meeting)
+  // 特殊任务统计（差旅和会议）- 拆分独立计算
+  const specialStats = useMemo(() => {
     const travelTasks = filteredVisibleTasks.filter(t => t.taskClassId === 'TC009');
     const meetingTasks = filteredVisibleTasks.filter(t => t.taskClassId === 'TC007');
-    const specialStats = {
+    return {
       travelDays: travelTasks.reduce((sum, t) => sum + (t.travelDuration || 0), 0),
       travelCount: travelTasks.length,
       meetingHours: meetingTasks.reduce((sum, t) => sum + (t.meetingDuration || 0), 0),
       meetingCount: meetingTasks.length
     };
+  }, [filteredVisibleTasks]);
 
-    // Overdue tasks
+  // 逾期任务 - 拆分独立计算
+  const overdueTasks = useMemo(() => {
     const now = new Date();
-    const overdueTasks = filteredVisibleTasks.filter(t => {
-      if (!t.dueDate || t.status === TaskStatus.COMPLETED) return false;
-      const dueDate = new Date(t.dueDate);
-      return dueDate < now;
-    });
+    return filteredVisibleTasks
+      .filter(t => {
+        if (!t.dueDate || t.status === TaskStatus.COMPLETED) return false;
+        const dueDate = new Date(t.dueDate);
+        return dueDate < now;
+      })
+      .slice(0, 5);
+  }, [filteredVisibleTasks]);
 
-    // 1. 项目任务数量分配（横向柱状图数据）
-    const projectTaskDist = projects
+  // 项目任务分配 - 拆分独立计算
+  const projectTaskDist = useMemo(() => {
+    return projects
       .filter(p => {
         if (p.isDeleted) return false;
         switch (projectTypeFilter) {
-          case 'nuclear':
-            return p.category === ProjectCategory.NUCLEAR;
-          case 'conventional':
-            return p.category === ProjectCategory.EXECUTION;
-          case 'research':
-            return p.category === ProjectCategory.RESEARCH;
-          case 'renovation':
-            return p.category === ProjectCategory.RENOVATION;
-          case 'other':
-            return p.category === ProjectCategory.OTHER;
-          default:
-            return true;
+          case 'nuclear': return p.category === ProjectCategory.NUCLEAR;
+          case 'conventional': return p.category === ProjectCategory.EXECUTION;
+          case 'research': return p.category === ProjectCategory.RESEARCH;
+          case 'renovation': return p.category === ProjectCategory.RENOVATION;
+          case 'other': return p.category === ProjectCategory.OTHER;
+          default: return true;
         }
       })
       .map(p => ({
@@ -708,40 +790,50 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
       }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value);
+  }, [projects, filteredVisibleTasks, projectTypeFilter]);
 
-    // 2. 容量等级任务数量分配（横向柱状图数据）
-    const capacityLevelCount: Record<string, number> = {};
+  // 容量等级分配 - 拆分独立计算
+  const capacityLevelData = useMemo(() => {
+    const countMap: Record<string, number> = {};
     filteredVisibleTasks.forEach(t => {
       const level = t.capacityLevel || '未分类';
-      capacityLevelCount[level] = (capacityLevelCount[level] || 0) + 1;
+      countMap[level] = (countMap[level] || 0) + 1;
     });
-    const capacityLevelData = Object.entries(capacityLevelCount)
+    return Object.entries(countMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
+  }, [filteredVisibleTasks]);
 
-    // 3. 核电项目与非核电项目工时对比
-    const nuclearWorkload = filteredVisibleTasks.filter(t => {
-      const proj = projects.find(p => p.id === t.projectId);
-      return proj?.category === ProjectCategory.NUCLEAR;
-    }).reduce((sum, t) => sum + (t.workload || 0), 0);
+  // 核电/非核电工时对比 - 拆分独立计算
+  const nuclearExecutionDist = useMemo(() => {
+    const nuclearWorkload = filteredVisibleTasks
+      .filter(t => {
+        const proj = projects.find(p => p.id === t.projectId);
+        return proj?.category === ProjectCategory.NUCLEAR;
+      })
+      .reduce((sum, t) => sum + (t.workload || 0), 0);
 
-    const nonNuclearWorkload = filteredVisibleTasks.filter(t => {
-      const proj = projects.find(p => p.id === t.projectId);
-      return proj?.category !== ProjectCategory.NUCLEAR;
-    }).reduce((sum, t) => sum + (t.workload || 0), 0);
+    const nonNuclearWorkload = filteredVisibleTasks
+      .filter(t => {
+        const proj = projects.find(p => p.id === t.projectId);
+        return proj?.category !== ProjectCategory.NUCLEAR;
+      })
+      .reduce((sum, t) => sum + (t.workload || 0), 0);
 
-    const nuclearExecutionDist = [
+    return [
       { name: '核电项目', value: Math.round(nuclearWorkload) },
       { name: '非核电项目', value: Math.round(nonNuclearWorkload) }
     ];
+  }, [filteredVisibleTasks, projects]);
 
-    // 4. 差旅任务月度趋势
-    const travelTrend = Object.entries(
+  // 差旅任务趋势 - 拆分独立计算
+  const travelTrend = useMemo(() => {
+    return Object.entries(
       filteredVisibleTasks
         .filter(t => t.taskClassId === 'TC009')
         .reduce((acc, t) => {
           if (t.dueDate) {
-            const month = t.dueDate.substring(0, 7); // YYYY-MM
+            const month = t.dueDate.substring(0, 7);
             acc[month] = (acc[month] || 0) + 1;
           }
           return acc;
@@ -749,14 +841,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     )
       .map(([month, count]) => ({ month, count }))
       .sort((a, b) => a.month.localeCompare(b.month));
+  }, [filteredVisibleTasks]);
 
-    // 5. 会议时长月度趋势
-    const meetingTrend = Object.entries(
+  // 会议时长趋势 - 拆分独立计算
+  const meetingTrend = useMemo(() => {
+    return Object.entries(
       filteredVisibleTasks
         .filter(t => t.taskClassId === 'TC007')
         .reduce((acc, t) => {
           if (t.dueDate) {
-            const month = t.dueDate.substring(0, 7); // YYYY-MM
+            const month = t.dueDate.substring(0, 7);
             acc[month] = (acc[month] || 0) + (t.meetingDuration || 0);
           }
           return acc;
@@ -764,33 +858,64 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
     )
       .map(([month, hours]) => ({ month, hours }))
       .sort((a, b) => a.month.localeCompare(b.month));
+  }, [filteredVisibleTasks]);
 
-    return {
-      pending,
-      inProgress,
-      completed,
-      total,
-      typeDist,
-      workloadData,
-      categoryCompletion,
-      projectStats,
-      specialStats,
-      overdueCount: overdueTasks.length,
-      overdueTasks: overdueTasks.slice(0, 5),
-      isDailyTrend,
-      projectTaskDist,
-      capacityLevelData,
-      nuclearExecutionDist,
-      travelTrend,
-      meetingTrend,
-      projectTypeFilter
-    };
-  }, [getFilteredTasks, currentUser, users, projects, projectTypeFilter, taskClasses]);
+  // 汇总 stats 对象（保持向后兼容）
+  const stats = useMemo(() => ({
+    ...kpiStats,
+    typeDist,
+    workloadData,
+    categoryCompletion,
+    projectStats,
+    specialStats,
+    overdueCount: overdueTasks.length,
+    overdueTasks,
+    isDailyTrend,
+    projectTaskDist,
+    capacityLevelData,
+    nuclearExecutionDist,
+    travelTrend,
+    meetingTrend,
+    projectTypeFilter
+  }), [kpiStats, typeDist, workloadData, categoryCompletion, projectStats, specialStats, overdueTasks, isDailyTrend, projectTaskDist, capacityLevelData, nuclearExecutionDist, travelTrend, meetingTrend, projectTypeFilter]);
 
   // Filter force assessment tasks
   const forceAssessmentTasks = useMemo(() => {
     return tasks.filter(t => t.isForceAssessment === true && !t.isDeleted);
   }, [tasks]);
+
+  // 使用骨架屏延迟渲染，让导航高亮优先完成
+  // shouldShowSkeleton 为 true 时显示骨架屏，false 时显示真实内容
+  if (shouldShowSkeleton) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div className="h-8 w-48 bg-slate-200 rounded animate-pulse"></div>
+          <div className="h-6 w-64 bg-slate-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* KPI Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonChart />
+          <SkeletonChart />
+        </div>
+
+        {/* More Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonChart />
+          <SkeletonChart />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -809,7 +934,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-500">待处理任务</p>
-              <h3 className="text-3xl font-bold text-slate-900 mt-2">{stats.pending}</h3>
+              <h3 className="text-3xl font-bold text-slate-900 mt-2">{kpiStats.pending}</h3>
             </div>
             <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg">
               <Clock size={20} />
@@ -820,7 +945,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-500">进行中</p>
-              <h3 className="text-3xl font-bold text-blue-600 mt-2">{stats.inProgress}</h3>
+              <h3 className="text-3xl font-bold text-blue-600 mt-2">{kpiStats.inProgress}</h3>
             </div>
             <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
               <AlertCircle size={20} />
@@ -831,7 +956,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-500">已完成</p>
-              <h3 className="text-3xl font-bold text-green-600 mt-2">{stats.completed}</h3>
+              <h3 className="text-3xl font-bold text-green-600 mt-2">{kpiStats.completed}</h3>
             </div>
             <div className="p-2 bg-green-100 text-green-600 rounded-lg">
               <CheckCircle2 size={20} />
@@ -842,32 +967,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-500">总任务数</p>
-              <h3 className="text-3xl font-bold text-slate-900 mt-2">{stats.total}</h3>
+              <h3 className="text-3xl font-bold text-slate-900 mt-2">{kpiStats.total}</h3>
             </div>
           </div>
         </div>
         <div className={cn(
           'p-6 rounded-xl shadow-sm border',
-          stats.overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'
+          overdueTasks.length > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'
         )}>
           <div className="flex justify-between items-start">
             <div>
               <p className={cn(
                 'text-sm font-medium',
-                stats.overdueCount > 0 ? 'text-red-600' : 'text-gray-500'
+                overdueTasks.length > 0 ? 'text-red-600' : 'text-gray-500'
               )}>
                 逾期任务
               </p>
               <h3 className={cn(
                 'text-3xl font-bold mt-2',
-                stats.overdueCount > 0 ? 'text-red-600' : 'text-gray-900'
+                overdueTasks.length > 0 ? 'text-red-600' : 'text-gray-900'
               )}>
-                {stats.overdueCount}
+                {overdueTasks.length}
               </h3>
             </div>
             <div className={cn(
               'p-2 rounded-lg',
-              stats.overdueCount > 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+              overdueTasks.length > 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
             )}>
               <AlertCircle size={20} />
             </div>
@@ -954,9 +1079,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
             团队工作量对比
           </h3>
           <div className="overflow-y-auto max-h-[360px]">
-            <div style={{ height: `${Math.max(360, stats.workloadData.length * 40)}px`, minHeight: '360px' }}>
+            <div style={{ height: `${Math.max(360, workloadData.length * 40)}px`, minHeight: '360px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.workloadData} layout="vertical" margin={{ left: 50, right: 30, top: 10, bottom: 10 }}>
+                <BarChart data={workloadData} layout="vertical" margin={{ left: 50, right: 30, top: 10, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" tick={{ fontSize: 12 }} />
                   <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
@@ -979,7 +1104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           <h3 className="text-lg font-semibold mb-6">分类完成率</h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.categoryCompletion} layout="vertical" margin={{ left: 80 }}>
+              <BarChart data={categoryCompletion} layout="vertical" margin={{ left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} />
                 <YAxis dataKey="name" type="category" width={75} tick={{ fontSize: 11 }} />
@@ -997,7 +1122,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={stats.typeDist}
+                  data={typeDist}
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
@@ -1006,7 +1131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
                   dataKey="value"
                   label={({ name, percent, value }) => `${name} ${(percent * 100).toFixed(0)}% (${value})`}
                 >
-                  {stats.typeDist.map((entry, index) => (
+                  {typeDist.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -1026,19 +1151,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
               <span className="text-blue-700">市场中标项目</span>
-              <span className="text-xl font-bold text-blue-900">{stats.projectStats.wonMarket}</span>
+              <span className="text-xl font-bold text-blue-900">{projectStats.wonMarket}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
               <span className="text-green-700">已投运项目</span>
-              <span className="text-xl font-bold text-green-900">{stats.projectStats.commissioned}</span>
+              <span className="text-xl font-bold text-green-900">{projectStats.commissioned}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
               <span className="text-purple-700">重点项目</span>
-              <span className="text-xl font-bold text-purple-900">{stats.projectStats.keyProjects}</span>
+              <span className="text-xl font-bold text-purple-900">{projectStats.keyProjects}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-700">项目总数</span>
-              <span className="text-xl font-bold text-gray-900">{stats.projectStats.total}</span>
+              <span className="text-xl font-bold text-gray-900">{projectStats.total}</span>
             </div>
           </div>
         </div>
@@ -1051,18 +1176,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           </h3>
           <div className="space-y-4">
             <div className="text-center p-6 bg-blue-50 rounded-xl">
-              <div className="text-4xl font-bold text-blue-600">{stats.specialStats.travelDays}</div>
+              <div className="text-4xl font-bold text-blue-600">{specialStats.travelDays}</div>
               <div className="text-blue-700 mt-1">出差总天数</div>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">差旅任务数</span>
-              <span className="font-semibold text-gray-900">{stats.specialStats.travelCount}</span>
+              <span className="font-semibold text-gray-900">{specialStats.travelCount}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">平均天数/任务</span>
               <span className="font-semibold text-gray-900">
-                {stats.specialStats.travelCount > 0
-                  ? (stats.specialStats.travelDays / stats.specialStats.travelCount).toFixed(1)
+                {specialStats.travelCount > 0
+                  ? (specialStats.travelDays / specialStats.travelCount).toFixed(1)
                   : '0'}
               </span>
             </div>
@@ -1077,18 +1202,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           </h3>
           <div className="space-y-4">
             <div className="text-center p-6 bg-purple-50 rounded-xl">
-              <div className="text-4xl font-bold text-purple-600">{stats.specialStats.meetingHours}</div>
+              <div className="text-4xl font-bold text-purple-600">{specialStats.meetingHours}</div>
               <div className="text-purple-700 mt-1">会议总时长(小时)</div>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">会议任务数</span>
-              <span className="font-semibold text-gray-900">{stats.specialStats.meetingCount}</span>
+              <span className="font-semibold text-gray-900">{specialStats.meetingCount}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">平均时长/会议</span>
               <span className="font-semibold text-gray-900">
-                {stats.specialStats.meetingCount > 0
-                  ? (stats.specialStats.meetingHours / stats.specialStats.meetingCount).toFixed(1)
+                {specialStats.meetingCount > 0
+                  ? (specialStats.meetingHours / specialStats.meetingCount).toFixed(1)
                   : '0'}
               </span>
             </div>
@@ -1106,7 +1231,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
               <button
                 onClick={() => setProjectTypeFilter('all')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  stats.projectTypeFilter === 'all'
+                  projectTypeFilter === 'all'
                     ? 'bg-white text-blue-600 shadow-sm font-medium'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -1116,7 +1241,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
               <button
                 onClick={() => setProjectTypeFilter('nuclear')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  stats.projectTypeFilter === 'nuclear'
+                  projectTypeFilter === 'nuclear'
                     ? 'bg-white text-blue-600 shadow-sm font-medium'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -1126,7 +1251,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
               <button
                 onClick={() => setProjectTypeFilter('conventional')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  stats.projectTypeFilter === 'conventional'
+                  projectTypeFilter === 'conventional'
                     ? 'bg-white text-blue-600 shadow-sm font-medium'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -1136,7 +1261,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
               <button
                 onClick={() => setProjectTypeFilter('research')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  stats.projectTypeFilter === 'research'
+                  projectTypeFilter === 'research'
                     ? 'bg-white text-blue-600 shadow-sm font-medium'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -1146,7 +1271,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
               <button
                 onClick={() => setProjectTypeFilter('renovation')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  stats.projectTypeFilter === 'renovation'
+                  projectTypeFilter === 'renovation'
                     ? 'bg-white text-blue-600 shadow-sm font-medium'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -1156,7 +1281,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
               <button
                 onClick={() => setProjectTypeFilter('other')}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  stats.projectTypeFilter === 'other'
+                  projectTypeFilter === 'other'
                     ? 'bg-white text-blue-600 shadow-sm font-medium'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -1166,9 +1291,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
             </div>
           </div>
           <div className="overflow-y-auto max-h-[360px]">
-            <div style={{ height: `${Math.max(360, stats.projectTaskDist.length * 40)}px`, minHeight: '360px' }}>
+            <div style={{ height: `${Math.max(360, projectTaskDist.length * 40)}px`, minHeight: '360px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.projectTaskDist} layout="vertical" margin={{ left: 110, right: 30, top: 10, bottom: 10 }}>
+                <BarChart data={projectTaskDist} layout="vertical" margin={{ left: 110, right: 30, top: 10, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" tick={{ fontSize: 12 }} />
                   <YAxis dataKey="name" type="category" width={95} tick={{ fontSize: 11 }} />
@@ -1184,9 +1309,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-semibold mb-6">容量等级任务数量分配</h3>
           <div className="overflow-y-auto max-h-[360px]">
-            <div style={{ height: `${Math.max(360, stats.capacityLevelData.length * 40)}px`, minHeight: '360px' }}>
+            <div style={{ height: `${Math.max(360, capacityLevelData.length * 40)}px`, minHeight: '360px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.capacityLevelData} layout="vertical" margin={{ left: 90, right: 30, top: 10, bottom: 10 }}>
+                <BarChart data={capacityLevelData} layout="vertical" margin={{ left: 90, right: 30, top: 10, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" tick={{ fontSize: 12 }} />
                   <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
@@ -1209,7 +1334,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           </h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.travelTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart data={travelTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#6b7280" />
                 <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" />
@@ -1236,7 +1361,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           </h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.meetingTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart data={meetingTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#6b7280" />
                 <YAxis tick={{ fontSize: 12 }} stroke="#6b7280" />

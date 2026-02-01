@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- 背景圆形 -->
+  <circle cx="50" cy="50" r="48" fill="#1e40af" />
+
+  <!-- 汽轮发电机叶片（旋转的涡轮） -->
+  <g transform="translate(50, 50)">
+    <!-- 叶片 1 -->
+    <path d="M0,-35 L8,-10 L0,-5 L-8,-10 Z" fill="#93c5fd" />
+    <!-- 叶片 2 -->
+    <path d="M30,17 L10,8 L5,0 L10,-8 Z" fill="#93c5fd" transform="rotate(72)" />
+    <!-- 叶片 3 -->
+    <path d="M-18,28 L-8,10 L0,5 L8,10 Z" fill="#93c5fd" transform="rotate(144)" />
+    <!-- 叶片 4 -->
+    <path d="M-18,-28 L-8,-10 L0,-5 L8,-10 Z" fill="#93c5fd" transform="rotate(216)" />
+    <!-- 叶片 5 -->
+    <path d="M30,-17 L10,-8 L5,0 L10,8 Z" fill="#93c5fd" transform="rotate(288)" />
+
+    <!-- 中心圆 -->
+    <circle cx="0" cy="0" r="12" fill="#1e3a8a" />
+    <circle cx="0" cy="0" r="8" fill="#60a5fa" />
+
+    <!-- 外圈装饰 -->
+    <circle cx="0" cy="0" r="38" fill="none" stroke="#60a5fa" stroke-width="2" opacity="0.5" />
+  </g>
+
+  <!-- 任务清单图标（叠加在右侧） -->
+  <g transform="translate(62, 62)">
+    <!-- 纸张背景 -->
+    <rect x="-8" y="-10" width="16" height="20" rx="2" fill="#f8fafc" />
+    <!-- 线条 -->
+    <line x1="-4" y1="-5" x2="4" y2="-5" stroke="#1e40af" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="-4" y1="0" x2="4" y2="0" stroke="#1e40af" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="-4" y1="5" x2="2" y2="5" stroke="#1e40af" stroke-width="1.5" stroke-linecap="round" />
+    <!-- 对勾 -->
+    <path d="M3,-2 L5,0 L7,-2" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <!-- 电力闪电图标（左侧） -->
+  <g transform="translate(25, 65)">
+    <polygon points="6,0 0,6 4,6 2,12 10,4 6,4" fill="#fbbf24" />
+  </g>
+</svg>

@@ -438,6 +438,15 @@ class ApiDataService {
   }
 
   /**
+   * 更新任务（包括工作量分配）
+   */
+  async updateTask(taskId: string, data: any): Promise<any> {
+    const result = await taskService.updateTask(taskId, data);
+    clearCache('tasks___');
+    return result;
+  }
+
+  /**
    * 完成任务所有角色
    */
   async completeAllRoles(taskId: string): Promise<boolean> {
@@ -840,6 +849,37 @@ class ApiDataService {
     } catch (error) {
       console.error('删除差旅标签失败:', error);
       return false;
+    }
+  }
+
+  // ========== 差旅分类标签管理（批量获取） ==========
+
+  /**
+   * 批量获取差旅分类标签
+   * @returns Record<categoryName, labels[]>
+   */
+  async getTravelCategoryLabels(): Promise<Record<string, string[]>> {
+    try {
+      // 1. 获取差旅子分类
+      const categories = await this.getTaskCategories();
+      const travelCategories = categories['travel'] || categories['Travel'] || [];
+
+      // 2. 并行获取每个分类的标签
+      const labelPromises = travelCategories.map(async (category) => {
+        const labels = await this.getCategoryLabels('Travel', category);
+        return { category, labels };
+      });
+
+      // 3. 组装为 Record
+      const results = await Promise.all(labelPromises);
+      const labelMap: Record<string, string[]> = {};
+      for (const { category, labels } of results) {
+        labelMap[category] = labels;
+      }
+      return labelMap;
+    } catch (error) {
+      console.error('获取差旅分类标签失败:', error);
+      return {};
     }
   }
 

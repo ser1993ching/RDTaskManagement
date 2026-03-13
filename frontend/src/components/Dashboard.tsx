@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { AlertCircle, AlertTriangle, Clock, CheckCircle2, Calendar, TrendingUp, Users, Plane, Briefcase, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Clock, CheckCircle2, Calendar, TrendingUp, Users, Plane, Briefcase, Filter, ChevronDown, ChevronUp, Save, Edit2 } from 'lucide-react';
 
 interface DashboardProps {
   currentUser: User;
@@ -15,6 +15,7 @@ interface DashboardProps {
   projects: Project[];
   tasks: Task[];
   onTaskClick?: (taskName: string, taskClassId: string) => void;
+  onRefresh?: () => void;
 }
 
 // 骨架屏组件 - 用于显示加载状态
@@ -490,9 +491,308 @@ const DelayedTaskPanel: React.FC<{
   );
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projects, tasks, onTaskClick }) => {
+// 工作量分配Tab组件
+interface WorkloadDistributionTabProps {
+  tasks: Task[];
+  onTaskClick?: (taskName: string, taskClassId: string) => void;
+  onRefresh?: () => void;
+}
+
+const WorkloadDistributionTab: React.FC<WorkloadDistributionTabProps> = ({ tasks, onTaskClick, onRefresh }) => {
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+  // 本地状态存储任务列表，用于即时更新UI
+  const [localTasks, setLocalTasks] = useState<Task[]>(tasks);
+
+  // 当props.tasks变化时，同步更新本地状态
+  useEffect(() => {
+    setLocalTasks(tasks);
+  }, [tasks]);
+
+  const [editValues, setEditValues] = useState<{
+    workload: number | null;
+    checkerWorkload: number | null;
+    chiefDesignerWorkload: number | null;
+    approverWorkload: number | null;
+  }>({
+    workload: null,
+    checkerWorkload: null,
+    chiefDesignerWorkload: null,
+    approverWorkload: null,
+  });
+
+  // 筛选已完成的任务（使用本地状态实现即时更新）
+  const completedTasks = useMemo(() => {
+    return localTasks.filter(task => task.status === '已完成');
+  }, [localTasks]);
+
+  // 分类：未分配工作量 vs 已分配工作量
+  const unassignedWorkloadTasks = useMemo(() => {
+    return completedTasks.filter(task =>
+      !task.workload && !task.checkerWorkload && !task.chiefDesignerWorkload && !task.approverWorkload
+    );
+  }, [completedTasks]);
+
+  const assignedWorkloadTasks = useMemo(() => {
+    return completedTasks.filter(task =>
+      task.workload || task.checkerWorkload || task.chiefDesignerWorkload || task.approverWorkload
+    );
+  }, [completedTasks]);
+
+  // 开始编辑
+  const handleStartEdit = (task: Task) => {
+    setEditingTask(task.taskId);
+    setEditValues({
+      workload: task.workload ?? null,
+      checkerWorkload: task.checkerWorkload ?? null,
+      chiefDesignerWorkload: task.chiefDesignerWorkload ?? null,
+      approverWorkload: task.approverWorkload ?? null,
+    });
+  };
+
+  // 保存编辑
+  const handleSave = async (taskId: string) => {
+    try {
+      await apiDataService.updateTask(taskId, {
+        workload: editValues.workload ?? undefined,
+        checkerWorkload: editValues.checkerWorkload ?? undefined,
+        chiefDesignerWorkload: editValues.chiefDesignerWorkload ?? undefined,
+        approverWorkload: editValues.approverWorkload ?? undefined,
+      });
+      setEditingTask(null);
+      // 直接在本地更新任务数据，避免全量刷新导致延迟
+      setLocalTasks(prevTasks => prevTasks.map(task =>
+        task.taskId === taskId
+          ? {
+              ...task,
+              workload: editValues.workload ?? task.workload,
+              checkerWorkload: editValues.checkerWorkload ?? task.checkerWorkload,
+              chiefDesignerWorkload: editValues.chiefDesignerWorkload ?? task.chiefDesignerWorkload,
+              approverWorkload: editValues.approverWorkload ?? task.approverWorkload,
+            }
+          : task
+      ));
+    } catch (error) {
+      console.error('更新工作量失败:', error);
+    }
+  };
+
+  // 取消编辑
+  const handleCancel = () => {
+    setEditingTask(null);
+    setEditValues({
+      workload: null,
+      checkerWorkload: null,
+      chiefDesignerWorkload: null,
+      approverWorkload: null,
+    });
+  };
+
+  // 渲染表格行
+  const renderTableRow = (task: Task) => {
+    const isEditing = editingTask === task.taskId;
+
+    return (
+      <tr key={task.taskId} className="border-b border-slate-100 hover:bg-slate-50">
+        <td className="p-2 text-sm text-slate-700" title={task.taskName}>
+          {task.taskName}
+        </td>
+        <td className="p-2 text-sm text-slate-600 truncate" title={task.assigneeName || ''}>
+          {task.assigneeName || '-'}
+        </td>
+        <td className="p-2 text-sm text-slate-600 truncate" title={task.checkerName || ''}>
+          {task.checkerName || '-'}
+        </td>
+        <td className="p-2 text-sm text-slate-600 truncate" title={task.chiefDesignerName || ''}>
+          {task.chiefDesignerName || '-'}
+        </td>
+        <td className="p-2 text-sm text-slate-600 truncate" title={task.approverName || ''}>
+          {task.approverName || '-'}
+        </td>
+        <td className="p-2 text-sm text-center">
+          {isEditing ? (
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              className="w-20 px-1 py-0.5 border border-slate-300 rounded text-xs"
+              value={editValues.workload ?? ''}
+              onChange={(e) => setEditValues(prev => ({
+                ...prev,
+                workload: e.target.value ? parseFloat(e.target.value) : null
+              }))}
+              placeholder="负责人"
+            />
+          ) : (
+            <span className={task.workload ? 'text-slate-700' : 'text-red-500'}>
+              {task.workload ?? '-'}
+            </span>
+          )}
+        </td>
+        <td className="p-2 text-sm text-center">
+          {isEditing ? (
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              className="w-20 px-1 py-0.5 border border-slate-300 rounded text-xs"
+              value={editValues.checkerWorkload ?? ''}
+              onChange={(e) => setEditValues(prev => ({
+                ...prev,
+                checkerWorkload: e.target.value ? parseFloat(e.target.value) : null
+              }))}
+              placeholder="校核人"
+            />
+          ) : (
+            <span className={task.checkerWorkload ? 'text-slate-700' : 'text-red-500'}>
+              {task.checkerWorkload ?? '-'}
+            </span>
+          )}
+        </td>
+        <td className="p-2 text-sm text-center">
+          {isEditing ? (
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              className="w-20 px-1 py-0.5 border border-slate-300 rounded text-xs"
+              value={editValues.chiefDesignerWorkload ?? ''}
+              onChange={(e) => setEditValues(prev => ({
+                ...prev,
+                chiefDesignerWorkload: e.target.value ? parseFloat(e.target.value) : null
+              }))}
+              placeholder="主任设计"
+            />
+          ) : (
+            <span className={task.chiefDesignerWorkload ? 'text-slate-700' : 'text-red-500'}>
+              {task.chiefDesignerWorkload ?? '-'}
+            </span>
+          )}
+        </td>
+        <td className="p-2 text-sm text-center">
+          {isEditing ? (
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              className="w-20 px-1 py-0.5 border border-slate-300 rounded text-xs"
+              value={editValues.approverWorkload ?? ''}
+              onChange={(e) => setEditValues(prev => ({
+                ...prev,
+                approverWorkload: e.target.value ? parseFloat(e.target.value) : null
+              }))}
+              placeholder="审查人"
+            />
+          ) : (
+            <span className={task.approverWorkload ? 'text-slate-700' : 'text-red-500'}>
+              {task.approverWorkload ?? '-'}
+            </span>
+          )}
+        </td>
+        <td className="p-2 text-center w-24">
+          {isEditing ? (
+            <div className="flex gap-1 justify-center">
+              <button
+                onClick={() => handleSave(task.taskId)}
+                className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200"
+                title="保存"
+              >
+                <Save size={14} />
+              </button>
+              <button
+                onClick={handleCancel}
+                className="p-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                title="取消"
+              >
+                <ChevronDown size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleStartEdit(task)}
+              className="p-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+              title="编辑工作量"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  // 表格标题
+  const tableHeaders = (
+    <tr className="bg-slate-100 text-slate-600 text-sm">
+      <th className="p-2 text-left font-medium">任务名称</th>
+      <th className="p-2 text-left font-medium w-24">负责人</th>
+      <th className="p-2 text-left font-medium w-24">校核人</th>
+      <th className="p-2 text-left font-medium w-24">主任设计</th>
+      <th className="p-2 text-left font-medium w-24">审查人</th>
+      <th className="p-2 text-center font-medium w-24">负责人<br/>工作量(h)</th>
+      <th className="p-2 text-center font-medium w-24">校核人<br/>工作量(h)</th>
+      <th className="p-2 text-center font-medium w-24">主任设计<br/>工作量(h)</th>
+      <th className="p-2 text-center font-medium w-24">审查人<br/>工作量(h)</th>
+      <th className="p-2 text-center font-medium w-24">操作</th>
+    </tr>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* 未分配工作量列表 */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-4 py-2 bg-red-50 border-b border-red-100">
+          <h3 className="text-base font-semibold text-red-700 flex items-center gap-2">
+            <AlertTriangle size={16} />
+            未分配工作量 ({unassignedWorkloadTasks.length})
+          </h3>
+        </div>
+        {unassignedWorkloadTasks.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              {tableHeaders}
+              <tbody>
+                {unassignedWorkloadTasks.map(renderTableRow)}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-slate-500">
+            所有已完成任务均已分配工作量
+          </div>
+        )}
+      </div>
+
+      {/* 已分配工作量列表 */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-4 py-2 bg-green-50 border-b border-green-100">
+          <h3 className="text-base font-semibold text-green-700 flex items-center gap-2">
+            <CheckCircle2 size={16} />
+            已分配工作量 ({assignedWorkloadTasks.length})
+          </h3>
+        </div>
+        {assignedWorkloadTasks.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              {tableHeaders}
+              <tbody>
+                {assignedWorkloadTasks.map(renderTableRow)}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-slate-500">
+            暂无已分配工作量的任务
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projects, tasks, onTaskClick, onRefresh }) => {
   const { taskClasses } = useTaskClasses();
   const [period, setPeriod] = useState<Period>('year');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'charts' | 'workload'>('tasks');
   const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'nuclear' | 'conventional' | 'research' | 'renovation' | 'other'>('all');
 
   // 使用 mounted ID 来区分不同的挂载周期
@@ -928,6 +1228,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-slate-200">
+        <button
+          className={cn(
+            'px-4 py-2 font-medium rounded-t-lg transition-colors',
+            activeTab === 'tasks'
+              ? 'bg-white text-blue-600 border-t border-x border-slate-200 -mb-px'
+              : 'text-slate-500 hover:text-slate-700'
+          )}
+          onClick={() => setActiveTab('tasks')}
+        >
+          任务清单
+        </button>
+        <button
+          className={cn(
+            'px-4 py-2 font-medium rounded-t-lg transition-colors',
+            activeTab === 'charts'
+              ? 'bg-white text-blue-600 border-t border-x border-slate-200 -mb-px'
+              : 'text-slate-500 hover:text-slate-700'
+          )}
+          onClick={() => setActiveTab('charts')}
+        >
+          统计图表
+        </button>
+        <button
+          className={cn(
+            'px-4 py-2 font-medium rounded-t-lg transition-colors',
+            activeTab === 'workload'
+              ? 'bg-white text-blue-600 border-t border-x border-slate-200 -mb-px'
+              : 'text-slate-500 hover:text-slate-700'
+          )}
+          onClick={() => setActiveTab('workload')}
+        >
+          工作量分配
+        </button>
+      </div>
+
+      {activeTab === 'tasks' && (
+        <>
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -1017,7 +1356,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
         users={users}
         onTaskClick={onTaskClick}
       />
+        </>
+      )}
 
+      {activeTab === 'charts' && (
+        <>
       {/* Charts Row 1: Task Trend & Workload Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Task Trend Chart */}
@@ -1380,6 +1723,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentUser, users, projec
           </div>
         </div>
       </div>
+        </>
+      )}
+
+      {activeTab === 'workload' && (
+        <>
+          <WorkloadDistributionTab
+            tasks={tasks}
+            onTaskClick={onTaskClick}
+            onRefresh={onRefresh}
+          />
+        </>
+      )}
     </div>
   );
 };

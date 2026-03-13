@@ -359,6 +359,7 @@ const App: React.FC = () => {
                 setTargetTaskClassId(taskClassId);
                 setCurrentView('tasks');
               }}
+              onRefresh={refreshData}
             />
           )
         )}

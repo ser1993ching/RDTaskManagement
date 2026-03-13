@@ -86,4 +86,13 @@ public class CreateTaskRequest
     // 工作量
     [JsonPropertyName("workload")]
     public decimal? Workload { get; set; }
+
+    [JsonPropertyName("checkerWorkload")]
+    public decimal? CheckerWorkload { get; set; }
+
+    [JsonPropertyName("chiefDesignerWorkload")]
+    public decimal? ChiefDesignerWorkload { get; set; }
+
+    [JsonPropertyName("approverWorkload")]
+    public decimal? ApproverWorkload { get; set; }
 }

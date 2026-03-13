@@ -265,6 +265,9 @@ public class TaskService : ITaskService
 
         // 工作量
         task.Workload = request.Workload;
+        task.CheckerWorkload = request.CheckerWorkload;
+        task.ChiefDesignerWorkload = request.ChiefDesignerWorkload;
+        task.ApproverWorkload = request.ApproverWorkload;
 
         if (_taskRepository != null)
         {

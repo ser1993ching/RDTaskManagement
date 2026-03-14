@@ -95,4 +95,7 @@ public class CreateTaskRequest
 
     [JsonPropertyName("approverWorkload")]
     public decimal? ApproverWorkload { get; set; }
+
+    [JsonPropertyName("dongfangTaskType")]
+    public string? DongfangTaskType { get; set; }
 }

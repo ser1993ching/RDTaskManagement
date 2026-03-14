@@ -72,4 +72,7 @@ public class CreateTaskPoolItemRequest
 
     [JsonPropertyName("createdDate")]
     public DateTime? CreatedDate { get; set; }
+
+    [JsonPropertyName("dongfangTaskType")]
+    public string? DongfangTaskType { get; set; }
 }

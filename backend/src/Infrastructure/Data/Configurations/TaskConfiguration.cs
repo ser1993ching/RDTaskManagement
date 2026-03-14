@@ -31,6 +31,7 @@ public class TaskConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.Property(t => t.Remark).HasColumnType("LONGTEXT");
         builder.Property(t => t.Participants).HasColumnType("LONGTEXT");
         builder.Property(t => t.ParticipantNames).HasColumnType("LONGTEXT");
+        builder.Property(t => t.DongfangTaskType).HasMaxLength(100);
 
         // 索引
         builder.HasIndex(t => t.TaskClassID);

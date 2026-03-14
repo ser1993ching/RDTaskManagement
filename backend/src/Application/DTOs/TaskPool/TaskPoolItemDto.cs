@@ -72,4 +72,7 @@ public class TaskPoolItemDto
 
     [JsonPropertyName("isDeleted")]
     public bool IsDeleted { get; set; }
+
+    [JsonPropertyName("dongfangTaskType")]
+    public string? DongfangTaskType { get; set; }
 }

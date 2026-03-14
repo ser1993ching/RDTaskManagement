@@ -220,23 +220,39 @@ public class TaskService : ITaskService
 
     public async Task<TaskDto> UpdateTaskAsync(string taskId, CreateTaskRequest request)
     {
-        // 会议培训或差旅任务：清除非负责人角色字段
-        ClearNonAssigneeFieldsForMeetingOrTravelTask(request);
-
         var task = await GetTaskEntityByIdAsync(taskId);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        // 手动更新每个字段，避免值类型默认值覆盖问题
-        task.TaskName = request.TaskName;
-        task.TaskClassID = request.TaskClassId;
-        task.Category = request.Category;
-        task.ProjectID = request.ProjectId;
-        task.AssigneeID = request.AssigneeId;
-        task.AssigneeName = request.AssigneeName;
-        task.StartDate = request.StartDate;
-        task.DueDate = request.DueDate;
-        task.Difficulty = request.Difficulty;
-        task.Remark = request.Remark;
+        // 只更新非空/非默认值的字段，避免覆盖已有数据
+        if (!string.IsNullOrEmpty(request.TaskName))
+            task.TaskName = request.TaskName;
+
+        if (!string.IsNullOrEmpty(request.TaskClassId))
+            task.TaskClassID = request.TaskClassId;
+
+        if (!string.IsNullOrEmpty(request.Category))
+            task.Category = request.Category;
+
+        if (request.ProjectId != null)
+            task.ProjectID = request.ProjectId;
+
+        if (request.AssigneeId != null)
+            task.AssigneeID = request.AssigneeId;
+
+        if (request.AssigneeName != null)
+            task.AssigneeName = request.AssigneeName;
+
+        if (request.StartDate.HasValue)
+            task.StartDate = request.StartDate;
+
+        if (request.DueDate.HasValue)
+            task.DueDate = request.DueDate;
+
+        if (request.Difficulty.HasValue)
+            task.Difficulty = request.Difficulty;
+
+        if (request.Remark != null)
+            task.Remark = request.Remark;
 
         // 只更新IsForceAssessment当它被明确传递时（不为null）
         if (request.IsForceAssessment.HasValue)
@@ -244,30 +260,53 @@ public class TaskService : ITaskService
             task.IsForceAssessment = request.IsForceAssessment.Value;
         }
 
-        // 角色分配
-        task.CheckerID = request.CheckerId;
-        task.ChiefDesignerID = request.ChiefDesignerId;
-        task.ApproverID = request.ApproverId;
+        // 角色分配 - 只有非null才更新
+        if (request.CheckerId != null)
+            task.CheckerID = request.CheckerId;
+
+        if (request.ChiefDesignerId != null)
+            task.ChiefDesignerID = request.ChiefDesignerId;
+
+        if (request.ApproverId != null)
+            task.ApproverID = request.ApproverId;
 
         // 差旅任务
-        task.TravelLocation = request.TravelLocation;
-        task.TravelDuration = request.TravelDuration;
-        task.TravelLabel = request.TravelLabel;
+        if (request.TravelLocation != null)
+            task.TravelLocation = request.TravelLocation;
+
+        if (request.TravelDuration.HasValue)
+            task.TravelDuration = request.TravelDuration;
+
+        if (request.TravelLabel != null)
+            task.TravelLabel = request.TravelLabel;
 
         // 会议任务
-        task.MeetingDuration = request.MeetingDuration;
-        task.Participants = request.Participants != null
-            ? System.Text.Json.JsonSerializer.Serialize(request.Participants)
-            : null;
+        if (request.MeetingDuration.HasValue)
+            task.MeetingDuration = request.MeetingDuration;
+
+        if (request.Participants != null)
+            task.Participants = System.Text.Json.JsonSerializer.Serialize(request.Participants);
 
         // 市场任务
-        task.RelatedProject = request.RelatedProject;
+        if (request.RelatedProject != null)
+            task.RelatedProject = request.RelatedProject;
 
-        // 工作量
-        task.Workload = request.Workload;
-        task.CheckerWorkload = request.CheckerWorkload;
-        task.ChiefDesignerWorkload = request.ChiefDesignerWorkload;
-        task.ApproverWorkload = request.ApproverWorkload;
+        // 工作量 - 只有非null才更新
+        if (request.Workload.HasValue)
+            task.Workload = request.Workload;
+
+        if (request.CheckerWorkload.HasValue)
+            task.CheckerWorkload = request.CheckerWorkload;
+
+        if (request.ChiefDesignerWorkload.HasValue)
+            task.ChiefDesignerWorkload = request.ChiefDesignerWorkload;
+
+        if (request.ApproverWorkload.HasValue)
+            task.ApproverWorkload = request.ApproverWorkload;
+
+        // 东方任务类型
+        if (request.DongfangTaskType != null)
+            task.DongfangTaskType = request.DongfangTaskType;
 
         if (_taskRepository != null)
         {

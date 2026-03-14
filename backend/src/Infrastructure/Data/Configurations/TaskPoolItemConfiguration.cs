@@ -23,6 +23,7 @@ public class TaskPoolItemConfiguration : IEntityTypeConfiguration<TaskPoolItem>
         builder.Property(tp => tp.ProjectID).HasMaxLength(50);
         builder.Property(tp => tp.ProjectName).HasMaxLength(200);
         builder.Property(tp => tp.Remark).HasColumnType("LONGTEXT");
+        builder.Property(tp => tp.DongfangTaskType).HasMaxLength(100);
 
         // 索引
         builder.HasIndex(tp => tp.TaskClassID);

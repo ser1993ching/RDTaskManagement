@@ -62,6 +62,7 @@ public class TaskItem : BaseEntity<string>
     // 其他字段
     public bool IsForceAssessment { get; set; }        // 是否强制考核
     public bool IsInPool { get; set; }                 // 是否在任务库中
+    public string? DongfangTaskType { get; set; }      // 东方任务类型
 
     // 导航属性（不使用EF Core关系，仅用于API返回）
     [NotMapped]

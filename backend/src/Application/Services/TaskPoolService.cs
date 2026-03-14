@@ -136,7 +136,12 @@ public class TaskPoolService : ITaskPoolService
             CheckerID = poolItem.CheckerID,
             ChiefDesignerID = poolItem.ChiefDesignerID,
             ApproverID = poolItem.ApproverID,
-            IsForceAssessment = poolItem.IsForceAssessment
+            IsForceAssessment = poolItem.IsForceAssessment,
+            Workload = request.Workload,
+            CheckerWorkload = request.ReviewerWorkload,
+            ChiefDesignerWorkload = request.ChiefDesignerWorkload,
+            ApproverWorkload = request.ApproverWorkload,
+            DongfangTaskType = request.DongfangTaskType ?? poolItem.DongfangTaskType
         };
 
         await _taskRepository.CreateAsync(task);
@@ -271,7 +276,8 @@ public class TaskPoolService : ITaskPoolService
             CreatedBy = task.CreatedBy,
             CreatedDate = DateTime.UtcNow,
             IsForceAssessment = task.IsForceAssessment,
-            Remark = task.Remark
+            Remark = task.Remark,
+            DongfangTaskType = task.DongfangTaskType
         };
 
         poolItem.Id = $"TP-{DateTime.UtcNow:yyyyMMdd}-{DateTime.UtcNow:HHmmss}";

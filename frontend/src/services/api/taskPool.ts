@@ -23,6 +23,7 @@ export interface TaskPoolItemDto {
   isForceAssessment?: boolean;
   remark?: string;
   isDeleted?: boolean;
+  dongfangTaskType?: string;
 }
 
 export interface CreateTaskPoolItemRequest {
@@ -43,6 +44,7 @@ export interface CreateTaskPoolItemRequest {
   dueDate?: string;
   isForceAssessment?: boolean;
   remark?: string;
+  dongfangTaskType?: string;
 }
 
 export interface AssignTaskRequest {
@@ -58,17 +60,20 @@ export interface AssignTaskRequest {
   approverName?: string;
   reviewerWorkload?: number;
   approverWorkload?: number;
+  chiefDesignerWorkload?: number;
   startDate?: string;
   dueDate?: string;
   workload?: number;
   isForceAssessment?: boolean;
   remark?: string;
+  dongfangTaskType?: string;
 }
 
 export interface TaskPoolQueryParams {
   taskName?: string;
   projectId?: string;
   taskClassId?: string;
+  category?: string;
   assigneeId?: string;
   page?: number;
   pageSize?: number;
@@ -89,6 +94,7 @@ const taskPoolService = {
     if (params?.taskName) queryParams.append('taskName', params.taskName);
     if (params?.projectId) queryParams.append('projectId', params.projectId);
     if (params?.taskClassId) queryParams.append('taskClassId', params.taskClassId);
+    if (params?.category) queryParams.append('category', params.category);
     if (params?.assigneeId) queryParams.append('assigneeId', params.assigneeId);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());

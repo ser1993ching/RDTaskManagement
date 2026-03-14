@@ -128,4 +128,7 @@ public class TaskDto
 
     [JsonPropertyName("isInPool")]
     public bool IsInPool { get; set; }
+
+    [JsonPropertyName("dongfangTaskType")]
+    public string? DongfangTaskType { get; set; }
 }

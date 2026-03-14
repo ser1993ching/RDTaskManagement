@@ -220,6 +220,9 @@ export interface Task {
 
   // 任务库标记
   isInPool?: boolean;                    // 是否在任务库中（计划任务）
+
+  // 东方任务类型
+  dongfangTaskType?: string;            // 东方任务类型
 }
 
 /**
@@ -250,6 +253,7 @@ export interface TaskPoolItem {
   isForceAssessment?: boolean;   // 是否强制考核
   remark?: string;               // 备注
   isDeleted?: boolean;           // 软删除标记
+  dongfangTaskType?: string;      // 东方任务类型
 }
 
 /**

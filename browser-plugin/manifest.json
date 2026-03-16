@@ -1,0 +1,70 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extension_name__",
+  "version": "1.0.0",
+  "description": "__MSG_extension_description__",
+  "default_locale": "zh_CN",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "__MSG_extension_name__"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://dfemeip.dongfang.com/*",
+    "http://plm.dongfang.com/*",
+    "https://tsplm.dfem.com.cn/*",
+    "http://localhost:3000/*",
+    "http://localhost:5000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://dfemeip.dongfang.com/*"
+      ],
+      "js": [
+        "content/base/content-script.js",
+        "content/portal/portal-injector.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://plm.dongfang.com/Windchill/*"
+      ],
+      "js": [
+        "content/base/content-script.js",
+        "content/plm/plm-extractor.js",
+        "content/plm/plm-interceptor.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://tsplm.dfem.com.cn/*"
+      ],
+      "js": [
+        "content/base/content-script.js",
+        "content/ts/ts-extractor.js",
+        "content/ts/ts-interceptor.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

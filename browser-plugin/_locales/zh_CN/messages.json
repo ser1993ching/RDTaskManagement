@@ -1,0 +1,10 @@
+{
+  "extension_name": {
+    "message": "任务管理助手",
+    "description": "插件名称"
+  },
+  "extension_description": {
+    "message": "东方电气任务管理助手 - 自动同步PLM/TS任务到任务管理系统",
+    "description": "插件描述"
+  }
+}

@@ -179,11 +179,25 @@ export type DongfangTaskType =
   | 'EPart'           // 部件发布
   | 'Unknown';
 
-// 任务环节
+// 任务环节 (与后端 TaskStatus 枚举保持一致)
+// 后端枚举: TaskStatus { NotStarted=0, Drafting=1, Revising=2, Reviewing=3, Approving=4, Completed=5 }
 export type TaskStage =
-  | '编制' | '校核' | '主任设计' | '标检'
-  | '产品工艺会签' | '专业工艺会签' | '审查' | '审定'
-  | '其他';
+  | 'NotStarted'   // 未开始
+  | 'Drafting'     // 编制中
+  | 'Revising'     // 修改中
+  | 'Reviewing'    // 校核中
+  | 'Approving'    // 审查中
+  | 'Completed';   // 已完成
+
+// 中文显示名称映射
+export const TaskStageDisplayName: Record<TaskStage, string> = {
+  'NotStarted': '未开始',
+  'Drafting': '编制中',
+  'Revising': '修改中',
+  'Reviewing': '校核中',
+  'Approving': '审查中',
+  'Completed': '已完成'
+};
 
 // 处理状态
 export type ProcessStatus = '提交' | '同意' | '驳回' | '转交';
@@ -766,6 +780,30 @@ git commit -m "feat(plugin): 添加基础Content Script框架"
 ```typescript
 import { ExtractedTaskInfo, DongfangTaskType, TaskStage, ProcessRole, ProcessRecord } from '../../shared/types';
 
+// PLM/TS环节名称到后端TaskStatus的映射
+const STAGE_TO_TASK_STATUS: Record<string, TaskStage> = {
+  // PLM/TS环节名称 -> 后端TaskStatus
+  '编制': 'Drafting',
+  '编制中': 'Drafting',
+  '修改': 'Revising',
+  '修改中': 'Revising',
+  '校核': 'Reviewing',
+  '校核中': 'Reviewing',
+  '审查': 'Approving',
+  '审查中': 'Approving',
+  '主任设计': 'Approving',  // 主任设计对应审查环节
+  '标检': 'Reviewing',     // 标检对应校核环节
+  '产品工艺会签': 'Reviewing',
+  '专业工艺会签': 'Reviewing',
+  '审定': 'Approving',
+  '已完成': 'Completed',
+  '完成': 'Completed'
+};
+
+export function mapStageToTaskStatus(plmStage: string): TaskStage {
+  return STAGE_TO_TASK_STATUS[plmStage] || 'NotStarted';
+}
+
 export class PLMTaskExtractor {
 
   extract(): ExtractedTaskInfo | null {
@@ -837,20 +875,21 @@ export class PLMTaskExtractor {
     // 从页面标题提取当前环节
     const heading = document.querySelector('h1')?.textContent || '';
     const match = heading.match(/Z\.(\d+)-(.+?)$/);
-    if (match) {
-      return match[2] as TaskStage;
-    }
+    let plmStage = '';
 
-    // 从处理状态表格第一行提取
-    const firstRow = document.querySelector('table tbody tr');
-    if (firstRow) {
-      const stageCell = firstRow.querySelector('td');
-      if (stageCell) {
-        return stageCell.textContent?.trim() as TaskStage;
+    if (match) {
+      plmStage = match[2];
+    } else {
+      // 从处理状态表格第一行提取
+      const firstRow = document.querySelector('table tbody tr');
+      if (firstRow) {
+        const stageCell = firstRow.querySelector('td');
+        plmStage = stageCell?.textContent?.trim() || '';
       }
     }
 
-    return '其他';
+    // 映射到后端TaskStatus
+    return mapStageToTaskStatus(plmStage);
   }
 
   extractRoles(): ProcessRole[] {
@@ -1180,18 +1219,23 @@ export class TSTaskExtractor {
   extractCurrentStage(): TaskStage {
     // 从当前环节标签提取
     const stageEl = document.querySelector('.task-icon-label, [class*="task-icon-label"]');
-    const stage = stageEl?.textContent?.trim();
+    const plmStage = stageEl?.textContent?.trim();
 
-    if (stage) return stage as TaskStage;
+    if (plmStage) {
+      return mapStageToTaskStatus(plmStage);
+    }
 
     // 从流程信息第一个节点获取
     const firstNode = document.querySelector('.ty-process__item');
     if (firstNode) {
       const titleEl = firstNode.querySelector('.ty-process__header--title');
-      return titleEl?.textContent?.trim() as TaskStage || '其他';
+      const stageFromNode = titleEl?.textContent?.trim();
+      if (stageFromNode) {
+        return mapStageToTaskStatus(stageFromNode);
+      }
     }
 
-    return '其他';
+    return 'NotStarted';
   }
 
   extractRoles(): ProcessRole[] {
@@ -2389,17 +2433,164 @@ git commit -m "feat(plugin): 配置构建系统"
 
 ---
 
+## 附录: 后端API对接
+
+需要在任务管理系统后端添加API端点来接收同步请求：
+
+### A.1 创建PLM任务同步DTO
+
+**Files:**
+- Create: `backend/src/Application/DTOs/Tasks/SyncPlmTaskRequest.cs`
+
+```csharp
+namespace TaskManageSystem.Application.DTOs.Tasks;
+
+/// <summary>
+/// 同步PLM/TS任务请求
+/// </summary>
+public class SyncPlmTaskRequest
+{
+    public string? PlmTaskId { get; set; }      // PLM任务ID
+    public string? TsTaskId { get; set; }       // TS任务ID
+    public string TaskName { get; set; } = string.Empty;
+    public string TaskType { get; set; } = string.Empty;  // 东方任务类型
+    public string CurrentStage { get; set; } = string.Empty;  // 对应后端TaskStatus
+    public string? Decision { get; set; }        // 通过/驳回
+    public string? Remark { get; set; }         // 备注
+    public DateTime? CompletedAt { get; set; }  // 完成时间
+    public string SourceUrl { get; set; } = string.Empty;
+    public List<ProcessRoleDto> Roles { get; set; } = new();
+    public List<ProcessRecordDto> History { get; set; } = new();
+}
+
+public class ProcessRoleDto
+{
+    public string Stage { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
+    public string? UserName { get; set; }
+    public string? UserId { get; set; }
+    public string? Status { get; set; }
+}
+
+public class ProcessRecordDto
+{
+    public string Stage { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string Time { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+}
+```
+
+### A.2 创建PLM任务控制器
+
+**Files:**
+- Create: `backend/src/Api/Controllers/PlmTasksController.cs`
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using TaskManageSystem.Application.DTOs.Tasks;
+using TaskManageSystem.Application.Interfaces;
+
+namespace TaskManageSystem.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class PlmTasksController : ControllerBase
+{
+    private readonly ITaskService _taskService;
+    private readonly ILogger<PlmTasksController> _logger;
+
+    public PlmTasksController(ITaskService taskService, ILogger<PlmTasksController> logger)
+    {
+        _taskService = taskService;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// 同步PLM/TS任务到任务管理系统
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse>> SyncTask([FromBody] SyncPlmTaskRequest request)
+    {
+        try
+        {
+            // 1. 根据PlmTaskId或TsTaskId查找是否已存在
+            var existingTask = await _taskService.GetByExternalIdAsync(
+                request.PlmTaskId ?? request.TsTaskId);
+
+            if (existingTask != null)
+            {
+                // 更新任务状态
+                await _taskService.UpdateStatusAsync(
+                    existingTask.TaskID,
+                    request.CurrentStage,
+                    request.Decision == "通过" ? "Completed" : "InProgress");
+            }
+            else
+            {
+                // 创建新任务
+                await _taskService.CreateFromPlmAsync(request);
+            }
+
+            return Ok(ApiResponse.Success(new { taskId = existingTask?.TaskID }));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "同步PLM任务失败");
+            return BadRequest(ApiResponse.Fail("同步失败: " + ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// 获取健康检查状态
+    /// </summary>
+    [HttpGet("health")]
+    public IActionResult Health()
+    {
+        return Ok(new { status = "ok", timestamp = DateTime.UtcNow });
+    }
+}
+```
+
+### A.3 更新ITaskService接口
+
+**Files:**
+- Modify: `backend/src/Application/Interfaces/ITaskService.cs`
+
+```csharp
+// 添加以下方法
+TaskItem? GetByExternalIdAsync(string externalId);
+TaskItem CreateFromPlmAsync(SyncPlmTaskRequest request);
+Task UpdateStatusAsync(string taskId, string stage, string status);
+```
+
+### A.4 实现任务服务方法
+
+**Files:**
+- Modify: `backend/src/Application/Services/TaskService.cs`
+
+实现上述接口方法，处理PLM/TS任务与本地任务的映射关系。
+
+---
+
 ## 附录: 后续任务
 
 以下任务需要在完成基础插件后进行：
 
-### A. 后端API对接
+### B. 自动化测试
 
-需要在任务管理系统后端添加API端点来接收同步请求：
+1. 使用Puppeteer/Playwright测试插件功能
+2. 测试不同任务类型的提取准确性
+3. 测试按钮拦截和弹窗交互
 
-1. 创建 `POST /api/plm-tasks` 端点处理任务同步
-2. 创建 `GET /api/tasks/count` 端点返回待办数量
-3. 实现任务自动创建和状态更新逻辑
+### C. 扩展功能
+
+1. 支持更多任务平台（如集团门户）
+2. 添加任务统计和报表功能
+3. 支持批量操作
+4. 添加离线缓存功能
 
 ### B. 自动化测试
 

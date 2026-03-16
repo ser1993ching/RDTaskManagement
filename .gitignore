@@ -31,7 +31,10 @@ dist-ssr
 *.pidb
 *.ipch
 .DS_Store
+null
 nul
 .claude/
 **/.idea/
 **.vs/
+.worktrees/
+worktrees/

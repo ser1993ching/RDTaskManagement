@@ -10,6 +10,62 @@
 
 ---
 
+## ⚠️ 后端API要求（重要）
+
+**现有后端API已经是完整的**，浏览器插件需要遵循现有API进行对接。禁止创建新的API端点。
+
+### 现有API端点（必须遵循）
+
+| 方法 | 端点 | 用途 |
+|------|------|------|
+| PUT | `/api/tasks/{taskId}/status` | 更新任务状态 |
+| PUT/PATCH | `/api/tasks/{taskId}/role-status` | 更新角色状态 |
+| POST | `/api/tasks/{taskId}/complete-all` | 完成任务所有角色 |
+| POST | `/api/tasks/{taskId}/retrieve` | 回收任务到任务库 |
+| GET | `/api/tasks/personal/{userId}` | 获取个人任务列表 |
+| GET | `/api/tasks` | 获取任务列表 |
+
+### 请求格式
+
+**更新任务状态** (`PUT /api/tasks/{taskId}/status`)
+```json
+{
+  "status": "Completed"  // NotStarted, Drafting, Revising, Reviewing, Approving, Completed
+}
+```
+
+**更新角色状态** (`PUT /api/tasks/{taskId}/role-status`)
+```json
+{
+  "role": "checker",           // assignee, checker, chiefDesigner, approver
+  "status": "Completed"        // NotStarted, InProgress, Revising, Rejected, Completed
+}
+```
+
+### 角色枚举
+
+| 角色 | Role值 | 说明 |
+|------|--------|------|
+| 负责人 | `assignee` | 任务负责人 |
+| 校核人 | `checker` | 校核人员 |
+| 主任设计 | `chiefDesigner` | 主任设计师 |
+| 审查人 | `approver` | 审查人员 |
+
+### 状态枚举
+
+**任务状态** (TaskStatus): `NotStarted`, `Drafting`, `Revising`, `Reviewing`, `Approving`, `Completed`
+
+**角色状态** (RoleStatus): `NotStarted`, `InProgress`, `Revising`, `Rejected`, `Completed`
+
+### 关键约束
+
+1. **不创建新端点** - 所有操作必须使用现有API
+2. **字段名称** - 使用camelCase（后端已配置JsonNamingPolicy.CamelCase）
+3. **认证** - 需要在请求头中添加JWT Token
+4. **错误处理** - 遵循现有API的错误响应格式
+
+---
+
 ## 文件结构规划
 
 ```
@@ -2433,164 +2489,159 @@ git commit -m "feat(plugin): 配置构建系统"
 
 ---
 
-## 附录: 后端API对接
+## 附录: 前端插件API对接方案
 
-需要在任务管理系统后端添加API端点来接收同步请求：
+⚠️ **重要**: 后端API已经是完整的，前端插件需要遵循现有API进行对接。
 
-### A.1 创建PLM任务同步DTO
+### A.1 插件API客户端实现
 
 **Files:**
-- Create: `backend/src/Application/DTOs/Tasks/SyncPlmTaskRequest.cs`
+- Modify: `browser-plugin/shared/api-client.ts`
 
-```csharp
-namespace TaskManageSystem.Application.DTOs.Tasks;
+```typescript
+import { TaskSource, ExtractedTaskInfo, TaskStage, RoleStatus } from './types';
 
-/// <summary>
-/// 同步PLM/TS任务请求
-/// </summary>
-public class SyncPlmTaskRequest
-{
-    public string? PlmTaskId { get; set; }      // PLM任务ID
-    public string? TsTaskId { get; set; }       // TS任务ID
-    public string TaskName { get; set; } = string.Empty;
-    public string TaskType { get; set; } = string.Empty;  // 东方任务类型
-    public string CurrentStage { get; set; } = string.Empty;  // 对应后端TaskStatus
-    public string? Decision { get; set; }        // 通过/驳回
-    public string? Remark { get; set; }         // 备注
-    public DateTime? CompletedAt { get; set; }  // 完成时间
-    public string SourceUrl { get; set; } = string.Empty;
-    public List<ProcessRoleDto> Roles { get; set; } = new();
-    public List<ProcessRecordDto> History { get; set; } = new();
-}
+// 角色映射：PLM/TS环节 -> 后端角色
+const STAGE_TO_ROLE: Record<string, string> = {
+  'Drafting': 'assignee',        // 编制 -> 负责人
+  'Revising': 'assignee',        // 修改 -> 负责人
+  'Reviewing': 'checker',        // 校核 -> 校核人
+  'Approving': 'approver'        // 审查 -> 审查人
+};
 
-public class ProcessRoleDto
-{
-    public string Stage { get; set; } = string.Empty;
-    public string RoleName { get; set; } = string.Empty;
-    public string? UserName { get; set; }
-    public string? UserId { get; set; }
-    public string? Status { get; set; }
-}
+export class ApiClient {
+  private baseUrl: string;
+  private token: string = '';
 
-public class ProcessRecordDto
-{
-    public string Stage { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string Time { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-    public string UserId { get; set; } = string.Empty;
-    public string? Comment { get; set; }
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+  }
+
+  setToken(token: string) {
+    this.token = token;
+  }
+
+  private getHeaders(): HeadersInit {
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.token}`
+    };
+  }
+
+  /**
+   * 更新任务状态
+   * PUT /api/tasks/{taskId}/status
+   */
+  async updateTaskStatus(taskId: string, status: TaskStage): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/tasks/${taskId}/status`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ status })
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('[API] 更新任务状态失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 更新角色状态
+   * PUT /api/tasks/{taskId}/role-status
+   */
+  async updateRoleStatus(
+    taskId: string,
+    role: 'assignee' | 'checker' | 'chiefDesigner' | 'approver',
+    status: RoleStatus
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/tasks/${taskId}/role-status`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ role, status })
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('[API] 更新角色状态失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 完成任务所有角色
+   * POST /api/tasks/{taskId}/complete-all
+   */
+  async completeAllRoles(taskId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/tasks/${taskId}/complete-all`, {
+        method: 'POST',
+        headers: this.getHeaders()
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('[API] 完成任务失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 从PLM/TS任务提取信息转换为API调用
+   */
+  async syncFromExternal(taskInfo: ExtractedTaskInfo): Promise<{ success: boolean; taskId?: string }> {
+    // 根据任务来源查找对应的本地任务
+    const externalId = taskInfo.source === 'PLM' ? taskInfo.taskId : `ts-${taskInfo.taskId}`;
+
+    // 1. 调用现有API更新状态
+    const role = STAGE_TO_ROLE[taskInfo.currentStage] || 'assignee';
+    const roleStatus = taskInfo.decision === '通过' ? 'Completed' : 'InProgress';
+
+    // 2. 如果是通过，更新角色状态
+    if (taskInfo.decision === '通过') {
+      await this.updateRoleStatus(externalId, role as any, roleStatus as any);
+    }
+
+    return { success: true, taskId: externalId };
+  }
 }
 ```
 
-### A.2 创建PLM任务控制器
+### A.2 认证处理
 
-**Files:**
-- Create: `backend/src/Api/Controllers/PlmTasksController.cs`
+插件需要处理JWT认证：
 
-```csharp
-using Microsoft.AspNetCore.Mvc;
-using TaskManageSystem.Application.DTOs.Tasks;
-using TaskManageSystem.Application.Interfaces;
+```typescript
+// 在 popup.ts 或 background.ts 中处理登录
+async function login(userId: string, password: string): Promise<string | null> {
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, password })
+  });
 
-namespace TaskManageSystem.Api.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class PlmTasksController : ControllerBase
-{
-    private readonly ITaskService _taskService;
-    private readonly ILogger<PlmTasksController> _logger;
-
-    public PlmTasksController(ITaskService taskService, ILogger<PlmTasksController> logger)
-    {
-        _taskService = taskService;
-        _logger = logger;
-    }
-
-    /// <summary>
-    /// 同步PLM/TS任务到任务管理系统
-    /// </summary>
-    [HttpPost]
-    public async Task<ActionResult<ApiResponse>> SyncTask([FromBody] SyncPlmTaskRequest request)
-    {
-        try
-        {
-            // 1. 根据PlmTaskId或TsTaskId查找是否已存在
-            var existingTask = await _taskService.GetByExternalIdAsync(
-                request.PlmTaskId ?? request.TsTaskId);
-
-            if (existingTask != null)
-            {
-                // 更新任务状态
-                await _taskService.UpdateStatusAsync(
-                    existingTask.TaskID,
-                    request.CurrentStage,
-                    request.Decision == "通过" ? "Completed" : "InProgress");
-            }
-            else
-            {
-                // 创建新任务
-                await _taskService.CreateFromPlmAsync(request);
-            }
-
-            return Ok(ApiResponse.Success(new { taskId = existingTask?.TaskID }));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "同步PLM任务失败");
-            return BadRequest(ApiResponse.Fail("同步失败: " + ex.Message));
-        }
-    }
-
-    /// <summary>
-    /// 获取健康检查状态
-    /// </summary>
-    [HttpGet("health")]
-    public IActionResult Health()
-    {
-        return Ok(new { status = "ok", timestamp = DateTime.UtcNow });
-    }
+  if (response.ok) {
+    const data = await response.json();
+    return data.token; // 存储token
+  }
+  return null;
 }
 ```
 
-### A.3 更新ITaskService接口
+### A.3 API调用流程
 
-**Files:**
-- Modify: `backend/src/Application/Interfaces/ITaskService.cs`
-
-```csharp
-// 添加以下方法
-TaskItem? GetByExternalIdAsync(string externalId);
-TaskItem CreateFromPlmAsync(SyncPlmTaskRequest request);
-Task UpdateStatusAsync(string taskId, string stage, string status);
 ```
-
-### A.4 实现任务服务方法
-
-**Files:**
-- Modify: `backend/src/Application/Services/TaskService.cs`
-
-实现上述接口方法，处理PLM/TS任务与本地任务的映射关系。
+用户点击"完成任务" → 提取任务信息 → 判断角色 → 调用对应API
+                                                         ↓
+                                            PUT /api/tasks/{id}/role-status
+                                                         ↓
+                                            body: { role: "checker", status: "Completed" }
+```
 
 ---
 
 ## 附录: 后续任务
 
 以下任务需要在完成基础插件后进行：
-
-### B. 自动化测试
-
-1. 使用Puppeteer/Playwright测试插件功能
-2. 测试不同任务类型的提取准确性
-3. 测试按钮拦截和弹窗交互
-
-### C. 扩展功能
-
-1. 支持更多任务平台（如集团门户）
-2. 添加任务统计和报表功能
-3. 支持批量操作
-4. 添加离线缓存功能
 
 ### B. 自动化测试
 

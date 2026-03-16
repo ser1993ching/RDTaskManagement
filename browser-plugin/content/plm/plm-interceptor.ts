@@ -43,8 +43,8 @@ class PLMInterceptor {
       target.textContent?.includes('完成任务')
     ) || (
       target.tagName === 'INPUT' &&
-      target.type === 'submit' &&
-      target.value?.includes('完成任务')
+      (target as HTMLInputElement).type === 'submit' &&
+      (target as HTMLInputElement).value?.includes('完成任务')
     );
 
     if (isCompleteButton && !this.isProcessing) {

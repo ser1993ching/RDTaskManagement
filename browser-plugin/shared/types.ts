@@ -31,7 +31,7 @@ export const TaskStageDisplayName: Record<TaskStage, string> = {
 export type ProcessStatus = '提交' | '同意' | '驳回' | '转交';
 
 // 决策选项
-export type Decision = '通过' | '驳回' | '快速驳回' | '未选择';
+export type Decision = '通过' | '驳回' | '快速驳回' | '未选择' | '转交';
 
 // 提取的任务信息
 export interface ExtractedTaskInfo {

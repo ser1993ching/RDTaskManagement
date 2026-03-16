@@ -1,0 +1,206 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 420px;
+  min-height: 300px;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f5f7fa;
+  color: #333;
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.source-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.task-info {
+  margin-bottom: 16px;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.info-row label {
+  width: 80px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.info-row .value {
+  flex: 1;
+  color: #333;
+  word-break: break-all;
+}
+
+.sync-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f9fafc;
+  border-radius: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: #f0f2f5;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #e6e8eb;
+}
+
+.btn-confirm {
+  background: #1890ff;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #40a9ff;
+}
+
+.btn-confirm:disabled {
+  background: #a0c8ff;
+  cursor: not-allowed;
+}
+
+.status {
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  display: none;
+}
+
+.status.success {
+  display: block;
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.status.error {
+  display: block;
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+.status.loading {
+  display: block;
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+/* 任务类型标签样式 */
+.task-type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.task-type-badge.WTDocument {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.task-type-badge.TechnicalNoticeDoc {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.task-type-badge.EPart {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.task-type-badge.Unknown {
+  background: #f5f5f5;
+  color: #999;
+}
+
+/* 决策标签样式 */
+.decision-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.decision-badge.通过 {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.decision-badge.驳回 {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+.decision-badge.未选择 {
+  background: #f5f5f5;
+  color: #999;
+}

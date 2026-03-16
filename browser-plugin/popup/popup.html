@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>任务确认</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="confirm-dialog">
+    <div class="header">
+      <h2>任务确认</h2>
+      <span class="source-badge" id="source">-</span>
+    </div>
+
+    <div class="task-info">
+      <div class="info-row">
+        <label>任务名称:</label>
+        <span id="taskName" class="value">-</span>
+      </div>
+      <div class="info-row">
+        <label>任务类型:</label>
+        <span id="taskType" class="value">-</span>
+      </div>
+      <div class="info-row">
+        <label>当前环节:</label>
+        <span id="currentStage" class="value">-</span>
+      </div>
+      <div class="info-row">
+        <label>决策:</label>
+        <span id="decision" class="value">-</span>
+      </div>
+      <div class="info-row">
+        <label>备注:</label>
+        <span id="remark" class="value">-</span>
+      </div>
+    </div>
+
+    <div class="sync-section">
+      <label class="checkbox-label">
+        <input type="checkbox" id="syncToSystem" checked>
+        <span>同步到任务管理系统</span>
+      </label>
+    </div>
+
+    <div class="buttons">
+      <button id="cancelBtn" class="btn-cancel">取消</button>
+      <button id="confirmBtn" class="btn-confirm">确认完成</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
